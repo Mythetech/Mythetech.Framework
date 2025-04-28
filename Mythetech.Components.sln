@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Components", "Mythetech.Components\Mythetech.Components.csproj", "{7E2FD2F5-117D-43B9-9ACA-62F623C831B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Components.Storybook", "Mythetech.Components.Storybook\Mythetech.Components.Storybook.csproj", "{D3E7FF6B-2ECF-43B1-AA0B-C0B11EC77E1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Components.Test", "Mythetech.Components.Test\Mythetech.Components.Test.csproj", "{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E2FD2F5-117D-43B9-9ACA-62F623C831B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E2FD2F5-117D-43B9-9ACA-62F623C831B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E2FD2F5-117D-43B9-9ACA-62F623C831B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E2FD2F5-117D-43B9-9ACA-62F623C831B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3E7FF6B-2ECF-43B1-AA0B-C0B11EC77E1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3E7FF6B-2ECF-43B1-AA0B-C0B11EC77E1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3E7FF6B-2ECF-43B1-AA0B-C0B11EC77E1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3E7FF6B-2ECF-43B1-AA0B-C0B11EC77E1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,31 @@
+.bg-primary-25 {
+    background-color: color-mix(in srgb, var(--mud-palette-primary) 25%, transparent)
+}
+
+.bg-primary-50 {
+    background-color: color-mix(in srgb, var(--mud-palette-primary) 50%, transparent);
+}
+
+.bg-primary-75 {
+    background-color: color-mix(in srgb, var(--mud-palette-primary) 75%, transparent);
+}
+
+.primary-shadow {
+    box-shadow: 0 0 0.4em 0.2em var(--mud-palette-primary);
+}
+
+.primary-shadow :hover {
+    box-shadow: 0 0 0.5em 0.3em var(--mud-palette-primary);
+}
+
+.align-text-center {
+    text-align: center;
+}
+
+.border-primary-1 {
+    border: solid 1px var(--mud-palette-primary);
+}
+
+.border-primary-2 {
+    border: solid 2px var(--mud-palette-primary);
+}

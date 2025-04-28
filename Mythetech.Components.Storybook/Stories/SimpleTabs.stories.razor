@@ -1,0 +1,20 @@
+@using Mythetech.Components.Components.SimpleTabs
+@using MudBlazor
+@attribute [Stories("Components/SimpleTabs")]
+
+<Stories TComponent="SimpleTabs">
+
+    <Story Name="Primary">
+        <Template>
+            <SimpleTabs @attributes="context.Args">
+                <Tab Name="Tab 1">
+                    Sample content 1
+                </Tab>
+                <Tab Name="Tab 2">
+                    <MudText>Sample Content 2</MudText>
+                </Tab>
+            </SimpleTabs>
+        </Template>
+    </Story>
+
+</Stories>
