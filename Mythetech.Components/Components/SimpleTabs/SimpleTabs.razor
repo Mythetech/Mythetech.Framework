@@ -1,15 +1,16 @@
 @using MudBlazor
+@inherits MudComponentBase
 
 <CascadingValue Value="this">
     @ChildContent
 </CascadingValue>
 
 <MudStack>
-    <MudStack Row="true" Justify="Justify.Center" Class="pa-1 align-text-center rounded border-primary-1 mx-4">
+    <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} mx-4")">
         @foreach (var tab in _tabs)
         {
-            <MudLink Class="@($"flex-grow-1 rounded{(tab.IsActive ? " bg-primary-50" : "")}")"
-                     Color="@(tab.IsActive ? Color.Primary : Color.Default)"
+            <MudLink Class="@($"flex-grow-1 rounded{(tab.IsActive ? $" {GetBackgroundClass(Color)}" : "")}")"
+                     Color="@(tab.IsActive ? Color : Color.Default)"
                      OnClick="@(() => SelectTab(tab))">
                 @tab.Name
             </MudLink>
@@ -27,6 +28,8 @@
 @code {
     [Parameter]
     public required RenderFragment ChildContent { get; set; }
+
+    [Parameter] public Color Color { get; set; } = Color.Primary;
 
     private List<Tab> _tabs = new();
 
@@ -76,5 +79,35 @@
         }
 
         StateHasChanged();
+    }
+    
+    private string GetBorderClass(Color color)
+    {
+        return color switch
+        {
+            Color.Primary => "border-primary-1",
+            Color.Secondary => "border-secondary-1",
+            Color.Tertiary => "border-tertiary-1",
+            Color.Info => "border-info-1",
+            Color.Success => "border-success-1",
+            Color.Warning => "border-warning-1",
+            Color.Error => "border-error-1",
+            _ => "border-primary-1"
+        };
+    }
+    
+    private string GetBackgroundClass(Color color)
+    {
+        return color switch
+        {
+            Color.Primary => "bg-primary-50",
+            Color.Secondary => "bg-secondary-50",
+            Color.Tertiary => "bg-tertiary-50",
+            Color.Info => "bg-info-50",
+            Color.Success => "bg-success-50",
+            Color.Warning => "bg-warning-50",
+            Color.Error => "bg-error-50",
+            _ => "bg-primary-50"
+        };
     }
 }

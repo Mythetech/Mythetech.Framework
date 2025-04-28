@@ -14,12 +14,8 @@
     box-shadow: 0 0 0.4em 0.2em var(--mud-palette-primary);
 }
 
-.primary-shadow :hover {
+.primary-shadow:hover {
     box-shadow: 0 0 0.5em 0.3em var(--mud-palette-primary);
-}
-
-.align-text-center {
-    text-align: center;
 }
 
 .border-primary-1 {
@@ -28,4 +24,182 @@
 
 .border-primary-2 {
     border: solid 2px var(--mud-palette-primary);
+}
+
+/* Secondary utility classes */
+.bg-secondary-25 {
+    background-color: color-mix(in srgb, var(--mud-palette-secondary) 25%, transparent);
+}
+
+.bg-secondary-50 {
+    background-color: color-mix(in srgb, var(--mud-palette-secondary) 50%, transparent);
+}
+
+.bg-secondary-75 {
+    background-color: color-mix(in srgb, var(--mud-palette-secondary) 75%, transparent);
+}
+
+.secondary-shadow {
+    box-shadow: 0 0 0.4em 0.2em var(--mud-palette-secondary);
+}
+
+.secondary-shadow:hover {
+    box-shadow: 0 0 0.5em 0.3em var(--mud-palette-secondary);
+}
+
+.border-secondary-1 {
+    border: solid 1px var(--mud-palette-secondary);
+}
+
+.border-secondary-2 {
+    border: solid 2px var(--mud-palette-secondary);
+}
+
+/* Tertiary utility classes */
+.bg-tertiary-25 {
+    background-color: color-mix(in srgb, var(--mud-palette-tertiary) 25%, transparent);
+}
+
+.bg-tertiary-50 {
+    background-color: color-mix(in srgb, var(--mud-palette-tertiary) 50%, transparent);
+}
+
+.bg-tertiary-75 {
+    background-color: color-mix(in srgb, var(--mud-palette-tertiary) 75%, transparent);
+}
+
+.tertiary-shadow {
+    box-shadow: 0 0 0.4em 0.2em var(--mud-palette-tertiary);
+}
+
+.tertiary-shadow:hover {
+    box-shadow: 0 0 0.5em 0.3em var(--mud-palette-tertiary);
+}
+
+.border-tertiary-1 {
+    border: solid 1px var(--mud-palette-tertiary);
+}
+
+.border-tertiary-2 {
+    border: solid 2px var(--mud-palette-tertiary);
+}
+
+/* Info utility classes */
+.bg-info-25 {
+    background-color: color-mix(in srgb, var(--mud-palette-info) 25%, transparent);
+}
+
+.bg-info-50 {
+    background-color: color-mix(in srgb, var(--mud-palette-info) 50%, transparent);
+}
+
+.bg-info-75 {
+    background-color: color-mix(in srgb, var(--mud-palette-info) 75%, transparent);
+}
+
+.info-shadow {
+    box-shadow: 0 0 0.4em 0.2em var(--mud-palette-info);
+}
+
+.info-shadow:hover {
+    box-shadow: 0 0 0.5em 0.3em var(--mud-palette-info);
+}
+
+.border-info-1 {
+    border: solid 1px var(--mud-palette-info);
+}
+
+.border-info-2 {
+    border: solid 2px var(--mud-palette-info);
+}
+
+/* Success utility classes */
+.bg-success-25 {
+    background-color: color-mix(in srgb, var(--mud-palette-success) 25%, transparent);
+}
+
+.bg-success-50 {
+    background-color: color-mix(in srgb, var(--mud-palette-success) 50%, transparent);
+}
+
+.bg-success-75 {
+    background-color: color-mix(in srgb, var(--mud-palette-success) 75%, transparent);
+}
+
+.success-shadow {
+    box-shadow: 0 0 0.4em 0.2em var(--mud-palette-success);
+}
+
+.success-shadow:hover {
+    box-shadow: 0 0 0.5em 0.3em var(--mud-palette-success);
+}
+
+.border-success-1 {
+    border: solid 1px var(--mud-palette-success);
+}
+
+.border-success-2 {
+    border: solid 2px var(--mud-palette-success);
+}
+
+/* Warning utility classes */
+.bg-warning-25 {
+    background-color: color-mix(in srgb, var(--mud-palette-warning) 25%, transparent);
+}
+
+.bg-warning-50 {
+    background-color: color-mix(in srgb, var(--mud-palette-warning) 50%, transparent);
+}
+
+.bg-warning-75 {
+    background-color: color-mix(in srgb, var(--mud-palette-warning) 75%, transparent);
+}
+
+.warning-shadow {
+    box-shadow: 0 0 0.4em 0.2em var(--mud-palette-warning);
+}
+
+.warning-shadow:hover {
+    box-shadow: 0 0 0.5em 0.3em var(--mud-palette-warning);
+}
+
+.border-warning-1 {
+    border: solid 1px var(--mud-palette-warning);
+}
+
+.border-warning-2 {
+    border: solid 2px var(--mud-palette-warning);
+}
+
+/* Error utility classes */
+.bg-error-25 {
+    background-color: color-mix(in srgb, var(--mud-palette-error) 25%, transparent);
+}
+
+.bg-error-50 {
+    background-color: color-mix(in srgb, var(--mud-palette-error) 50%, transparent);
+}
+
+.bg-error-75 {
+    background-color: color-mix(in srgb, var(--mud-palette-error) 75%, transparent);
+}
+
+.error-shadow {
+    box-shadow: 0 0 0.4em 0.2em var(--mud-palette-error);
+}
+
+.error-shadow:hover {
+    box-shadow: 0 0 0.5em 0.3em var(--mud-palette-error);
+}
+
+.border-error-1 {
+    border: solid 1px var(--mud-palette-error);
+}
+
+.border-error-2 {
+    border: solid 2px var(--mud-palette-error);
+}
+
+.align-text-center {
+    text-align: center;
 }
