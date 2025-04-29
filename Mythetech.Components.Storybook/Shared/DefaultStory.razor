@@ -1,0 +1,23 @@
+@typeparam TComponent where TComponent: notnull
+@attribute [CascadingTypeParameter(nameof(TComponent))]
+
+<Story 
+    Name="@(string.Join(" ", "Default", Name))" 
+    Layout="(typeof(DefaultMudLayout))" 
+    TComponent="TComponent" 
+    Arguments="@Arguments" 
+    Template="@Template" />
+
+@code {
+    [Parameter]
+    public RenderFragment Arguments { get; set; }
+    
+    [Parameter]
+    public RenderFragment<StoryContext> Template { get; set; }
+    
+    [Parameter]
+    public string? Name { get; set; }
+    
+    [Parameter]
+    public Type Component { get; set; }
+}

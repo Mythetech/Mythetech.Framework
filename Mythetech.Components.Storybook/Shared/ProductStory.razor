@@ -2,7 +2,7 @@
 @attribute [CascadingTypeParameter(nameof(TComponent))]
 
 
-@foreach (var (index, layout) in _layouts.Index())
+@foreach ((int index, Type layout) in _layouts.Index())
 {
     <Story Name="@(string.Join(" ", _titles[index], Name))" Layout="(layout)" TComponent="TComponent" Arguments="@Arguments" Template="@Template" />
 }
@@ -20,7 +20,7 @@
     [Parameter]
     public Type Component { get; set; }
     
-    private Type[] _layouts = [typeof(DefaultLayout), typeof(IrisLayout), typeof(ApolloLayout), typeof(AionLayout), typeof(SirenLayout)];
+    private Type[] _layouts = [typeof(DefaultMudLayout), typeof(IrisLayout), typeof(ApolloLayout), typeof(AionLayout), typeof(SirenLayout)];
     private string[] _titles = ["Default", "Iris", "Apollo", "Aion", "Siren"];
     private bool _isDarkMode = true;
 }

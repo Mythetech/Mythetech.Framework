@@ -1,15 +1,11 @@
 @inherits LayoutComponentBase
-<MudThemeProvider Theme="@(_theme)" IsDarkMode="@_isDarkMode"/>
 
-<MudStack Row Class="d-flex mud-width-full">
-    <MudSpacer/>
-    <MudIconButton Icon="@(!_isDarkMode ? Icons.Material.TwoTone.WbSunny : Icons.Material.TwoTone.ModeNight)" OnClick="(() => { _isDarkMode = !_isDarkMode; StateHasChanged(); })"/>
-</MudStack>
-
-@Body
+<MudLayoutWrapper Theme="@(_theme)">
+    @Body
+</MudLayoutWrapper>
 
 @code {
-    private bool _isDarkMode = true;
+
     private MudTheme _theme = new()
     {
         PaletteLight = new PaletteLight()
