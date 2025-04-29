@@ -1,0 +1,56 @@
+@inherits LayoutComponentBase
+<MudThemeProvider Theme="@(_theme)" IsDarkMode="@_isDarkMode"/>
+
+<MudStack Row Class="d-flex mud-width-full">
+    <MudSpacer/>
+    <MudIconButton Icon="@(!_isDarkMode ? Icons.Material.TwoTone.WbSunny : Icons.Material.TwoTone.ModeNight)" OnClick="(() => { _isDarkMode = !_isDarkMode; StateHasChanged(); })"/>
+</MudStack>
+
+@Body
+
+@code {
+    private bool _isDarkMode = true;
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = Colors.Blue.Default,
+            Secondary = Colors.Green.Accent4,
+            AppbarBackground = Colors.Red.Default,
+            Background = Colors.Shades.White,
+            DrawerBackground = Colors.Shades.White,
+            Surface = Colors.Shades.White,
+
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = Colors.Blue.Lighten1,
+            Secondary = Colors.Purple.Lighten1,
+            Tertiary = Colors.Cyan.Lighten1,
+            Background = Colors.Shades.Black,
+            DrawerBackground = Colors.Shades.Black,
+            Surface = Colors.Shades.Black,
+            GrayDarker = "#222"
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "0.5em",
+            DrawerWidthLeft = "245px",
+            DrawerWidthRight = "30vw;",
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Helvetica-Neue", "Helvetica", "Arial", "sans-serif" },
+                TextTransform = "none",
+            },
+            Button = new ButtonTypography()
+            {
+                FontFamily = new[] { "Helvetica-Neue", "Helvetica", "Arial", "sans-serif" },
+                TextTransform = "none",
+            }
+        }
+    };
+
+}

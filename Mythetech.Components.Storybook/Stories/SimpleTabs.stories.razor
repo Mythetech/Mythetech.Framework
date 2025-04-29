@@ -4,9 +4,9 @@
 
 <Stories TComponent="SimpleTabs">
 
-    <Story Name="Primary">
+    <ProductStory Name="@("(Primary)")" TComponent="SimpleTabs">
         <Arguments>
-            <Arg For="_ => _.Color" Value="Color.Primary" />
+            <Arg For="_ => _.Color" Value="Color.Primary"/>
         </Arguments>
         <Template>
             <SimpleTabs @attributes="context.Args">
@@ -18,38 +18,6 @@
                 </Tab>
             </SimpleTabs>
         </Template>
-    </Story>
-
-    <Story Name="Secondary">
-        <Arguments>
-            <Arg For="_ => _.Color" Value="Color.Secondary" />
-        </Arguments>
-        <Template>
-            <SimpleTabs @attributes="context.Args">
-                <Tab Name="Tab 1">
-                    Sample content 1
-                </Tab>
-                <Tab Name="Tab 2">
-                    <MudText>Sample Content 2</MudText>
-                </Tab>
-            </SimpleTabs>
-        </Template>
-    </Story>
-
-    <Story Name="Tertiary">
-        <Arguments>
-            <Arg For="_ => _.Color" Value="Color.Tertiary" />
-        </Arguments>
-        <Template>
-            <SimpleTabs @attributes="context.Args">
-                <Tab Name="Tab 1">
-                    Sample content 1
-                </Tab>
-                <Tab Name="Tab 2">
-                    <MudText>Sample Content 2</MudText>
-                </Tab>
-            </SimpleTabs>
-        </Template>
-    </Story>
+    </ProductStory>
 
 </Stories>

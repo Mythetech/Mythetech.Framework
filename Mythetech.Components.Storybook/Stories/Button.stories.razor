@@ -1,20 +1,22 @@
-@attribute [Stories("Example/Button")]
+@using Mythetech.Components.Components.Buttons
+@attribute [Stories("Components/Button")]
 
 <Stories TComponent="Button">
 
     <ArgType For="_ => _.Color" Control="ControlType.Color"/>
+    <ArgType For="_ => _.Class" Control="ControlType.Default" />
 
-    <Story Name="Default">
-
+    <ProductStory TComponent="Button">
         <Arguments>
-            <Arg For="_ => _.Text" Value='"Default"'/>
+            <Arg For="_ => _.Color" Value="Color.Primary"/>
+            <Arg For="_ => _.Variant" Value="Variant.Filled" />
+            <Arg For="_ => _.Text" Value="@("Button")" />
+            <Arg For="_ => _.Class" Value="@("")" />
         </Arguments>
 
         <Template>
-            <Button @attributes="context.Args">
+            <Button @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")">
             </Button>
         </Template>
-
-    </Story>
-
+    </ProductStory>
 </Stories>

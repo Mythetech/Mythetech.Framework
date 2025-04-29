@@ -200,6 +200,11 @@
     border: solid 2px var(--mud-palette-error);
 }
 
+/* General utility classes */
+.mythetech-font {
+    font-family: 'Gotu';
+}
+
 .align-text-center {
     text-align: center;
 }

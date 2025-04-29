@@ -1,7 +1,17 @@
 @inherits LayoutComponentBase
-@* See also: https://github.com/jsakamoto/BlazingStory#%EF%B8%8F-configure-layouts *@
-<MudThemeProvider />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<MudThemeProvider Theme="@(_theme)" IsDarkMode="@_isDarkMode"/>
+
+<MudStack Row Class="d-flex mud-width-full">
+    <MudSpacer/>
+    <MudIconButton Icon="@(!_isDarkMode ? Icons.Material.TwoTone.WbSunny : Icons.Material.TwoTone.ModeNight)" OnClick="(() => { _isDarkMode = !_isDarkMode; StateHasChanged(); })"/>
+</MudStack>
+
 @Body
+
+@code {
+
+    private bool _isDarkMode = true;
+    private MudTheme _theme = new();
+}
+
+

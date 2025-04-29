@@ -1,0 +1,65 @@
+@inherits LayoutComponentBase
+<MudThemeProvider Theme="@(_theme)" IsDarkMode="@_isDarkMode"/>
+
+<MudStack Row Class="d-flex mud-width-full">
+    <MudSpacer/>
+    <MudIconButton Icon="@(!_isDarkMode ? Icons.Material.TwoTone.WbSunny : Icons.Material.TwoTone.ModeNight)" OnClick="(() => { _isDarkMode = !_isDarkMode; StateHasChanged(); })"/>
+</MudStack>
+
+@Body
+
+@code {
+    private bool _isDarkMode = true;
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Secondary = "#FFFFFF",
+            PrimaryLighten = "#3B3B3B",
+            AppbarBackground = "#000",
+            Primary = "#FFB606",
+            Tertiary = "#B28228",
+            Surface = "#FFFFFF",
+            Dark = "#F3F3E6",
+            OverlayDark = "#FFFFFF4a",
+            Divider = "#FFB606",
+            GrayDarker = "#666"
+        },
+
+        PaletteDark = new PaletteDark()
+        {
+            Secondary = "#1C1C1C",
+            PrimaryLighten = "#3B3B3B",
+            AppbarBackground = "#000",
+            Primary = "#FFB606",
+            Tertiary = "#B28228",
+            Surface = "#000",
+            Dark = "#333",
+            Divider = "#FFB606",
+            GrayDarker = "#222"
+        },
+
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Tahoma", "Geneva", "Verdana", },
+                TextTransform = "none",
+                FontSize = "0.75",
+            },
+
+            Button = new ButtonTypography()
+            {
+                FontFamily = new[] { "Tahoma", "Geneva", "Verdana", },
+                TextTransform = "none",
+                FontSize = "1em",
+            }
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "0.5em",
+            AppbarHeight = "3rem",
+            DrawerWidthLeft = "3.25em",
+        },
+    };
+    }
