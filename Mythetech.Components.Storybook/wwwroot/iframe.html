@@ -5,7 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mythetech.Components.Storybook</title>
+    #IF RELEASE
+    <base href="/Mythetech.Components">
+    #ELSE
     <base href="/" />
+    #ENDIF
     <link rel="stylesheet" href="css/blazor-ui.css" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="_content/Mythetech.Components/mythetech.css" />
