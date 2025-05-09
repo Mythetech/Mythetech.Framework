@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Components.Storyb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Components.Test", "Mythetech.Components.Test\Mythetech.Components.Test.csproj", "{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Components.Desktop", "Mythetech.Components.Desktop\Mythetech.Components.Desktop.csproj", "{A940A90F-794C-4D88-9BB1-3049D759B37E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3287E3EA-DA88-4BC3-A627-BF488BC8A3A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A940A90F-794C-4D88-9BB1-3049D759B37E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A940A90F-794C-4D88-9BB1-3049D759B37E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A940A90F-794C-4D88-9BB1-3049D759B37E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A940A90F-794C-4D88-9BB1-3049D759B37E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

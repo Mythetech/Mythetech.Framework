@@ -5,7 +5,7 @@
 <MudStack Row Class="d-flex mud-width-full">
     <MudSpacer/>
     <MudTooltip Text="@(_isDarkMode ? "Switch to Light" : "Switch to Dark")" Placement="Placement.Left">
-        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.TwoTone.WbSunny : Icons.Material.TwoTone.ModeNight)" OnClick="(() => { _isDarkMode = !_isDarkMode; StateHasChanged(); })"/>
+        <MudIconButton Class="pa-2 ma-2" Icon="@(_isDarkMode ? Icons.Material.TwoTone.WbSunny : Icons.Material.TwoTone.ModeNight)" OnClick="(() => { _isDarkMode = !_isDarkMode; StateHasChanged(); })"/>
     </MudTooltip>
 </MudStack>
 
