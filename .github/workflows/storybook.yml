@@ -82,7 +82,7 @@ jobs:
         uses: SteveSandersonMS/ghaction-rewrite-base-href@v1
         with:
           html_path: ${{ env.PUBLISH_DIR }}/index.html
-          base_href: /Mythetech.Components/
+          base_href: /Mythetech.Components.Storybook/
         
       - name: Setup Pages
         uses: actions/configure-pages@v5
