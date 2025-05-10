@@ -1,0 +1,22 @@
+@using Mythetech.Components.Components.Buttons
+@using Mythetech.Components.Components.Progress
+@attribute [Stories("Components/ProgressCountdown")]
+
+<Stories TComponent="ProgressCountdown">
+
+    <ArgType For="_ => _.Color" Control="ControlType.Color"/>
+
+    <ProductStory TComponent="ProgressCountdown">
+        <Arguments>
+            <Arg For="_ => _.Color" Value="Color.Primary"/>
+            <Arg For="_ => _.Rounded" Value="true" />
+            <Arg For="_ => _.Striped" Value="false" />
+            <Arg For="_ => _.Duration" Value="30000" />
+        </Arguments>
+
+        <Template>
+            <ProgressCountdown @attributes="context.Args" >
+            </ProgressCountdown>
+        </Template>
+    </ProductStory>
+</Stories>
