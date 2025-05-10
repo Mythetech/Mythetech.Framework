@@ -1,6 +1,12 @@
 @using MudBlazor
 @implements IDisposable
-<MudProgressLinear Color="@Color" Value="@Value" Rounded="@Rounded" Striped="@Striped" />
+<MudProgressLinear 
+    Color="@Color" 
+    Value="@Value" 
+    Rounded="@Rounded" 
+    Striped="@Striped" 
+    Size="@Size" 
+    />
 
 @code {
     private bool _disposed;
@@ -12,19 +18,25 @@
     [Parameter] public bool Rounded { get; set; } = true;
 
     [Parameter] public bool Striped { get; set; } = false;
+
+    [Parameter] public Size Size { get; set; } = Size.Small;
     
-    private int Value { get; set; } = 100;
+    private double Value { get; set; } = 100;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         await StartCountdownAsync(Duration);
     }
-
-    private async Task StartCountdownAsync(int durationInSeconds)
+    
+    private async Task StartCountdownAsync(double durationInMilliSeconds)
     {
-        var interval = 100; 
-        var totalIntervals = durationInSeconds / interval;
+        const int interval = 60; //60 "frames" per second
+        const int refreshRate = 14; //16.6 * 60 roughly equals 1000 MS, or a second, going a bit lower makes the animation look smoother but may end a touch early
+        
+        double totalIntervals = durationInMilliSeconds * interval / 1000; //Ex 5000ms times 60 / 1000 expects 300 total loop iterations
+
+        double burndownRate = 100d / totalIntervals; //Value scale of 100 divided by the total calculated intervals
         
         for (int i = 0; i < totalIntervals; i++)
         {
@@ -32,10 +44,10 @@
             {
                 return;
             }
-
-            Value = 100 - (int)((i / (float)totalIntervals) * 100);
-            StateHasChanged();
-            await Task.Delay(interval);
+            
+            Value -= burndownRate;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(refreshRate);
         }
 
         Value = 0;

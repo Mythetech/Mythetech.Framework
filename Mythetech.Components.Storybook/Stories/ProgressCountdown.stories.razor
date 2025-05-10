@@ -19,4 +19,18 @@
             </ProgressCountdown>
         </Template>
     </ProductStory>
+    
+    <Story Name="Shorter Timer" Layout="typeof(DefaultMudLayout)">
+        <Arguments>
+            <Arg For="_ => _.Color" Value="Color.Primary"/>
+            <Arg For="_ => _.Rounded" Value="true" />
+            <Arg For="_ => _.Striped" Value="false" />
+            <Arg For="_ => _.Duration" Value="5000" />
+        </Arguments>
+
+        <Template>
+            <ProgressCountdown @attributes="context.Args" >
+            </ProgressCountdown>
+        </Template>
+    </Story>
 </Stories>
