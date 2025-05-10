@@ -9,11 +9,13 @@
 
 # Mythetech.Components
 
-A collection of reusable Blazor components built with MudBlazor for the Mythetech platform.
+A collection of reusable Blazor components and abstractions to help build cross platform rich application experiences for desktop and web in blazor.
 
 ## Overview
 
 This repository contains a set of custom Blazor components that extend the functionality of MudBlazor, providing a consistent and reusable component library for Mythetech applications. The components are designed to be modular, maintainable, and follow best practices for Blazor development.
+
+The repository also contains abstractions for functionality to work generically with blazor applications acknowledging the behavior for some interactions is broadly different across runtime environments, like desktop in a webview versus natively in WebAssembly in the browser.
 
 ## Storybook Demo
 
