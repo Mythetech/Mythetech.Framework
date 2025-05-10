@@ -19,6 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Mythetech.Components.WebAssembly\Mythetech.Components.WebAssembly.csproj" />
       <ProjectReference Include="..\Mythetech.Components\Mythetech.Components.csproj" />
     </ItemGroup>
 
