@@ -19,7 +19,7 @@ The repository also contains abstractions for functionality to work generically 
 
 ## Storybook Demo
 
-The component library leverages blazingstory to create a visual storybook of components shipped in the library, with wrappings to provide product-themed previews and light/dark toggles.
+The component library leverages [BlazingStory](https://github.com/jsakamoto/BlazingStory) to create a visual storybook of components shipped in the library, with wrappings to provide product-themed previews and light/dark toggles.
 
 The WebAssembly story book is hosted on github pages here: https://mythetech.github.io/Mythetech.Components/
 
