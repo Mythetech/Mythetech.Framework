@@ -1,19 +1,27 @@
 @using MudBlazor
 @using Mythetech.Components.Infrastructure
-<MudLink OnClick="OnLinkClicked">
+@inherits MudComponentBase
+
+<MudLink Class="@Class" Style="@Style" Color="@Color" Typo="@Typo" OnClick="OnLinkClicked">
     @ChildContent
 </MudLink>
+
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
     
     [Parameter]
-    public string Link { get; set; }
-    
-    [Inject]
-    protected ILinkOpenService LinkService { get; set; }
+    public string? Link { get; set; }
+
+    [Parameter] 
+    public Color Color { get; set; } = Color.Default;
+
+    [Parameter]
+    public Typo Typo { get; set; } = Typo.inherit;
+
+    [Inject] 
+    protected ILinkOpenService LinkService { get; set; } = null!;
 
     protected void OnLinkClicked()
-        => LinkService.OpenLink(Link);
-
+        => LinkService.OpenLink(Link ?? "");
 }

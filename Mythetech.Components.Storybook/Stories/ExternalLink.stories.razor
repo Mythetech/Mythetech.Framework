@@ -1,0 +1,28 @@
+@using Mythetech.Components.Components.Links
+@attribute [Stories("Components/ExternalLink")]
+
+<Stories TComponent="ExternalLink">
+
+    <ArgType For="_ => _.Color" Control="ControlType.Select"/>
+    <ArgType For="_ => _.Typo" Control="ControlType.Select"/>
+    <ArgType For="_ => _.Class" Control="ControlType.Default" />
+
+    <Story TComponent="ExternalLink" Layout="typeof(DefaultMudLayout)" Name="External Link">
+        <Arguments>
+            <Arg For="_ => _.Link" Value="@($"https://www.mythetech.com")" />
+            <Arg For="_ => _.Class" Value="@("")" />
+            <Arg For="_ => _.Style" Value="@("")" />
+            <Arg For="_ => _.ChildContent" Value="_defaultContent" />
+        </Arguments>
+
+        <Template>
+            <ExternalLink @attributes="context.Args" >
+            </ExternalLink>
+        </Template>
+        
+    </Story>
+</Stories>
+
+@code {
+    private RenderFragment _defaultContent = @<text>Mythetech</text>;
+}
