@@ -33,9 +33,9 @@ jobs:
 
       - name: Build and Pack Components Library
         run: |
-          dotnet pack Mythetech.Components/Mythetech.Components.csproj -c Release --no-build -o ./nupkgs
-          dotnet pack Mythetech.Components.WebAssembly/Mythetech.Components.WebAssembly.csproj -c Release --no-build -o ./nupkgs
-          dotnet pack Mythetech.Components.Desktop/Mythetech.Components.Desktop.csproj -c Release --no-build -o ./nupkgs
+          dotnet pack Mythetech.Components/Mythetech.Components.csproj -c Release -o ./nupkgs
+          dotnet pack Mythetech.Components.WebAssembly/Mythetech.Components.WebAssembly.csproj -c Release -o ./nupkgs
+          dotnet pack Mythetech.Components.Desktop/Mythetech.Components.Desktop.csproj -c Release -o ./nupkgs
 
       - name: Publish Packages
         run: dotnet nuget push ./nupkgs/*.nupkg --source ${{ env.NUGET_SOURCE }} --api-key ${{ env.NUGET_AUTH_TOKEN }} 
