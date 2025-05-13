@@ -24,7 +24,10 @@
     <ItemGroup>
         <SupportedPlatform Include="browser" />
     </ItemGroup>
-    
+
+    <ItemGroup>
+        <EmbeddedResource Include="wwwroot/*" />
+    </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Microsoft.AspNetCore.Components" Version="9.0.4" />
