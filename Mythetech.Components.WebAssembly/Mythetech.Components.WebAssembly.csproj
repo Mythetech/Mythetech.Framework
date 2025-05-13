@@ -11,7 +11,6 @@
         <PackageTags>blazor;wasm;components;ui</PackageTags>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/mythetech/Mythetech.Components</RepositoryUrl>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
