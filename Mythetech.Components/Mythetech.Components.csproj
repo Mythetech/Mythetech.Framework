@@ -6,6 +6,16 @@
         <Nullable>enable</Nullable>
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        
+        <!-- NuGet Package Metadata -->
+        <PackageId>Mythetech.Components</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Mythetech</Authors>
+        <Description>Base component library for Mythetech applications</Description>
+        <PackageTags>blazor;components;ui</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/mythetech/Mythetech.Components</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

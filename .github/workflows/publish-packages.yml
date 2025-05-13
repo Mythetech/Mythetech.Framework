@@ -1,0 +1,41 @@
+name: Publish NuGet Packages
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+env:
+  NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  NUGET_SOURCE: https://nuget.pkg.github.com/mythetech/index.json
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get latest .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0'
+
+      - name: Install .Net WASM workload
+        run: dotnet workload install wasm-tools
+
+      - name: Setup NuGet Authentication
+        run: dotnet nuget add source --username USERNAME --password ${{ env.NUGET_AUTH_TOKEN }} --store-password-in-clear-text --name github ${{ env.NUGET_SOURCE }}
+
+      - name: Build and Pack Components Library
+        run: |
+          dotnet pack Mythetech.Components/Mythetech.Components.csproj -c Release --no-build -o ./nupkgs
+          dotnet pack Mythetech.Components.WebAssembly/Mythetech.Components.WebAssembly.csproj -c Release --no-build -o ./nupkgs
+          dotnet pack Mythetech.Components.Desktop/Mythetech.Components.Desktop.csproj -c Release --no-build -o ./nupkgs
+
+      - name: Publish Packages
+        run: dotnet nuget push ./nupkgs/*.nupkg --source ${{ env.NUGET_SOURCE }} --api-key ${{ env.NUGET_AUTH_TOKEN }} 
