@@ -1,7 +1,7 @@
 @using MudBlazor
 @inherits MudComponentBase
 
-<MudButton Class="@($"rounded-xl {Class}")" Style="@Style" Variant="@Variant" Color="@Color" Ripple="false">
+<MudButton Class="@($"rounded-xl {Class}")" Style="@Style" Variant="@Variant" Color="@Color" Ripple="false" OnClick="@OnClick">
     @Text
 </MudButton>
 
@@ -22,4 +22,9 @@
     /// Color theme of the Button with default
     /// </summary>
     [Parameter] public Color Color { get; set; } = Color.Primary;
+
+    /// <summary>
+    /// Callback invoked when the button is clicked
+    /// </summary>
+    [Parameter] public EventCallback OnClick { get; set; } = default!;
 }

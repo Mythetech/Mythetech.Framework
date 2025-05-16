@@ -1,5 +1,7 @@
 <MudThemeProvider Theme="@(Theme)" IsDarkMode="@_isDarkMode"/>
 <MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 <MudPaper Outlined="false" Height="100%" Width="100%" Class="pa-1">
 
 <MudStack Row Class="d-flex mud-width-full">
@@ -8,8 +10,19 @@
         <MudIconButton Class="pa-2 ma-2" Icon="@(_isDarkMode ? Icons.Material.TwoTone.WbSunny : Icons.Material.TwoTone.ModeNight)" OnClick="(() => { _isDarkMode = !_isDarkMode; StateHasChanged(); })"/>
     </MudTooltip>
 </MudStack>
-
-    @ChildContent
+<ErrorBoundary>
+    <ChildContent>
+        @ChildContent
+    </ChildContent>
+    <ErrorContent>
+        <MudStack>
+            <MudText Color="Color.Error">@context.Message</MudText>
+            <pre>
+                @context.StackTrace
+            </pre>
+        </MudStack>
+    </ErrorContent>
+</ErrorBoundary>
 </MudPaper>
 
 @code {
