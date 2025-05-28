@@ -6,7 +6,7 @@
 </CascadingValue>
 
 <MudStack>
-    <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} mx-4")" Spacing="0" AlignItems="AlignItems.Center">
+    <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} mx-4 {Class}")" Spacing="0" AlignItems="AlignItems.Center" Style="@Style">
         @foreach (var tab in _tabs)
         {
          
