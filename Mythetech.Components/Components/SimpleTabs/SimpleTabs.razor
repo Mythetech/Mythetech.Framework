@@ -6,13 +6,21 @@
 </CascadingValue>
 
 <MudStack>
-    <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} mx-4")">
+    <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} mx-4")" Spacing="0" AlignItems="AlignItems.Center">
         @foreach (var tab in _tabs)
         {
+         
             <MudLink Class="@($"flex-grow-1 rounded{(tab.IsActive ? $" {GetBackgroundClass(Color)}" : "")}")"
                      Color="@(tab.IsActive ? Color : Color.Default)"
                      OnClick="@(() => SelectTab(tab))">
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                @if (!string.IsNullOrWhiteSpace(tab.Icon))
+                {
+                    <MudIcon Icon="@tab.Icon"
+                             Color="@(tab.IsActive ? Color : Color.Default)"/>
+                }
                 @tab.Name
+                </MudStack>
             </MudLink>
         }
     </MudStack>
@@ -30,7 +38,7 @@
     public required RenderFragment ChildContent { get; set; }
 
     [Parameter] public Color Color { get; set; } = Color.Primary;
-
+    
     private List<Tab> _tabs = new();
 
     protected override void OnInitialized()

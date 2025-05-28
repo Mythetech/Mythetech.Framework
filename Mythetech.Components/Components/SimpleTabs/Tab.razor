@@ -8,6 +8,8 @@
     
     [Parameter] public bool IsActive { get; set; }
     
+    [Parameter] public string? Icon { get; set; }
+    
     [Parameter] public required RenderFragment ChildContent { get; set; }
     
     [CascadingParameter] public SimpleTabs? Parent { get; set; }
@@ -22,10 +24,7 @@
     
     public void Dispose()
     {
-        if (Parent != null)
-        {
-            Parent.RemoveTab(this);
-        }
+        Parent?.RemoveTab(this);
     }
 }
 

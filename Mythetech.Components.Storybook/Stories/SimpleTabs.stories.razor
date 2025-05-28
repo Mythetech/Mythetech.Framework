@@ -19,5 +19,19 @@
             </SimpleTabs>
         </Template>
     </ProductStory>
-
+    <Story Name="With Icons" Layout="typeof(DefaultMudLayout)">
+        <Arguments>
+            <Arg For="_ => _.Color" Value="Color.Primary"/>
+        </Arguments>
+        <Template>
+            <SimpleTabs>
+                <Tab Name="Cookies" Icon="@Icons.Material.Outlined.Cookie">
+                    Cookie!
+                </Tab>
+                <Tab Name="Info" Icon="@Icons.Material.Outlined.Info">
+                    Info!
+                </Tab>
+            </SimpleTabs>
+        </Template>
+    </Story>
 </Stories>
