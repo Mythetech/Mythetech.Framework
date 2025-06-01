@@ -79,6 +79,19 @@
         }
     }
 
+    /// <summary>
+    /// Selects a tab to be active by its tab name
+    /// </summary>
+    /// <param name="tabName"></param>
+    public void SelectTab(string tabName)
+    {
+        var tab = _tabs.FirstOrDefault(x => x.Name.Equals(tabName));
+        
+        if (tab == null) return;
+        
+        SelectTab(tab);
+    }
+
     private void SelectTab(Tab tab)
     {
         foreach (var t in _tabs)
