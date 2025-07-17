@@ -7,7 +7,7 @@
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <PackageId>Mythetech.Components</PackageId>
-        <Version>0.0.6</Version>
+        <Version>0.0.7</Version>
         <Authors>Mythetech</Authors>
         <Description>Base component library for Mythetech applications</Description>
         <PackageTags>blazor;components;ui</PackageTags>
@@ -17,7 +17,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <ItemGroup>

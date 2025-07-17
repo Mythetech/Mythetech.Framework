@@ -1,6 +1,13 @@
 namespace Mythetech.Components.Infrastructure;
 
+/// <summary>
+/// Abstract interface for opening links
+/// </summary>
 public interface ILinkOpenService
 {
-    public Task OpenLink(string url);
+    /// <summary>
+    /// Open a URL link
+    /// </summary>
+    /// <param name="url">A url to open</param>
+    public Task OpenLinkAsync(string url);
 }

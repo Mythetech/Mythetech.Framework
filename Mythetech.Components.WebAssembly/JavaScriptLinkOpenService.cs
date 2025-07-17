@@ -13,7 +13,7 @@ public class JavaScriptLinkOpenService : ILinkOpenService
         _jsRuntime = jsRuntime;
     }
     
-    public async Task OpenLink(string url)
+    public async Task OpenLinkAsync(string url)
     {
         await _jsRuntime.InvokeVoidAsync("open", url, "_blank");      
     }

@@ -34,18 +34,26 @@
 </MudStack>
 
 @code {
+    /// <summary>
+    /// The content to render in the cascading tab content area
+    /// </summary>
     [Parameter]
     public required RenderFragment ChildContent { get; set; }
 
+    /// <summary>
+    /// Color to display the tabs in
+    /// </summary>
     [Parameter] public Color Color { get; set; } = Color.Primary;
     
     private List<Tab> _tabs = new();
 
+    /// <inheritdoc />
     protected override void OnInitialized()
     {
         _tabs.Clear();
     }
 
+    /// <inheritdoc />
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender && _tabs.Count > 0 && !_tabs.Any(t => t.IsActive))

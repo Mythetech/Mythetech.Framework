@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Mythetech.Components.Infrastructure.MessageBus;
 
+/// <summary>
+/// In memory implementation of the generic bus to work in desktop + webassembly blazor applications
+/// </summary>
 public class InMemoryMessageBus : IMessageBus
 {
     private readonly Dictionary<Type, List<Type>> _registeredConsumerTypes = new();
@@ -12,12 +15,18 @@ public class InMemoryMessageBus : IMessageBus
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<InMemoryMessageBus> _logger;
 
+    /// <summary>
+    /// Constructor for the in memory implementation
+    /// </summary>
+    /// <param name="serviceProvider">Service provider for registration</param>
+    /// <param name="logger">Logger</param>
     public InMemoryMessageBus(IServiceProvider serviceProvider, ILogger<InMemoryMessageBus> logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
+    /// <inheritdoc/>
     public async Task PublishAsync<TMessage>(TMessage message) where TMessage : class
     {
         var registeredConsumers = GetOrResolveConsumers<TMessage>();
@@ -46,6 +55,7 @@ public class InMemoryMessageBus : IMessageBus
         await Task.WhenAll(tasks);
     }
 
+    /// <inheritdoc/>
     public void RegisterConsumerType<TMessage, TConsumer>() where TMessage : class where TConsumer : IConsumer<TMessage>
     {
         if (!_registeredConsumerTypes.ContainsKey(typeof(TMessage)))
@@ -76,6 +86,7 @@ public class InMemoryMessageBus : IMessageBus
         return cached.Cast<IConsumer<TMessage>>().ToList();
     }
 
+    /// <inheritdoc/>
     public void Subscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class
     {
         if (!_subscribers.ContainsKey(typeof(TMessage)))
@@ -84,6 +95,7 @@ public class InMemoryMessageBus : IMessageBus
         _subscribers[typeof(TMessage)].Add(consumer);
     }
 
+    /// <inheritdoc/>
     public void Unsubscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class
     {
         if (!_subscribers.TryGetValue(typeof(TMessage), out var handlers)) return;

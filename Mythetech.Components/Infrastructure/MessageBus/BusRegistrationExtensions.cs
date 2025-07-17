@@ -4,8 +4,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Mythetech.Components.Infrastructure.MessageBus;
 
+/// <summary>
+/// Extensions for registering consumers to work with the message bus
+/// </summary>
 public static class BusRegistrationExtensions
 {
+    /// <summary>
+    /// Registers consumers to the bus instance 
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="assembly">Assembly to search</param>
     public static void RegisterConsumers(this IServiceCollection services, Assembly assembly)
     {
         var consumerTypes = assembly
@@ -22,6 +30,11 @@ public static class BusRegistrationExtensions
         }
     }
     
+    /// <summary>
+    /// Registers consumers to the bus
+    /// </summary>
+    /// <param name="bus">Message bus abstraction</param>
+    /// <param name="assembly">Assembly to search</param>
     public static void RegisterConsumersToBus(this IMessageBus bus, Assembly assembly)
     {
         var consumerTypes = assembly
@@ -38,6 +51,12 @@ public static class BusRegistrationExtensions
         }
     }
 
+    /// <summary>
+    /// Register specific consumer type and message to a bus
+    /// </summary>
+    /// <param name="bus">Bus to register to</param>
+    /// <param name="messageType">Message type</param>
+    /// <param name="consumerType">Consumer Type</param>
     public static void RegisterConsumerType(this IMessageBus bus, Type messageType, Type consumerType)
     {
         var method = typeof(IMessageBus).GetMethod(nameof(IMessageBus.RegisterConsumerType))?
@@ -45,6 +64,11 @@ public static class BusRegistrationExtensions
         method?.Invoke(bus, null);
     }
 
+    /// <summary>
+    /// Add message bus to the DI container
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <returns></returns>
     public static IServiceCollection AddMessageBus(this IServiceCollection services)
     {
         services.AddSingleton<IMessageBus, InMemoryMessageBus>();
@@ -54,6 +78,11 @@ public static class BusRegistrationExtensions
         return services;
     }
     
+    /// <summary>
+    /// Add message bus to the DI container for arbitrary assemblies
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="assemblies">Assemblies to register from</param>
     public static IServiceCollection AddMessageBus(this IServiceCollection services,  params Assembly[] assemblies)
     {
         services.AddSingleton<IMessageBus, InMemoryMessageBus>();
@@ -66,6 +95,10 @@ public static class BusRegistrationExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers services for the bus
+    /// </summary>
+    /// <param name="serviceProvider">Built service provider</param>
     public static IServiceProvider UseMessageBus(this IServiceProvider serviceProvider)
     {
         var bus = serviceProvider.GetRequiredService<IMessageBus>();
@@ -74,6 +107,11 @@ public static class BusRegistrationExtensions
         return serviceProvider;
     }
     
+    /// <summary>
+    /// Registers services for the bus
+    /// </summary>
+    /// <param name="serviceProvider">Built service provider</param>
+    /// <param name="assemblies">Registers consumers in each assembly</param>
     public static IServiceProvider UseMessageBus(this IServiceProvider serviceProvider, params Assembly[] assemblies)
     {
         var bus = serviceProvider.GetRequiredService<IMessageBus>();
