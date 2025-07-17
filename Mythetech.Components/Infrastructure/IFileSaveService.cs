@@ -16,5 +16,6 @@ public interface IFileSaveService
     /// Prompts behavior to save a file
     /// </summary>
     /// <param name="fileName">Name of the file</param>
-    public Task<string?> PromptFileSaveAsync(string fileName);
+    /// <param name="extension">Extension to show by default in the prompt</param>
+    public Task<string?> PromptFileSaveAsync(string fileName, string extension = "txt");
 }

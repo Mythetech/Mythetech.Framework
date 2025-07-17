@@ -22,12 +22,12 @@ public class PhotinoInteropFileSaveService : IFileSaveService
         return true;
     }
 
-    public async Task<string?> PromptFileSaveAsync(string fileName)
+    public async Task<string?> PromptFileSaveAsync(string fileName, string extension = "txt")
     {
         var app = _provider.Instance;
 
-        string? location = await app.MainWindow.ShowSaveFileAsync("Save File", null, [(fileName, ["sql"])]);
+        string? location = await app.MainWindow.ShowSaveFileAsync("Save File", null, [(fileName, [extension])]);
         
-        return string.IsNullOrEmpty(location) ? default : location;
+        return string.IsNullOrEmpty(location) ? null : location;
     }
 }

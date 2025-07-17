@@ -16,12 +16,12 @@ public interface IMessageBus
     void RegisterConsumerType<TMessage, TConsumer>() where TMessage : class where TConsumer : IConsumer<TMessage>;
     
     /// <summary>
-    /// Subscribes an IConsumer<TMessage> to the bus.
+    /// Subscribes an IConsumer of TMessage to the bus.
     /// </summary>
     void Subscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class;
     
     /// <summary>
-    /// Removes an IConsumer<TMessage> subscription from the bus.
+    /// Removes an IConsumer of TMessage subscription from the bus.
     /// </summary>
     void Unsubscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class;
 }

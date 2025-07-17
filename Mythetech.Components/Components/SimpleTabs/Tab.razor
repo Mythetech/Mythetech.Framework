@@ -2,18 +2,37 @@
 @implements IDisposable
 
 @code {
+    /// <summary>
+    /// Tab Name
+    /// </summary>
     [Parameter] public string Name { get; set; } = "";
 
+    /// <summary>
+    /// Tab Id
+    /// </summary>
     [Parameter] public string Id { get; set; } = Guid.NewGuid().ToString();
     
-    [Parameter] public bool IsActive { get; set; }
-    
+    /// <summary>
+    /// Tab Icon
+    /// </summary>
     [Parameter] public string? Icon { get; set; }
     
+    /// <summary>
+    /// Tab Content
+    /// </summary>
     [Parameter] public required RenderFragment ChildContent { get; set; }
     
+    /// <summary>
+    /// Tab group parent
+    /// </summary>
     [CascadingParameter] public SimpleTabs? Parent { get; set; }
     
+    /// <summary>
+    /// If the tab is active, should be managed by the tab group or `SelectTab` from the parent ref
+    /// </summary>
+    public bool IsActive { get; internal set; }
+    
+    /// <inheritdoc/>
     protected override void OnInitialized()
     {
         if (Parent == null)
@@ -21,7 +40,8 @@
             
         Parent.AddTab(this);
     }
-    
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         Parent?.RemoveTab(this);
