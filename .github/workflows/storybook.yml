@@ -1,14 +1,14 @@
 # Simple workflow for deploying static content to GitHub Pages
 name: Deploy Component Storybook
 env:
-  PUBLISH_DIR: Mythetech.Components.Storybook/bin/Release/net9.0/publish/wwwroot
+  PUBLISH_DIR: Mythetech.Components.Storybook/bin/Release/net10.0/publish/wwwroot
 
 on:
   # Runs on pushes targeting the default branch and PRs
   push:
     paths:
       - Mythetech.Components.*/**
-      - '.github/workflows/storybook.yml'
+      - ".github/workflows/storybook.yml"
     branches:
       - main
   pull_request:
@@ -40,7 +40,7 @@ jobs:
       - name: Get latest .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0'
+          dotnet-version: "10.0"
 
       - name: Install .Net WASM workload
         run: dotnet workload install wasm-tools
@@ -70,7 +70,7 @@ jobs:
       - name: Get latest .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0'
+          dotnet-version: "10.0"
 
       - name: Install .Net WASM workload
         run: dotnet workload install wasm-tools
@@ -89,7 +89,7 @@ jobs:
         with:
           html_path: ${{ env.PUBLISH_DIR }}/iframe.html
           base_href: /Mythetech.Components/
-        
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
