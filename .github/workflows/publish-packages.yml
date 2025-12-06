@@ -5,10 +5,6 @@ on:
     types: [created]
   workflow_dispatch:
 
-env:
-  NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  NUGET_SOURCE: https://nuget.pkg.github.com/mythetech/index.json
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -20,22 +16,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get latest .NET SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0'
+          dotnet-version: '10.0'
 
-      - name: Install .Net WASM workload
+      - name: Install .NET WASM workload
         run: dotnet workload install wasm-tools
 
-      - name: Setup NuGet Authentication
-        run: dotnet nuget add source --username USERNAME --password ${{ env.NUGET_AUTH_TOKEN }} --store-password-in-clear-text --name github ${{ env.NUGET_SOURCE }}
-
-      - name: Build and Pack Components Library
+      - name: Build and Pack
         run: |
           dotnet pack Mythetech.Components/Mythetech.Components.csproj -c Release -o ./nupkgs
           dotnet pack Mythetech.Components.WebAssembly/Mythetech.Components.WebAssembly.csproj -c Release -o ./nupkgs
           dotnet pack Mythetech.Components.Desktop/Mythetech.Components.Desktop.csproj -c Release -o ./nupkgs
 
-      - name: Publish Packages
-        run: dotnet nuget push ./nupkgs/*.nupkg --source ${{ env.NUGET_SOURCE }} --api-key ${{ env.NUGET_AUTH_TOKEN }} 
+      - name: Publish to NuGet.org
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate
+
+      - name: Publish to GitHub Packages
+        run: |
+          dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github https://nuget.pkg.github.com/mythetech/index.json
+          dotnet nuget push ./nupkgs/*.nupkg --source github --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate

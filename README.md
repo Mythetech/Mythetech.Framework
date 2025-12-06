@@ -43,8 +43,11 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 
 ## Requirements
 
-- .NET 9.0 SDK
+- .NET 10.0 SDK
+- Editor of choice
+- Rider (recommended)
 - Visual Studio 2022 or later (recommended)
+- VS Code with C# Dev Kit
 
 ## Getting Started
 
@@ -59,14 +62,14 @@ To use these components in your Blazor application:
 
 1. Add a reference to the `Mythetech.Components` project
 2. Add the following to your `_Imports.razor`:
+
 ```razor
 @using Mythetech.Components
 ```
 
 3. Register the services in your `Program.cs`:
 
-The component library provides a lightweight message bus for commands/events 
-
+The component library provides a lightweight message bus for commands/events
 
 ```csharp
 builder.Services.AddMessageBus();
@@ -98,6 +101,7 @@ The project includes a comprehensive test suite. To run the tests:
 1. Open the solution in Visual Studio
 2. Use the Test Explorer to run individual tests
 3. Or run all tests using the command line:
+
 ```bash
 dotnet test
 ```
@@ -108,6 +112,7 @@ The project includes a Storybook implementation for component documentation and 
 
 1. Navigate to the `Mythetech.Components.Storybook` directory
 2. Run the project:
+
 ```bash
 dotnet run
 ```

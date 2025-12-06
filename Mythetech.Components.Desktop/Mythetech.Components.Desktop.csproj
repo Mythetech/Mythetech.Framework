@@ -11,6 +11,9 @@
         <PackageTags>blazor;desktop;photino;components;ui</PackageTags>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/mythetech/Mythetech.Components</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/mythetech/Mythetech.Components</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>icon.png</PackageIcon>
     </PropertyGroup>
 
     <ItemGroup>
@@ -19,6 +22,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Mythetech.Components\Mythetech.Components.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\README.md" Pack="true" PackagePath="\"/>
+      <None Include="..\icon.png" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
 </Project>
