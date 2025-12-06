@@ -13,6 +13,9 @@
         <PackageTags>blazor;components;ui</PackageTags>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/mythetech/Mythetech.Components</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/mythetech/Mythetech.Components</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>icon.png</PackageIcon>
         <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
         <AttachWeakETagToCompressedAssetsDuringDevelopment>true</AttachWeakETagToCompressedAssetsDuringDevelopment>
     </PropertyGroup>
@@ -33,6 +36,11 @@
       <PackageReference Include="Microsoft.AspNetCore.Components" Version="9.0.4" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.4" />
       <PackageReference Include="MudBlazor" Version="8.14.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\README.md" Pack="true" PackagePath="\"/>
+      <None Include="..\icon.png" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
 </Project>

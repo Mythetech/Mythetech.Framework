@@ -11,18 +11,34 @@
 @code {
     private bool _disposed;
     
+    /// <summary>
+    /// Duration of the countdown in milliseconds. Default is 5000 (5 seconds).
+    /// </summary>
     [Parameter] public int Duration { get; set; } = 5000;
 
+    /// <summary>
+    /// The color of the progress bar. Default is <see cref="MudBlazor.Color.Primary"/>.
+    /// </summary>
     [Parameter] public Color Color { get; set; } = Color.Primary;
 
+    /// <summary>
+    /// Whether the progress bar has rounded corners. Default is true.
+    /// </summary>
     [Parameter] public bool Rounded { get; set; } = true;
 
+    /// <summary>
+    /// Whether the progress bar displays a striped pattern. Default is false.
+    /// </summary>
     [Parameter] public bool Striped { get; set; } = false;
 
+    /// <summary>
+    /// The size of the progress bar. Default is <see cref="MudBlazor.Size.Small"/>.
+    /// </summary>
     [Parameter] public Size Size { get; set; } = Size.Small;
     
     private double Value { get; set; } = 100;
-
+    
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -54,5 +70,6 @@
         StateHasChanged();
     }
 
+    /// <inheritdoc />
     public void Dispose() => _disposed = true;
 }
