@@ -23,6 +23,7 @@ builder.Services.AddMudMarkdownServices();
 
 
 builder.Services.AddLinkOpeningService();
+builder.Services.AddFileOpenService();
 
 builder.Services.AddMessageBus();
 

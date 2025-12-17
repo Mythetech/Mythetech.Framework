@@ -16,6 +16,7 @@ public static class PhotinoRegistrationExtensions
     {
         services.AddSingleton<IPhotinoAppProvider, PhotinoAppProvider>();
         services.AddTransient<IFileSaveService, PhotinoInteropFileSaveService>();
+        services.AddTransient<IFileOpenService, PhotinoInteropFileOpenService>();
 
         return services;
     }
