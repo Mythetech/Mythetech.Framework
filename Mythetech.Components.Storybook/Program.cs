@@ -22,13 +22,12 @@ builder.Services.AddMudServices(config =>
 builder.Services.AddMudMarkdownServices();
 
 
-builder.Services.AddLinkOpeningService();
-builder.Services.AddFileOpenService();
+builder.Services.AddWebAssemblyServices();
 
 builder.Services.AddMessageBus();
 
 var host = builder.Build();
 
 host.Services.UseMessageBus();
-    
+
 await host.RunAsync();

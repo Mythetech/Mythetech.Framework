@@ -16,7 +16,7 @@
                 <MudDivider Class="my-2" />
                 
                 <MudGrid>
-                    <MudItem xs="12" md="6">
+                    <MudItem xs="12" md="4">
                         <MudPaper Class="pa-4" Elevation="2">
                             <MudText Typo="Typo.h6" Class="mb-3">Open Files</MudText>
                             
@@ -39,7 +39,7 @@
                         </MudPaper>
                     </MudItem>
                     
-                    <MudItem xs="12" md="6">
+                    <MudItem xs="12" md="4">
                         <MudPaper Class="pa-4" Elevation="2">
                             <MudText Typo="Typo.h6" Class="mb-3">Open Folder</MudText>
                             
@@ -48,6 +48,28 @@
                                         Variant="Variant.Filled" 
                                         Color="Color.Tertiary"
                                         OnClick="@OpenFolder" />
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                    
+                    <MudItem xs="12" md="4">
+                        <MudPaper Class="pa-4" Elevation="2">
+                            <MudText Typo="Typo.h6" Class="mb-3">Save File</MudText>
+                            
+                            <MudStack Spacing="2">
+                                <MudTextField @bind-Value="_saveFileName" 
+                                              Label="File Name" 
+                                              Variant="Variant.Outlined" />
+                                              
+                                <MudTextField @bind-Value="_saveContent" 
+                                              Label="Content" 
+                                              Variant="Variant.Outlined"
+                                              Lines="3" />
+                                              
+                                <Button Text="Save File" 
+                                        Variant="Variant.Filled" 
+                                        Color="Color.Success"
+                                        OnClick="@SaveFile" />
                             </MudStack>
                         </MudPaper>
                     </MudItem>
@@ -66,6 +88,13 @@
                             }
                         </MudList>
                     </MudPaper>
+                }
+                
+                @if (!string.IsNullOrEmpty(_savedFileName))
+                {
+                    <MudAlert Severity="Severity.Success" Class="mt-4">
+                        File saved as: @_savedFileName
+                    </MudAlert>
                 }
                 
                 @if (!string.IsNullOrEmpty(_errorMessage))
@@ -88,10 +117,16 @@
     protected IFileOpenService FileOpenService { get; set; } = default!;
     
     [Inject]
+    protected IFileSaveService FileSaveService { get; set; } = default!;
+    
+    [Inject]
     protected ISnackbar Snackbar { get; set; } = default!;
     
     private string[] _selectedPaths = [];
     private string? _errorMessage;
+    private string? _savedFileName;
+    private string _saveFileName = "example.txt";
+    private string _saveContent = "Hello, World!";
 
     private async Task OpenSingleFile()
     {
@@ -155,10 +190,31 @@
         });
     }
 
+    private async Task SaveFile()
+    {
+        _savedFileName = null;
+        
+        await ExecuteWithErrorHandling(async () =>
+        {
+            var result = await FileSaveService.SaveFileAsync(_saveFileName, _saveContent);
+            
+            if (result)
+            {
+                _savedFileName = _saveFileName;
+                Snackbar.Add($"File saved successfully", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Save cancelled", Severity.Info);
+            }
+        });
+    }
+
     private async Task ExecuteWithErrorHandling(Func<Task> action)
     {
         _errorMessage = null;
         _selectedPaths = [];
+        _savedFileName = null;
         
         try
         {
@@ -181,7 +237,7 @@
     private string _explanationMarkdown = @"
 ## File Services
 
-The `IFileOpenService` provides a platform-agnostic way to open files and folders. It has different implementations for WebAssembly and Desktop (Photino).
+The `IFileOpenService` and `IFileSaveService` provide platform-agnostic ways to open and save files. They have different implementations for WebAssembly and Desktop (Photino).
 
 ### Opening Files
 
@@ -209,6 +265,16 @@ var files = await FileOpenService.OpenFileAsync(filters: filters);
 var folders = await FileOpenService.OpenFolderAsync(""Select a folder"");
 ```
 
+### Saving Files
+
+```csharp
+// Prompt and save
+var success = await FileSaveService.SaveFileAsync(""myfile.txt"", ""content"");
+
+// Just get the save location
+var path = await FileSaveService.PromptFileSaveAsync(""myfile"", ""txt"");
+```
+
 ### Error Handling
 
 In WebAssembly, the File System Access API may not be supported in all browsers. Wrap calls in a try-catch to handle `UnsupportedBrowserApiException`:
@@ -230,6 +296,7 @@ catch (UnsupportedBrowserApiException ex)
 **WebAssembly:**
 ```csharp
 builder.Services.AddFileOpenService();
+builder.Services.AddFileSaveService();
 // or register all WebAssembly services
 builder.Services.AddWebAssemblyServices();
 ```
@@ -240,4 +307,3 @@ builder.Services.AddPhotinoServices();
 ```
 ";
 }
-
