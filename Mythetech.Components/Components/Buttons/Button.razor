@@ -1,7 +1,8 @@
 @using MudBlazor
+@using Mythetech.Components.Enums
 @inherits MudComponentBase
 
-<MudButton Class="@($"rounded-xl {Class}")" Style="@Style" Variant="@Variant" Color="@Color" Ripple="false" OnClick="@OnClick">
+<MudButton Class="@($"{Roundedness.Class()} {Class}")" Style="@Style" Variant="@Variant" Color="@Color" Ripple="false" OnClick="@OnClick">
     @Text
 </MudButton>
 
@@ -22,6 +23,11 @@
     /// Color theme of the Button with default
     /// </summary>
     [Parameter] public Color Color { get; set; } = Color.Primary;
+
+    /// <summary>
+    /// Roundedness of the Button with default
+    /// </summary>
+    [Parameter] public Roundedness Roundedness { get; set; } = Roundedness.XL;
 
     /// <summary>
     /// Callback invoked when the button is clicked

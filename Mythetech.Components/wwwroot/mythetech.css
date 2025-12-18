@@ -208,3 +208,15 @@
 .align-text-center {
     text-align: center;
 }
+
+.square {
+    border-radius: 0px!important;
+}
+
+.rounded-md {
+    border-radius: calc(var(--mud-default-borderradius) * 2)!important;
+}
+
+.rounded-lg {
+    border-radius: calc(var(--mud-default-borderradius) * 3)!important;
+}

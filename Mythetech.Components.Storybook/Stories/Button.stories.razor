@@ -1,4 +1,5 @@
 @using Mythetech.Components.Components.Buttons
+@using Mythetech.Components.Enums
 @attribute [Stories("Components/Button")]
 
 <Stories TComponent="Button">
@@ -12,6 +13,7 @@
             <Arg For="_ => _.Variant" Value="Variant.Filled" />
             <Arg For="_ => _.Text" Value="@("Button")" />
             <Arg For="_ => _.Class" Value="@("")" />
+            <Arg For="_ => _.Roundedness" Value="Roundedness.XL" />
         </Arguments>
 
         <Template>
