@@ -1,0 +1,134 @@
+@using MudBlazor
+@using Mythetech.Components.Enums
+@using Microsoft.AspNetCore.Components.Web
+@inherits MudComponentBase
+
+<div class="@GetBadgeClass()" 
+     style="@GetBadgeStyle()"
+     onclick="@OnClick"
+     onkeydown="@HandleKeyDown"
+     role="@(OnClick.HasDelegate ? "button" : null)"
+     tabindex="@(OnClick.HasDelegate && !Disabled ? 0 : null)">
+    @if (!string.IsNullOrWhiteSpace(Icon))
+    {
+        <MudIcon Icon="@Icon" Size="@IconSize" Class="mythetech-badge-icon" />
+    }
+    @if (ChildContent != null)
+    {
+        <span>@ChildContent</span>
+    }
+    else if (!string.IsNullOrWhiteSpace(Text))
+    {
+        <span>@Text</span>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Child content to display inside the badge. If provided, this takes precedence over Text.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Text to display inside the badge. Ignored if ChildContent is provided.
+    /// </summary>
+    [Parameter]
+    public string? Text { get; set; }
+
+    /// <summary>
+    /// Color theme of the Badge with default Primary.
+    /// </summary>
+    [Parameter]
+    public Color Color { get; set; } = Color.Primary;
+
+    /// <summary>
+    /// Size of the Badge with default Small.
+    /// </summary>
+    [Parameter]
+    public Size Size { get; set; } = Size.Small;
+
+    /// <summary>
+    /// Variant of the Badge with default Filled.
+    /// </summary>
+    [Parameter]
+    public Variant Variant { get; set; } = Variant.Filled;
+
+    /// <summary>
+    /// Roundedness of the Badge with default Pill.
+    /// </summary>
+    [Parameter]
+    public Roundedness Roundedness { get; set; } = Roundedness.Pill;
+
+    /// <summary>
+    /// Optional icon to display before the badge content. Uses Material Icons.
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Size of the icon with default Small.
+    /// </summary>
+    [Parameter]
+    public Size IconSize { get; set; } = Size.Small;
+
+    /// <summary>
+    /// Callback invoked when the badge is clicked. When provided, the badge becomes clickable.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    /// <summary>
+    /// Whether the badge is disabled. Disabled badges cannot be clicked and have reduced opacity.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    private string GetBadgeClass()
+    {
+        var classes = new List<string> { "mythetech-badge" };
+        
+        classes.Add($"mythetech-badge--{Color.ToString().ToLower()}");
+        classes.Add($"mythetech-badge--{Size.ToString().ToLower()}");
+        classes.Add($"mythetech-badge--{Variant.ToString().ToLower()}");
+        classes.Add(Roundedness.Class());
+        
+        if (OnClick.HasDelegate)
+        {
+            classes.Add("mythetech-badge--clickable");
+        }
+        
+        if (Disabled)
+        {
+            classes.Add("mythetech-badge--disabled");
+        }
+        
+        if (!string.IsNullOrWhiteSpace(Class))
+        {
+            classes.Add(Class);
+        }
+        
+        return string.Join(" ", classes);
+    }
+
+    private string GetBadgeStyle()
+    {
+        var styles = new List<string>();
+        
+        if (!string.IsNullOrWhiteSpace(Style))
+        {
+            styles.Add(Style);
+        }
+        
+        return string.Join("; ", styles);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if ((e.Key == "Enter" || e.Key == " ") && OnClick.HasDelegate && !Disabled)
+        {
+            await OnClick.InvokeAsync();
+        }
+    }
+}
+
