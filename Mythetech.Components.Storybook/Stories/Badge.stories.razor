@@ -1,0 +1,32 @@
+@using Mythetech.Components.Components.Badge
+@using Mythetech.Components.Enums
+@using MudBlazor
+@attribute [Stories("Components/Badge")]
+
+<Stories TComponent="Badge">
+
+    <ArgType For="_ => _.Color" Control="ControlType.Color" />
+    <ArgType For="_ => _.Variant" Control="ControlType.Select" />
+    <ArgType For="_ => _.Size" Control="ControlType.Select" />
+    <ArgType For="_ => _.Roundedness" Control="ControlType.Select" />
+    <ArgType For="_ => _.Class" Control="ControlType.Default" />
+
+    <ProductStory TComponent="Badge">
+        <Arguments>
+            <Arg For="_ => _.Color" Value="Color.Primary" />
+            <Arg For="_ => _.Variant" Value="Variant.Filled" />
+            <Arg For="_ => _.Text" Value="@("Badge")" />
+            <Arg For="_ => _.Size" Value="Size.Small" />
+            <Arg For="_ => _.Roundedness" Value="Roundedness.Small" />
+            <Arg For="_ => _.Icon" Value="@((string?)null)" />
+            <Arg For="_ => _.IconSize" Value="Size.Small" />
+            <Arg For="_ => _.Disabled" Value="false" />
+            <Arg For="_ => _.Class" Value="@("")" />
+        </Arguments>
+
+        <Template>
+            <Badge @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")">
+            </Badge>
+        </Template>
+    </ProductStory>
+</Stories>

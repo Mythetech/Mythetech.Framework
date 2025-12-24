@@ -1,0 +1,357 @@
+.mythetech-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 18px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.mythetech-badge-icon {
+    display: inline-flex;
+    align-items: center;
+}
+
+.mythetech-badge--clickable {
+    cursor: pointer;
+}
+
+.mythetech-badge--clickable:hover:not(.mythetech-badge--disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mythetech-badge--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Size Variants */
+.mythetech-badge--small {
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 14px;
+}
+
+.mythetech-badge--medium {
+    padding: 5px 12px;
+    font-size: 13px;
+    border-radius: 20px;
+}
+
+.mythetech-badge--large {
+    padding: 6px 14px;
+    font-size: 14px;
+    border-radius: 22px;
+}
+
+/* Variant: Filled */
+.mythetech-badge--filled.mythetech-badge--primary {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-primary-rgb), 0.15) 0%, rgba(var(--mud-palette-primary-rgb), 0.08) 100%);
+    color: var(--mud-palette-primary);
+    border-color: rgba(var(--mud-palette-primary-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--primary:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-primary-rgb), 0.25) 0%, rgba(var(--mud-palette-primary-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-primary-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--secondary {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-secondary-rgb), 0.15) 0%, rgba(var(--mud-palette-secondary-rgb), 0.08) 100%);
+    color: var(--mud-palette-secondary);
+    border-color: rgba(var(--mud-palette-secondary-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--secondary:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-secondary-rgb), 0.25) 0%, rgba(var(--mud-palette-secondary-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-secondary-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--tertiary {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-tertiary-rgb), 0.15) 0%, rgba(var(--mud-palette-tertiary-rgb), 0.08) 100%);
+    color: var(--mud-palette-tertiary);
+    border-color: rgba(var(--mud-palette-tertiary-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--tertiary:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-tertiary-rgb), 0.25) 0%, rgba(var(--mud-palette-tertiary-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-tertiary-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--info {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-info-rgb), 0.15) 0%, rgba(var(--mud-palette-info-rgb), 0.08) 100%);
+    color: var(--mud-palette-info);
+    border-color: rgba(var(--mud-palette-info-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--info:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-info-rgb), 0.25) 0%, rgba(var(--mud-palette-info-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-info-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--success {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-success-rgb), 0.15) 0%, rgba(var(--mud-palette-success-rgb), 0.08) 100%);
+    color: var(--mud-palette-success);
+    border-color: rgba(var(--mud-palette-success-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--success:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-success-rgb), 0.25) 0%, rgba(var(--mud-palette-success-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-success-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--warning {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-warning-rgb), 0.15) 0%, rgba(var(--mud-palette-warning-rgb), 0.08) 100%);
+    color: var(--mud-palette-warning);
+    border-color: rgba(var(--mud-palette-warning-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--warning:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-warning-rgb), 0.25) 0%, rgba(var(--mud-palette-warning-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-warning-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--error {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-error-rgb), 0.15) 0%, rgba(var(--mud-palette-error-rgb), 0.08) 100%);
+    color: var(--mud-palette-error);
+    border-color: rgba(var(--mud-palette-error-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--error:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-error-rgb), 0.25) 0%, rgba(var(--mud-palette-error-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-error-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--dark {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-dark-rgb), 0.15) 0%, rgba(var(--mud-palette-dark-rgb), 0.08) 100%);
+    color: var(--mud-palette-dark);
+    border-color: rgba(var(--mud-palette-dark-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--dark:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-dark-rgb), 0.25) 0%, rgba(var(--mud-palette-dark-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-dark-rgb), 0.4);
+}
+
+.mythetech-badge--filled.mythetech-badge--default {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-text-primary-rgb), 0.15) 0%, rgba(var(--mud-palette-text-primary-rgb), 0.08) 100%);
+    color: var(--mud-palette-text-primary);
+    border-color: rgba(var(--mud-palette-text-primary-rgb), 0.25);
+}
+
+.mythetech-badge--filled.mythetech-badge--default:hover:not(.mythetech-badge--disabled) {
+    background: linear-gradient(135deg, rgba(var(--mud-palette-text-primary-rgb), 0.25) 0%, rgba(var(--mud-palette-text-primary-rgb), 0.15) 100%);
+    border-color: rgba(var(--mud-palette-text-primary-rgb), 0.4);
+}
+
+/* Variant: Outlined */
+.mythetech-badge--outlined.mythetech-badge--primary {
+    background: transparent;
+    color: var(--mud-palette-primary);
+    border-color: var(--mud-palette-primary);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--primary:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-primary-rgb), 0.08);
+    border-color: var(--mud-palette-primary);
+}
+
+.mythetech-badge--outlined.mythetech-badge--secondary {
+    background: transparent;
+    color: var(--mud-palette-secondary);
+    border-color: var(--mud-palette-secondary);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--secondary:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-secondary-rgb), 0.08);
+    border-color: var(--mud-palette-secondary);
+}
+
+.mythetech-badge--outlined.mythetech-badge--tertiary {
+    background: transparent;
+    color: var(--mud-palette-tertiary);
+    border-color: var(--mud-palette-tertiary);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--tertiary:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-tertiary-rgb), 0.08);
+    border-color: var(--mud-palette-tertiary);
+}
+
+.mythetech-badge--outlined.mythetech-badge--info {
+    background: transparent;
+    color: var(--mud-palette-info);
+    border-color: var(--mud-palette-info);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--info:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-info-rgb), 0.08);
+    border-color: var(--mud-palette-info);
+}
+
+.mythetech-badge--outlined.mythetech-badge--success {
+    background: transparent;
+    color: var(--mud-palette-success);
+    border-color: var(--mud-palette-success);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--success:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-success-rgb), 0.08);
+    border-color: var(--mud-palette-success);
+}
+
+.mythetech-badge--outlined.mythetech-badge--warning {
+    background: transparent;
+    color: var(--mud-palette-warning);
+    border-color: var(--mud-palette-warning);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--warning:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-warning-rgb), 0.08);
+    border-color: var(--mud-palette-warning);
+}
+
+.mythetech-badge--outlined.mythetech-badge--error {
+    background: transparent;
+    color: var(--mud-palette-error);
+    border-color: var(--mud-palette-error);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--error:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-error-rgb), 0.08);
+    border-color: var(--mud-palette-error);
+}
+
+.mythetech-badge--outlined.mythetech-badge--dark {
+    background: transparent;
+    color: var(--mud-palette-dark);
+    border-color: var(--mud-palette-dark);
+    border-width: 1.5px;
+}
+
+.mythetech-badge--outlined.mythetech-badge--dark:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-dark-rgb), 0.08);
+    border-color: var(--mud-palette-dark);
+}
+
+.mythetech-badge--outlined.mythetech-badge--default {
+    background: transparent;
+    color: var(--mud-palette-text-primary);
+    border-color: var(--mud-palette-text-primary);
+    border-width: 1.5px;
+    opacity: 0.7;
+}
+
+.mythetech-badge--outlined.mythetech-badge--default:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-text-primary-rgb), 0.05);
+    opacity: 1;
+}
+
+/* Variant: Text */
+.mythetech-badge--text.mythetech-badge--primary {
+    background: transparent;
+    color: var(--mud-palette-primary);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--primary:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-primary-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--secondary {
+    background: transparent;
+    color: var(--mud-palette-secondary);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--secondary:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-secondary-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--tertiary {
+    background: transparent;
+    color: var(--mud-palette-tertiary);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--tertiary:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-tertiary-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--info {
+    background: transparent;
+    color: var(--mud-palette-info);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--info:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-info-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--success {
+    background: transparent;
+    color: var(--mud-palette-success);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--success:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-success-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--warning {
+    background: transparent;
+    color: var(--mud-palette-warning);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--warning:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-warning-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--error {
+    background: transparent;
+    color: var(--mud-palette-error);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--error:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-error-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--dark {
+    background: transparent;
+    color: var(--mud-palette-dark);
+    border-color: transparent;
+}
+
+.mythetech-badge--text.mythetech-badge--dark:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-dark-rgb), 0.08);
+}
+
+.mythetech-badge--text.mythetech-badge--default {
+    background: transparent;
+    color: var(--mud-palette-text-primary);
+    border-color: transparent;
+    opacity: 0.8;
+}
+
+.mythetech-badge--text.mythetech-badge--default:hover:not(.mythetech-badge--disabled) {
+    background: rgba(var(--mud-palette-text-primary-rgb), 0.05);
+    opacity: 1;
+}
+

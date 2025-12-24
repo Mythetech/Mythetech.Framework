@@ -22,10 +22,6 @@ public enum Roundedness
     /// </summary>
     Large,
     /// <summary>
-    /// XL amount of rounding
-    /// </summary>
-    XL,
-    /// <summary>
     /// Pill shape
     /// </summary>
     Pill,
@@ -47,7 +43,6 @@ public static class RoundedExtensions
             Roundedness.Small => "rounded",
             Roundedness.Medium => "rounded-md",
             Roundedness.Large => "rounded-lg",
-            Roundedness.XL => "rounded-xl",
             Roundedness.Pill => "rounded-pill",
             _ => throw new ArgumentOutOfRangeException(nameof(roundedness), roundedness, null)
         };
