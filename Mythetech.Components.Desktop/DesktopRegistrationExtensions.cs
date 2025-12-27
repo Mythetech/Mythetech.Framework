@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Mythetech.Components.Desktop.Photino;
+using Mythetech.Components.Desktop.Services;
+using Mythetech.Components.Infrastructure;
 
 namespace Mythetech.Components.Desktop;
 
@@ -21,6 +23,15 @@ public static class DesktopRegistrationExtensions
             default:
                 throw new ArgumentException("Invalid host type", nameof(host));
         }
+
+        services.AddLinkOpenService();
+
+        return services;
+    }
+
+    public static IServiceCollection AddLinkOpenService(this IServiceCollection services)
+    {
+        services.AddTransient<ILinkOpenService, LinkOpenService>();
 
         return services;
     }
