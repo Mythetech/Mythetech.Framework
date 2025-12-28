@@ -1,0 +1,37 @@
+@using Mythetech.Framework.Components.SimpleTabs
+@using MudBlazor
+@attribute [Stories("Components/SimpleTabs")]
+
+<Stories TComponent="SimpleTabs">
+
+    <ProductStory Name="@("(Primary)")" TComponent="SimpleTabs">
+        <Arguments>
+            <Arg For="_ => _.Color" Value="Color.Primary"/>
+        </Arguments>
+        <Template>
+            <SimpleTabs @attributes="context.Args">
+                <Tab Name="Tab 1">
+                    Sample content 1
+                </Tab>
+                <Tab Name="Tab 2">
+                    <MudText>Sample Content 2</MudText>
+                </Tab>
+            </SimpleTabs>
+        </Template>
+    </ProductStory>
+    <Story Name="With Icons" Layout="typeof(DefaultMudLayout)">
+        <Arguments>
+            <Arg For="_ => _.Color" Value="Color.Primary"/>
+        </Arguments>
+        <Template>
+            <SimpleTabs>
+                <Tab Name="Cookies" Icon="@Icons.Material.Outlined.Cookie">
+                    Cookie!
+                </Tab>
+                <Tab Name="Info" Icon="@Icons.Material.Outlined.Info">
+                    Info!
+                </Tab>
+            </SimpleTabs>
+        </Template>
+    </Story>
+</Stories>

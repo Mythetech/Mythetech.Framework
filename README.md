@@ -1,13 +1,15 @@
 ```markdown
-   ______                                             __      
-  / ____/___  ____ ___  ____  ____  ____  ___  ____  / /______
- / /   / __ \/ __ `__ \/ __ \/ __ \/ __ \/ _ \/ __ \/ __/ ___/
-/ /___/ /_/ / / / / / / /_/ / /_/ / / / /  __/ / / / /_(__  ) 
-\____/\____/_/ /_/ /_/ .___/\____/_/ /_/\___/_/ /_/\__/____/  
+    ______                                             __
+
+/ \_**\_/**\_\_**** **\_** **\_ \_** \_ **\_\_** **\_**/ /**
+/ /_ / _**/ ** `/ ** `** \/ \_ \ | /| / / ** \/ **_/ //_/
+/ **/ / / / /_/ / / / / / / \_\_/ |/ |/ / /_/ / / / ,<  
+/_/ /_/ \__,_/_/ /_/ /\_/\_**/|**/|**/\_\_**/_/ /_/|\_|
+
                     /_/
 ```
 
-# Mythetech.Components
+# Mythetech.Framework
 
 A collection of reusable Blazor components and abstractions to help build cross platform rich application experiences for desktop and web in blazor.
 
@@ -21,7 +23,7 @@ The repository also contains abstractions for functionality to work generically 
 
 The component library leverages [BlazingStory](https://github.com/jsakamoto/BlazingStory) to create a visual storybook of components shipped in the library, with wrappings to provide product-themed previews and light/dark toggles.
 
-The WebAssembly story book is hosted on github pages here: https://mythetech.github.io/Mythetech.Components/
+The WebAssembly story book is hosted on github pages here: https://mythetech.github.io/Mythetech.Framework/
 
 ## Features
 
@@ -33,13 +35,13 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 
 ## Project Structure
 
-- `Mythetech.Components/` - Main component library
+- `Mythetech.Framework/` - Main component library
   - `Components/` - Custom Blazor components
   - `Infrastructure/` - Supporting infrastructure code and abstractions
-- `Mythetech.Components.Desktop/` - Desktop application specific implementations
-- `Mythetech.Components.WebAssembly/` - WebAssembly specific implementations
-- `Mythetech.Components.Storybook/` - Component documentation and showcase
-- `Mythetech.Components.Test/` - Unit tests for components
+- `Mythetech.Framework.Desktop/` - Desktop application specific implementations
+- `Mythetech.Framework.WebAssembly/` - WebAssembly specific implementations
+- `Mythetech.Framework.Storybook/` - Component documentation and showcase
+- `Mythetech.Framework.Test/` - Unit tests for components
 
 ## Requirements
 
@@ -60,11 +62,11 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 
 To use these components in your Blazor application:
 
-1. Add a reference to the `Mythetech.Components` project
+1. Add a reference to the `Mythetech.Framework` project
 2. Add the following to your `_Imports.razor`:
 
 ```razor
-@using Mythetech.Components
+@using Mythetech.Framework
 ```
 
 3. Register the services in your `Program.cs`:
@@ -110,7 +112,7 @@ dotnet test
 
 The project includes a Storybook implementation for component documentation and testing. To run Storybook:
 
-1. Navigate to the `Mythetech.Components.Storybook` directory
+1. Navigate to the `Mythetech.Framework.Storybook` directory
 2. Run the project:
 
 ```bash

@@ -1,0 +1,42 @@
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure
+@inherits MudComponentBase
+
+<MudLink Class="@Class" Style="@Style" Color="@Color" Typo="@Typo" OnClick="OnLinkClicked">
+    @ChildContent
+</MudLink>
+
+@code {
+    /// <summary>
+    /// Content to display inside the link
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    
+    /// <summary>
+    /// Href for the link
+    /// </summary>
+    [Parameter]
+    public string? Link { get; set; }
+    
+    /// <summary>
+    /// Color to display the link in
+    /// </summary>
+    [Parameter] 
+    public Color Color { get; set; } = Color.Default;
+
+    /// <summary>
+    /// Typography for the link
+    /// </summary>
+    [Parameter]
+    public Typo Typo { get; set; } = Typo.inherit;
+
+    /// <summary>
+    /// Abstract link service to handle opening links across underlying hosting architectures
+    /// </summary>
+    [Inject] 
+    protected ILinkOpenService LinkService { get; set; } = null!;
+
+    private async Task OnLinkClicked()
+        => await LinkService.OpenLinkAsync(Link ?? "");
+}

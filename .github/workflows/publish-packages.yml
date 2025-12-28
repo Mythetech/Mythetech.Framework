@@ -26,9 +26,9 @@ jobs:
 
       - name: Build and Pack
         run: |
-          dotnet pack Mythetech.Components/Mythetech.Components.csproj -c Release -o ./nupkgs
-          dotnet pack Mythetech.Components.WebAssembly/Mythetech.Components.WebAssembly.csproj -c Release -o ./nupkgs
-          dotnet pack Mythetech.Components.Desktop/Mythetech.Components.Desktop.csproj -c Release -o ./nupkgs
+          dotnet pack Mythetech.Framework/Mythetech.Framework.csproj -c Release -o ./nupkgs
+          dotnet pack Mythetech.Framework.WebAssembly/Mythetech.Framework.WebAssembly.csproj -c Release -o ./nupkgs
+          dotnet pack Mythetech.Framework.Desktop/Mythetech.Framework.Desktop.csproj -c Release -o ./nupkgs
 
       - name: Publish to NuGet.org
         run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate
