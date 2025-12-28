@@ -1,13 +1,13 @@
 # Simple workflow for deploying static content to GitHub Pages
 name: Deploy Component Storybook
 env:
-  PUBLISH_DIR: Mythetech.Components.Storybook/bin/Release/net10.0/publish/wwwroot
+  PUBLISH_DIR: Mythetech.Framework.Storybook/bin/Release/net10.0/publish/wwwroot
 
 on:
   # Runs on pushes targeting the default branch and PRs
   push:
     paths:
-      - Mythetech.Components.*/**
+      - Mythetech.Framework.*/**
       - ".github/workflows/storybook.yml"
     branches:
       - main
@@ -46,7 +46,7 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Run Tests
-        run: dotnet test Mythetech.Components.Test --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
+        run: dotnet test Mythetech.Framework.Test --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
 
       - name: Upload dotnet test results
         uses: actions/upload-artifact@v4
@@ -76,19 +76,19 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Publish app
-        run: dotnet publish Mythetech.Components.Storybook -c Release
+        run: dotnet publish Mythetech.Framework.Storybook -c Release
 
       - name: Rewrite base href
         uses: SteveSandersonMS/ghaction-rewrite-base-href@v1
         with:
           html_path: ${{ env.PUBLISH_DIR }}/index.html
-          base_href: /Mythetech.Components/
+          base_href: /Mythetech.Framework/
 
       - name: Rewrite base href
         uses: SteveSandersonMS/ghaction-rewrite-base-href@v1
         with:
           html_path: ${{ env.PUBLISH_DIR }}/iframe.html
-          base_href: /Mythetech.Components/
+          base_href: /Mythetech.Framework/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
