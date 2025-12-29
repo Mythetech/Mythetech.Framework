@@ -1,0 +1,46 @@
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Infrastructure.Plugins.Components
+@inherits PluginMenu
+
+@* This component is rendered by PluginMenuHost - it has full Blazor lifecycle *@
+
+@code {
+    public override string Icon => Icons.Material.Filled.Extension;
+    public override string Title => "Sample Plugin";
+    public override int Order => 50;
+    public override string? Tooltip => "Sample Plugin Actions";
+    public override string ItemClass => "rounded";
+    public override string MenuListClass => "pa-1";
+    
+    private int MessageCount => GetState<int>("messageCount");
+    
+    public override PluginMenuItem[] Items => 
+    [
+        new PluginMenuItem
+        {
+            Icon = Icons.Material.Filled.Send,
+            Text = $"Send Message (sent: {MessageCount})",
+            OnClick = SendMessage
+        },
+        new PluginMenuItem
+        {
+            Icon = Icons.Material.Filled.Refresh,
+            Text = "Reset Counter",
+            OnClick = ResetCounter
+        }
+    ];
+    
+    private async Task SendMessage(PluginContext ctx)
+    {
+        var count = GetState<int>("messageCount") + 1;
+        SetState(count, "messageCount");
+        await ctx.PublishAsync(new SamplePluginMessage($"Hello from Sample Plugin! Message #{count}"));
+    }
+    
+    private Task ResetCounter(PluginContext ctx)
+    {
+        SetState(0, "messageCount");
+        return Task.CompletedTask;
+    }
+}

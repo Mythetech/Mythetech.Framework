@@ -1,0 +1,74 @@
+@page "/plugins"
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Plugins
+@inject PluginState PluginState
+
+<MudText Typo="Typo.h4" Class="mb-4">Manage Plugins</MudText>
+
+<MudText Typo="Typo.body1" Class="mb-4">
+    View and manage loaded plugins. Toggle plugins on/off to enable or disable their functionality.
+</MudText>
+
+@if (PluginState.Plugins.Any())
+{
+    <MudTable Items="PluginState.Plugins" Hover="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Plugin</MudTh>
+            <MudTh>Version</MudTh>
+            <MudTh>Developer</MudTh>
+            <MudTh>Components</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Plugin">
+                <div>
+                    <MudText Typo="Typo.body1">@context.Manifest.Name</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Manifest.Id</MudText>
+                </div>
+            </MudTd>
+            <MudTd DataLabel="Version">@context.Manifest.Version</MudTd>
+            <MudTd DataLabel="Developer">@context.Manifest.Developer</MudTd>
+            <MudTd DataLabel="Components">
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@context.MenuComponents.Count menus</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@context.ContextPanelComponents.Count panels</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.IsEnabled)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Enabled</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Disabled</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudSwitch T="bool" 
+                           Value="context.IsEnabled" 
+                           ValueChanged="@(enabled => TogglePlugin(context.Manifest.Id, enabled))"
+                           Color="Color.Success" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Class="mt-4">
+        <MudText>No plugins are currently loaded.</MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">
+            To add plugins, place plugin DLL files in the <code>plugins/</code> directory and restart the application.
+        </MudText>
+    </MudAlert>
+}
+
+@code {
+    private void TogglePlugin(string pluginId, bool enabled)
+    {
+        if (enabled)
+            PluginState.EnablePlugin(pluginId);
+        else
+            PluginState.DisablePlugin(pluginId);
+    }
+}
+

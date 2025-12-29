@@ -14,7 +14,11 @@ public class MessageBusTests : TestContext
     public MessageBusTests()
     {
         Services.AddSingleton<TestConsumer>();
-        _bus = new InMemoryMessageBus(this.Services, Substitute.For<ILogger<InMemoryMessageBus>>());
+        _bus = new InMemoryMessageBus(
+            this.Services, 
+            Substitute.For<ILogger<InMemoryMessageBus>>(),
+            Array.Empty<IMessagePipe>(),
+            Array.Empty<IConsumerFilter>());
         Services.AddSingleton<IMessageBus>(_bus);
     }
 
@@ -80,6 +84,85 @@ public class MessageBusTests : TestContext
         // Assert
         normalConsumer.Markup.MarkupMatches("<p>HelloWorld!</p>");
     }
+
+    [Fact(DisplayName = "PublishAsync with timeout completes before slow consumers finish")]
+    public async Task PublishAsync_WithTimeout_CompletesBeforeSlowConsumers()
+    {
+        // Arrange
+        var slowConsumer = new SlowConsumer(TimeSpan.FromSeconds(10));
+        _bus.Subscribe(slowConsumer);
+        
+        var config = new PublishConfiguration { Timeout = TimeSpan.FromMilliseconds(100) };
+        
+        // Act
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        await _bus.PublishAsync(new TestCommand("Test"), config);
+        stopwatch.Stop();
+        
+        // Assert
+        slowConsumer.ReceivedMessage.ShouldBeTrue();
+        stopwatch.ElapsedMilliseconds.ShouldBeLessThan(5000);
+        slowConsumer.CompletedWithoutCancellation.ShouldBeFalse();
+    }
+    
+    [Fact(DisplayName = "PublishAsync with cancellation token respects external cancellation")]
+    public async Task PublishAsync_WithCancellationToken_RespectsExternalCancellation()
+    {
+        // Arrange
+        var slowConsumer = new SlowConsumer(TimeSpan.FromSeconds(10));
+        _bus.Subscribe(slowConsumer);
+        
+        using var cts = new CancellationTokenSource();
+        var config = new PublishConfiguration { CancellationToken = cts.Token };
+        
+        // Act
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var publishTask = _bus.PublishAsync(new TestCommand("Test"), config);
+        await Task.Delay(50);
+        cts.Cancel();
+        await publishTask;
+        stopwatch.Stop();
+        
+        // Assert
+        slowConsumer.ReceivedMessage.ShouldBeTrue();
+        stopwatch.ElapsedMilliseconds.ShouldBeLessThan(5000);
+    }
+    
+    [Fact(DisplayName = "PublishAsync without configuration still works with no timeout")]
+    public async Task PublishAsync_DefaultOverload_WorksWithoutTimeout()
+    {
+        // Arrange
+        var fastConsumer = new SlowConsumer(TimeSpan.FromMilliseconds(10));
+        _bus.Subscribe(fastConsumer);
+        
+        // Act
+        await _bus.PublishAsync(new TestCommand("Test"));
+        
+        // Assert
+        fastConsumer.ReceivedMessage.ShouldBeTrue();
+        fastConsumer.CompletedWithoutCancellation.ShouldBeTrue();
+    }
+    
+    [Fact(DisplayName = "PublishAsync with timeout still delivers to fast consumers")]
+    public async Task PublishAsync_WithTimeout_DeliversToFastConsumers()
+    {
+        // Arrange
+        var fastConsumer = new SlowConsumer(TimeSpan.FromMilliseconds(5));
+        var slowConsumer = new SlowConsumer(TimeSpan.FromSeconds(10));
+        _bus.Subscribe(fastConsumer);
+        _bus.Subscribe(slowConsumer);
+        
+        var config = new PublishConfiguration { Timeout = TimeSpan.FromMilliseconds(100) };
+        
+        // Act
+        await _bus.PublishAsync(new TestCommand("Test"), config);
+        
+        // Assert
+        fastConsumer.ReceivedMessage.ShouldBeTrue();
+        fastConsumer.CompletedWithoutCancellation.ShouldBeTrue();
+        slowConsumer.ReceivedMessage.ShouldBeTrue();
+        slowConsumer.CompletedWithoutCancellation.ShouldBeFalse();
+    }
 }
 
 public record TestCommand(string Text);
@@ -92,5 +175,25 @@ public class TestConsumer : IConsumer<TestCommand>
     {
         Text = message.Text;
         return Task.CompletedTask;
+    }
+}
+
+public class SlowConsumer : IConsumer<TestCommand>
+{
+    private readonly TimeSpan _delay;
+    
+    public bool ReceivedMessage { get; private set; }
+    public bool CompletedWithoutCancellation { get; private set; }
+    
+    public SlowConsumer(TimeSpan delay)
+    {
+        _delay = delay;
+    }
+    
+    public async Task Consume(TestCommand message)
+    {
+        ReceivedMessage = true;
+        await Task.Delay(_delay);
+        CompletedWithoutCancellation = true;
     }
 }

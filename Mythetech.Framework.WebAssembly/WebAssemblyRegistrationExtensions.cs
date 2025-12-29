@@ -35,7 +35,8 @@ public static class WebAssemblyRegistrationExtensions
     /// </summary>
     public static IServiceCollection AddFileSaveService(this IServiceCollection services)
     {
-        services.AddFileSystemAccessServiceInProcess();
+        //services.AddFileSystemAccessServiceInProcess();
+        services.AddTransient<IFileSystemAccessServiceInProcess, FileSystemAccessServiceInProcess>().AddTransient(sp => (IFileSystemAccessService) sp.GetRequiredService<IFileSystemAccessServiceInProcess>());
         services.AddTransient<IFileSaveService, FileSystemAccessFileSaveService>();
 
         return services;

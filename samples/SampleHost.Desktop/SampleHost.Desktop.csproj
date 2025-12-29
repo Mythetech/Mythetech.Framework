@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>WinExe</OutputType>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>false</IsTestProject>
+        <!-- Marked as example/temporary - may be moved to separate repo in future -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <SupportedPlatform Include="browser" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Mythetech.Framework\Mythetech.Framework.csproj" />
+        <ProjectReference Include="..\..\Mythetech.Framework.Desktop\Mythetech.Framework.Desktop.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Update="wwwroot\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <!-- Copy sample plugin DLL to plugins folder after build -->
+    <Target Name="CopyPlugins" AfterTargets="Build">
+        <MakeDir Directories="$(OutputPath)plugins" />
+        <Copy SourceFiles="..\SamplePlugin\bin\$(Configuration)\$(TargetFramework)\SamplePlugin.dll" 
+              DestinationFolder="$(OutputPath)plugins" 
+              SkipUnchangedFiles="true"
+              Condition="Exists('..\SamplePlugin\bin\$(Configuration)\$(TargetFramework)\SamplePlugin.dll')" />
+    </Target>
+
+</Project>
+

@@ -1,0 +1,39 @@
+@namespace SampleHost.Desktop
+@using MudBlazor
+
+<MudThemeProvider Theme="_theme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <MudText Typo="Typo.h4">Page not found</MudText>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#7C4DFF",
+            Secondary = "#00BFA5",
+            AppbarBackground = "#1E1E2E"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#7C4DFF",
+            Secondary = "#00BFA5",
+            Background = "#1E1E2E",
+            Surface = "#2D2D3D",
+            AppbarBackground = "#1E1E2E"
+        }
+    };
+}
+
