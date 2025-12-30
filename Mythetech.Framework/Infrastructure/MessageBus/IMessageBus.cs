@@ -11,6 +11,14 @@ public interface IMessageBus
     Task PublishAsync<TMessage>(TMessage message) where TMessage : class;
     
     /// <summary>
+    /// Publishes a strongly typed message with configuration for timeout and cancellation.
+    /// Use this overload when publishing from plugins or when timeout control is needed.
+    /// </summary>
+    /// <param name="message">The message to publish</param>
+    /// <param name="configuration">Configuration specifying timeout and cancellation options</param>
+    Task PublishAsync<TMessage>(TMessage message, PublishConfiguration configuration) where TMessage : class;
+    
+    /// <summary>
     /// Registers a concrete consumer for a given message type to the bus pipeline
     /// </summary>
     void RegisterConsumerType<TMessage, TConsumer>() where TMessage : class where TConsumer : IConsumer<TMessage>;

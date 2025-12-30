@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.Infrastructure.MessageBus;
 
@@ -9,6 +10,63 @@ namespace Mythetech.Framework.Infrastructure.MessageBus;
 /// </summary>
 public static class BusRegistrationExtensions
 {
+    #region Pipe and Filter Registration
+    
+    /// <summary>
+    /// Register a global message pipe that processes all messages
+    /// </summary>
+    /// <typeparam name="TPipe">The pipe type</typeparam>
+    public static IServiceCollection AddMessagePipe<TPipe>(this IServiceCollection services)
+        where TPipe : class, IMessagePipe
+    {
+        services.AddSingleton<IMessagePipe, TPipe>();
+        return services;
+    }
+    
+    /// <summary>
+    /// Register a typed message pipe that processes specific message types
+    /// </summary>
+    /// <typeparam name="TPipe">The pipe type</typeparam>
+    /// <typeparam name="TMessage">The message type this pipe handles</typeparam>
+    public static IServiceCollection AddMessagePipe<TPipe, TMessage>(this IServiceCollection services)
+        where TPipe : class, IMessagePipe<TMessage>
+        where TMessage : class
+    {
+        services.AddSingleton<IMessagePipe<TMessage>, TPipe>();
+        return services;
+    }
+    
+    /// <summary>
+    /// Register a consumer filter
+    /// </summary>
+    /// <typeparam name="TFilter">The filter type</typeparam>
+    public static IServiceCollection AddConsumerFilter<TFilter>(this IServiceCollection services)
+        where TFilter : class, IConsumerFilter
+    {
+        services.AddSingleton<IConsumerFilter, TFilter>();
+        return services;
+    }
+    
+    /// <summary>
+    /// Add optional message logging for debugging/visibility.
+    /// Logs all messages passing through the bus at Information level.
+    /// </summary>
+    public static IServiceCollection AddMessageLogging(this IServiceCollection services)
+    {
+        return services.AddMessagePipe<MessageLoggingPipe>();
+    }
+    
+    /// <summary>
+    /// Add a filter that prevents consumers from disabled plugins from receiving messages.
+    /// Requires AddPluginFramework() to be called first.
+    /// </summary>
+    public static IServiceCollection AddPluginConsumerFilter(this IServiceCollection services)
+    {
+        return services.AddConsumerFilter<DisabledPluginConsumerFilter>();
+    }
+    
+    #endregion
+
     /// <summary>
     /// Registers consumers to the bus instance 
     /// </summary>

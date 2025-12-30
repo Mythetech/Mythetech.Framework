@@ -1,0 +1,108 @@
+@page "/"
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Plugins
+@inject PluginState PluginState
+
+<MudText Typo="Typo.h3" Class="mb-4">Welcome to the Plugin Host Sample</MudText>
+
+<MudText Typo="Typo.body1" Class="mb-6">
+    This sample demonstrates the Mythetech.Framework plugin system. 
+    Plugins are loaded from the <code>plugins/</code> directory and can contribute menu items and context panels.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Extension" Class="mr-2" />
+                        Loaded Plugins
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (PluginState.Plugins.Any())
+                {
+                    <MudList T="string" Dense="true">
+                        @foreach (var plugin in PluginState.Plugins)
+                        {
+                            <MudListItem>
+                                <div class="d-flex align-center justify-space-between">
+                                    <div>
+                                        <MudText Typo="Typo.body1">@plugin.Manifest.Name</MudText>
+                                        <MudText Typo="Typo.caption">v@(plugin.Manifest.Version) by @plugin.Manifest.Developer</MudText>
+                                    </div>
+                                    <MudSwitch T="bool" 
+                                               Value="plugin.IsEnabled" 
+                                               ValueChanged="@(enabled => TogglePlugin(plugin.Manifest.Id, enabled))"
+                                               Color="Color.Success" />
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info">
+                        No plugins loaded. Place plugin DLLs in the <code>plugins/</code> directory.
+                    </MudAlert>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    
+    <MudItem xs="12" md="6">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                        Plugin System Status
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudSimpleTable Dense="true">
+                    <tbody>
+                        <tr>
+                            <td>Plugins Active</td>
+                            <td>
+                                <MudSwitch T="bool" 
+                                           @bind-Value="PluginState.PluginsActive" 
+                                           Color="Color.Success" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Total Plugins</td>
+                            <td>@PluginState.Plugins.Count</td>
+                        </tr>
+                        <tr>
+                            <td>Enabled Plugins</td>
+                            <td>@PluginState.EnabledPlugins.Count()</td>
+                        </tr>
+                        <tr>
+                            <td>Menu Components</td>
+                            <td>@PluginState.EnabledMenuComponents.Count()</td>
+                        </tr>
+                        <tr>
+                            <td>Context Panels</td>
+                            <td>@PluginState.EnabledContextPanelComponents.Count()</td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private void TogglePlugin(string pluginId, bool enabled)
+    {
+        if (enabled)
+            PluginState.EnablePlugin(pluginId);
+        else
+            PluginState.DisablePlugin(pluginId);
+    }
+}
+

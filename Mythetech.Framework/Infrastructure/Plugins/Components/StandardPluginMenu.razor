@@ -1,0 +1,86 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@inject PluginState PluginState
+@inject PluginLoader PluginLoader
+@inject IFileOpenService FileOpenService
+@implements IDisposable
+
+<MudMenu ActivationEvent="@ActivationEvent" 
+         AnchorOrigin="@AnchorOrigin" 
+         TransformOrigin="@TransformOrigin"
+         Dense="@Dense" 
+         ListClass="@ListClass">
+    <ActivatorContent>
+        <MudButton Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass">
+            @MenuText
+        </MudButton>
+    </ActivatorContent>
+    <ChildContent>
+        @foreach (var menuType in GetAllPluginMenuTypes())
+        {
+            <PluginMenuHost MenuType="@menuType" ItemClass="@ItemClass" />
+        }
+        
+        @if (GetAllPluginMenuTypes().Any())
+        {
+            <MudDivider />
+        }
+        
+        <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.FileUpload" OnClick="HandleImportPlugin">
+            Import Plugin...
+        </MudMenuItem>
+    </ChildContent>
+</MudMenu>
+
+@code {
+    [Parameter] public string MenuText { get; set; } = "Plugins";
+    [Parameter] public MouseEvent ActivationEvent { get; set; } = MouseEvent.MouseOver;
+    [Parameter] public Origin AnchorOrigin { get; set; } = Origin.BottomLeft;
+    [Parameter] public Origin TransformOrigin { get; set; } = Origin.TopLeft;
+    [Parameter] public bool Dense { get; set; } = true;
+    [Parameter] public string ListClass { get; set; } = "pa-1";
+    [Parameter] public string ItemClass { get; set; } = "rounded";
+    [Parameter] public Size ButtonSize { get; set; } = Size.Small;
+    [Parameter] public Variant ButtonVariant { get; set; } = Variant.Text;
+    [Parameter] public Color ButtonColor { get; set; } = Color.Inherit;
+    [Parameter] public string ButtonClass { get; set; } = "text-transform-none";
+
+    protected override void OnInitialized()
+    {
+        PluginState.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private IEnumerable<Type> GetAllPluginMenuTypes()
+    {
+        return PluginState.EnabledPlugins
+            .SelectMany(p => p.MenuComponents);
+    }
+
+    private async Task HandleImportPlugin()
+    {
+        var files = await FileOpenService.OpenFileAsync(
+            title: "Select Plugin DLL",
+            filters: [new FileFilter("Plugin DLLs", ["*.dll"])]);
+        
+        if (files.Length == 0) return;
+        
+        foreach (var dllPath in files)
+        {
+            var pluginInfo = PluginLoader.LoadPlugin(dllPath);
+            if (pluginInfo is not null)
+            {
+                PluginState.RegisterPlugin(pluginInfo);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        PluginState.StateChanged -= OnStateChanged;
+    }
+}
