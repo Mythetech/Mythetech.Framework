@@ -28,14 +28,24 @@ public class PluginInfo
     public DateTime LoadedAt { get; init; } = DateTime.UtcNow;
     
     /// <summary>
-    /// Discovered menu components from this plugin
+    /// Discovered menu components from this plugin (types only)
     /// </summary>
     public IReadOnlyList<Type> MenuComponents { get; init; } = [];
     
     /// <summary>
-    /// Discovered context panel components from this plugin
+    /// Discovered context panel components from this plugin (types only)
     /// </summary>
     public IReadOnlyList<Type> ContextPanelComponents { get; init; } = [];
+    
+    /// <summary>
+    /// Metadata for menu components (with Icon, Title, Order pre-extracted)
+    /// </summary>
+    public IReadOnlyList<PluginComponentMetadata> MenuComponentsMetadata { get; init; } = [];
+    
+    /// <summary>
+    /// Metadata for context panel components (with Icon, Title, Order pre-extracted)
+    /// </summary>
+    public IReadOnlyList<PluginComponentMetadata> ContextPanelComponentsMetadata { get; init; } = [];
     
     /// <summary>
     /// Path to the plugin DLL if loaded from disk

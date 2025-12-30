@@ -74,13 +74,18 @@ public class PluginLoader
             var menuComponents = DiscoverComponentsOfType<Components.PluginMenu>(assembly);
             var contextPanelComponents = DiscoverComponentsOfType<Components.PluginContextPanel>(assembly);
             
+            var menuMetadata = ExtractMenuMetadata(menuComponents);
+            var panelMetadata = ExtractContextPanelMetadata(contextPanelComponents);
+            
             var pluginInfo = new PluginInfo
             {
                 Manifest = manifest,
                 Assembly = assembly,
                 SourcePath = sourcePath,
                 MenuComponents = menuComponents,
-                ContextPanelComponents = contextPanelComponents
+                ContextPanelComponents = contextPanelComponents,
+                MenuComponentsMetadata = menuMetadata,
+                ContextPanelComponentsMetadata = panelMetadata
             };
             
             _logger.LogInformation(
@@ -155,6 +160,63 @@ public class PluginLoader
                 !t.IsInterface && 
                 typeof(TBase).IsAssignableFrom(t))
             .ToList();
+    }
+    
+    private List<PluginComponentMetadata> ExtractMenuMetadata(List<Type> menuTypes)
+    {
+        var metadata = new List<PluginComponentMetadata>();
+        
+        foreach (var type in menuTypes)
+        {
+            try
+            {
+                if (Activator.CreateInstance(type) is Components.PluginMenu instance)
+                {
+                    metadata.Add(new PluginComponentMetadata
+                    {
+                        ComponentType = type,
+                        Title = instance.Title,
+                        Icon = instance.Icon,
+                        Order = instance.Order,
+                        Tooltip = instance.Tooltip
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to extract metadata from menu component {Type}", type.FullName);
+            }
+        }
+        
+        return metadata;
+    }
+    
+    private List<PluginComponentMetadata> ExtractContextPanelMetadata(List<Type> panelTypes)
+    {
+        var metadata = new List<PluginComponentMetadata>();
+        
+        foreach (var type in panelTypes)
+        {
+            try
+            {
+                if (Activator.CreateInstance(type) is Components.PluginContextPanel instance)
+                {
+                    metadata.Add(new PluginComponentMetadata
+                    {
+                        ComponentType = type,
+                        Title = instance.Title,
+                        Icon = instance.Icon,
+                        Order = instance.Order
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to extract metadata from panel component {Type}", type.FullName);
+            }
+        }
+        
+        return metadata;
     }
 }
 

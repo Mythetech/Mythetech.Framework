@@ -63,16 +63,28 @@ public class PluginState : IDisposable
         PluginsActive ? _plugins.Where(p => p.IsEnabled) : [];
     
     /// <summary>
-    /// All menu components from enabled plugins
+    /// All menu components from enabled plugins (types only)
     /// </summary>
     public IEnumerable<Type> EnabledMenuComponents =>
         EnabledPlugins.SelectMany(p => p.MenuComponents);
     
     /// <summary>
-    /// All context panel components from enabled plugins
+    /// All context panel components from enabled plugins (types only)
     /// </summary>
     public IEnumerable<Type> EnabledContextPanelComponents =>
         EnabledPlugins.SelectMany(p => p.ContextPanelComponents);
+    
+    /// <summary>
+    /// All menu component metadata from enabled plugins (with Icon, Title, Order)
+    /// </summary>
+    public IEnumerable<PluginComponentMetadata> EnabledMenuComponentsMetadata =>
+        EnabledPlugins.SelectMany(p => p.MenuComponentsMetadata);
+    
+    /// <summary>
+    /// All context panel component metadata from enabled plugins (with Icon, Title, Order)
+    /// </summary>
+    public IEnumerable<PluginComponentMetadata> EnabledContextPanelComponentsMetadata =>
+        EnabledPlugins.SelectMany(p => p.ContextPanelComponentsMetadata);
     
     /// <summary>
     /// Register a newly loaded plugin
