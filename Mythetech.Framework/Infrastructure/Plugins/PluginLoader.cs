@@ -149,7 +149,8 @@ public class PluginLoader
     }
     
     /// <summary>
-    /// Load all plugins from a directory
+    /// Load all plugins from a directory.
+    /// First pre-loads all DLLs as dependencies, then discovers which are actual plugins.
     /// </summary>
     /// <param name="pluginDirectory">Directory containing plugin DLLs</param>
     /// <returns>List of successfully loaded plugins</returns>
@@ -163,9 +164,47 @@ public class PluginLoader
             return plugins;
         }
 
-        foreach (var dllPath in Directory.GetFiles(pluginDirectory, "*.dll"))
+        var allDlls = Directory.GetFiles(pluginDirectory, "*.dll");
+        
+        // Step 1: Pre-load ALL DLLs as dependencies into the default context
+        var loadedAssemblies = new List<(string Path, Assembly Assembly)>();
+        foreach (var dllPath in allDlls)
         {
-            var plugin = LoadPlugin(dllPath);
+            try
+            {
+                var fullPath = Path.GetFullPath(dllPath);
+                var assemblyName = AssemblyName.GetAssemblyName(fullPath);
+                
+                // Check if already loaded
+                var existing = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == assemblyName.Name);
+                
+                if (existing != null)
+                {
+                    loadedAssemblies.Add((fullPath, existing));
+                    _logger.LogDebug("Assembly {Name} already loaded", assemblyName.Name);
+                }
+                else
+                {
+                    var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPath);
+                    loadedAssemblies.Add((fullPath, assembly));
+                    _logger.LogDebug("Loaded assembly: {Name}", assemblyName.Name);
+                }
+            }
+            catch (BadImageFormatException)
+            {
+                // Not a .NET assembly, skip
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not load assembly: {Path}", dllPath);
+            }
+        }
+        
+        // Step 2: Find which assemblies are actual plugins (have IPluginManifest)
+        foreach (var (path, assembly) in loadedAssemblies)
+        {
+            var plugin = LoadPlugin(assembly, path);
             if (plugin is not null)
             {
                 plugins.Add(plugin);
