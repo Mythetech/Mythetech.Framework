@@ -6,16 +6,16 @@
          AnchorOrigin="Origin.TopRight"
          TransformOrigin="Origin.TopLeft"
          Dense="true"
-         ListClass="@_menu.MenuListClass">
+         ListClass="@_menu?.MenuListClass">
     <ActivatorContent>
-        <MudMenuItem Class="@ItemClass" Icon="@_menu.Icon">
-            @_menu.Title
+        <MudMenuItem Class="@ItemClass" Icon="@_menu?.Icon">
+            @_menu?.Title
         </MudMenuItem>
     </ActivatorContent>
     <ChildContent>
-        @foreach (var item in _menu.Items)
+        @foreach (var item in _menu?.Items ?? [])
         {
-            <MudMenuItem Class="@(_menu.ItemClass ?? ItemClass)"
+            <MudMenuItem Class="@(_menu?.ItemClass ?? ItemClass)"
                          Icon="@item.Icon"
                          OnClick="@(() => HandleItemClick(item))"
                          Disabled="@item.Disabled">
