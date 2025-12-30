@@ -41,5 +41,11 @@ public interface IPluginManifest
     /// Optional minimum framework version required
     /// </summary>
     Version? MinimumFrameworkVersion => null;
+    
+    /// <summary>
+    /// CSS and JavaScript assets required by this plugin.
+    /// These are loaded when the plugin is enabled.
+    /// </summary>
+    PluginAsset[] Assets => [];
 }
 
