@@ -19,9 +19,15 @@ public class PluginContext
     public required IServiceProvider Services { get; init; }
     
     /// <summary>
-    /// Shared state storage for plugins
+    /// Shared state storage for plugins (in-memory, not persistent)
     /// </summary>
     public required PluginStateStore StateStore { get; init; }
+    
+    /// <summary>
+    /// Factory for creating persistent storage instances.
+    /// May be null if the host doesn't support storage.
+    /// </summary>
+    public IPluginStorageFactory? StorageFactory { get; init; }
     
     /// <summary>
     /// Link opening service for opening URLs in the default browser
