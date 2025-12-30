@@ -40,6 +40,11 @@ public class PluginContext
     public IFileSaveService? FileSaveService { get; init; }
     
     /// <summary>
+    /// Asset loader for loading CSS/JS at runtime
+    /// </summary>
+    public IPluginAssetLoader? AssetLoader { get; init; }
+    
+    /// <summary>
     /// Information about the current plugin (set per-component)
     /// </summary>
     public PluginInfo? CurrentPlugin { get; set; }

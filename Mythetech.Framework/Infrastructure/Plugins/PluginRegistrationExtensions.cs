@@ -22,11 +22,13 @@ public static class PluginRegistrationExtensions
         services.AddSingleton<PluginState>();
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<PluginStateStore>();
+        services.AddSingleton<IPluginAssetLoader, JsPluginAssetLoader>();
         services.AddScoped<PluginContext>(sp =>
         {
             var messageBus = sp.GetRequiredService<IMessageBus>();
             var stateStore = sp.GetRequiredService<PluginStateStore>();
             var storageFactory = sp.GetService<IPluginStorageFactory>();
+            var assetLoader = sp.GetService<IPluginAssetLoader>();
             var linkOpenService = sp.GetService<ILinkOpenService>();
             var fileSaveService = sp.GetService<IFileSaveService>();
             
@@ -36,6 +38,7 @@ public static class PluginRegistrationExtensions
                 Services = sp,
                 StateStore = stateStore,
                 StorageFactory = storageFactory,
+                AssetLoader = assetLoader,
                 LinkOpenService = linkOpenService,
                 FileSaveService = fileSaveService
             };

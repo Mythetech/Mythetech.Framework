@@ -52,6 +52,56 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     protected bool HasStorage => Context.StorageFactory != null;
     
     /// <summary>
+    /// Asset loader for loading CSS/JS at runtime
+    /// </summary>
+    protected IPluginAssetLoader? AssetLoader => Context.AssetLoader;
+    
+    /// <summary>
+    /// Load a CSS stylesheet dynamically.
+    /// Path is relative to the plugin's wwwroot, or an absolute URL.
+    /// </summary>
+    /// <param name="path">Path to stylesheet (relative to wwwroot or absolute URL)</param>
+    protected async Task LoadStylesheetAsync(string path)
+    {
+        if (AssetLoader == null) return;
+        
+        var resolvedPath = ResolvePath(path);
+        await AssetLoader.LoadStylesheetAsync(resolvedPath);
+    }
+    
+    /// <summary>
+    /// Load a JavaScript file dynamically.
+    /// Path is relative to the plugin's wwwroot, or an absolute URL.
+    /// </summary>
+    /// <param name="path">Path to script (relative to wwwroot or absolute URL)</param>
+    protected async Task LoadScriptAsync(string path)
+    {
+        if (AssetLoader == null) return;
+        
+        var resolvedPath = ResolvePath(path);
+        await AssetLoader.LoadScriptAsync(resolvedPath);
+    }
+    
+    private string ResolvePath(string path)
+    {
+        // Absolute URLs - pass through
+        if (path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("//"))
+            return path;
+        
+        // Already a _content path (e.g., from a NuGet package) - pass through
+        if (path.StartsWith("/_content/") || path.StartsWith("_content/"))
+            return path.StartsWith("/") ? path : "/" + path;
+        
+        // Absolute path starting with / - pass through
+        if (path.StartsWith("/"))
+            return path;
+        
+        // Relative path - prefix with plugin's content path
+        var assemblyName = GetType().Assembly.GetName().Name;
+        return $"/_content/{assemblyName}/{path}";
+    }
+    
+    /// <summary>
     /// Publish a message with default plugin timeout (30s)
     /// </summary>
     protected Task PublishAsync<TMessage>(TMessage message) where TMessage : class
