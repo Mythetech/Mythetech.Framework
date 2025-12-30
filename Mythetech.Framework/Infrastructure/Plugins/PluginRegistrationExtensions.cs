@@ -26,6 +26,7 @@ public static class PluginRegistrationExtensions
         {
             var messageBus = sp.GetRequiredService<IMessageBus>();
             var stateStore = sp.GetRequiredService<PluginStateStore>();
+            var storageFactory = sp.GetService<IPluginStorageFactory>();
             var linkOpenService = sp.GetService<ILinkOpenService>();
             var fileSaveService = sp.GetService<IFileSaveService>();
             
@@ -34,6 +35,7 @@ public static class PluginRegistrationExtensions
                 MessageBus = messageBus,
                 Services = sp,
                 StateStore = stateStore,
+                StorageFactory = storageFactory,
                 LinkOpenService = linkOpenService,
                 FileSaveService = fileSaveService
             };

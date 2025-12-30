@@ -1,6 +1,7 @@
 using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.Extensions.DependencyInjection;
 using Mythetech.Framework.Infrastructure;
+using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.WebAssembly;
 
@@ -43,6 +44,16 @@ public static class WebAssemblyRegistrationExtensions
     }
 
     /// <summary>
+    /// Registers the plugin storage factory for WebAssembly using localStorage
+    /// </summary>
+    public static IServiceCollection AddPluginStorage(this IServiceCollection services)
+    {
+        services.AddSingleton<IPluginStorageFactory, LocalStoragePluginStorageFactory>();
+        
+        return services;
+    }
+
+    /// <summary>
     /// Registers all WebAssembly-specific services
     /// </summary>
     public static IServiceCollection AddWebAssemblyServices(this IServiceCollection services)
@@ -50,6 +61,7 @@ public static class WebAssemblyRegistrationExtensions
         services.AddLinkOpeningService();
         services.AddFileOpenService();
         services.AddFileSaveService();
+        services.AddPluginStorage();
 
         return services;
     }
