@@ -153,12 +153,15 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     }
     
     /// <inheritdoc />
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await base.OnInitializedAsync();
+        await base.OnAfterRenderAsync(firstRender);
         
-        // Auto-load plugin assets on first render
-        await LoadPluginAssetsAsync();
+        if (firstRender)
+        {
+            // Auto-load plugin assets after first render when JS interop is available
+            await LoadPluginAssetsAsync();
+        }
     }
     
     /// <summary>
