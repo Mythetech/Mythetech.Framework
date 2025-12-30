@@ -32,7 +32,27 @@ public static class DesktopRegistrationExtensions
 
         services.AddLinkOpenService();
         services.AddPluginStorage();
+        services.AddDesktopAssetLoader();
 
+        return services;
+    }
+    
+    /// <summary>
+    /// Registers the desktop-specific plugin asset loader that reads files from disk
+    /// and injects them inline (since dynamic plugins can't use _content/ URLs).
+    /// This overrides the default JsPluginAssetLoader.
+    /// </summary>
+    public static IServiceCollection AddDesktopAssetLoader(this IServiceCollection services)
+    {
+        // Remove any existing registration
+        var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IPluginAssetLoader));
+        if (existing != null)
+        {
+            services.Remove(existing);
+        }
+        
+        services.AddScoped<IPluginAssetLoader, DesktopPluginAssetLoader>();
+        
         return services;
     }
 

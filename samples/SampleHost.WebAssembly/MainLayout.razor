@@ -36,12 +36,12 @@
         </div>
         
         <!-- Plugin context panels rendered as a side bar -->
-        @if (PluginState.EnabledContextPanelComponents.Any())
+        @if (PluginState.EnabledContextPanelComponentsMetadata.Any())
         {
             <MudPaper Width="320px" Elevation="0" Class="border-l" Style="overflow: auto;">
-                @foreach (var panelType in PluginState.EnabledContextPanelComponents.OrderBy(GetPanelOrder))
+                @foreach (var panel in PluginState.EnabledContextPanelComponentsMetadata.OrderBy(p => p.Order))
                 {
-                    <DynamicComponent Type="@panelType" />
+                    <DynamicComponent Type="@panel.ComponentType" />
                     <MudDivider />
                 }
             </MudPaper>
@@ -60,12 +60,6 @@
     private void OnPluginStateChanged(object? sender, EventArgs e)
     {
         InvokeAsync(StateHasChanged);
-    }
-
-    private int GetPanelOrder(Type panelType)
-    {
-        var instance = Activator.CreateInstance(panelType) as PluginContextPanel;
-        return instance?.Order ?? 100;
     }
 
     public void Dispose()

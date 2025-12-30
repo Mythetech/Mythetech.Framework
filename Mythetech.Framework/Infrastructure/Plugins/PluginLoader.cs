@@ -150,9 +150,10 @@ public class PluginLoader
     
     /// <summary>
     /// Load all plugins from a directory.
+    /// Scans both the root directory and subdirectories (each plugin can have its own folder).
     /// First pre-loads all DLLs as dependencies, then discovers which are actual plugins.
     /// </summary>
-    /// <param name="pluginDirectory">Directory containing plugin DLLs</param>
+    /// <param name="pluginDirectory">Directory containing plugin DLLs or plugin subdirectories</param>
     /// <returns>List of successfully loaded plugins</returns>
     public IReadOnlyList<PluginInfo> LoadPluginsFromDirectory(string pluginDirectory)
     {
@@ -164,7 +165,35 @@ public class PluginLoader
             return plugins;
         }
 
-        var allDlls = Directory.GetFiles(pluginDirectory, "*.dll");
+        // Collect all plugin directories to scan:
+        // 1. The root plugins directory (for loose DLLs)
+        // 2. Each subdirectory (for plugins with their own folder)
+        var directoriesToScan = new List<string> { pluginDirectory };
+        directoriesToScan.AddRange(Directory.GetDirectories(pluginDirectory));
+        
+        _logger.LogDebug("Scanning {Count} directories for plugins", directoriesToScan.Count);
+
+        foreach (var directory in directoriesToScan)
+        {
+            var loadedPlugins = LoadPluginsFromSingleDirectory(directory);
+            plugins.AddRange(loadedPlugins);
+        }
+        
+        _logger.LogInformation("Loaded {Count} plugins from {Path}", plugins.Count, pluginDirectory);
+        return plugins;
+    }
+    
+    private List<PluginInfo> LoadPluginsFromSingleDirectory(string directory)
+    {
+        var plugins = new List<PluginInfo>();
+        var allDlls = Directory.GetFiles(directory, "*.dll");
+        
+        if (allDlls.Length == 0)
+        {
+            return plugins;
+        }
+        
+        _logger.LogDebug("Found {Count} DLLs in {Directory}", allDlls.Length, directory);
         
         // Step 1: Pre-load ALL DLLs as dependencies into the default context
         var loadedAssemblies = new List<(string Path, Assembly Assembly)>();
@@ -211,7 +240,6 @@ public class PluginLoader
             }
         }
         
-        _logger.LogInformation("Loaded {Count} plugins from {Path}", plugins.Count, pluginDirectory);
         return plugins;
     }
     
@@ -255,16 +283,10 @@ public class PluginLoader
         {
             try
             {
-                if (Activator.CreateInstance(type) is Components.PluginMenu instance)
+                var meta = ExtractMetadataViaReflection(type);
+                if (meta != null)
                 {
-                    metadata.Add(new PluginComponentMetadata
-                    {
-                        ComponentType = type,
-                        Title = instance.Title,
-                        Icon = instance.Icon,
-                        Order = instance.Order,
-                        Tooltip = instance.Tooltip
-                    });
+                    metadata.Add(meta);
                 }
             }
             catch (Exception ex)
@@ -284,15 +306,10 @@ public class PluginLoader
         {
             try
             {
-                if (Activator.CreateInstance(type) is Components.PluginContextPanel instance)
+                var meta = ExtractMetadataViaReflection(type);
+                if (meta != null)
                 {
-                    metadata.Add(new PluginComponentMetadata
-                    {
-                        ComponentType = type,
-                        Title = instance.Title,
-                        Icon = instance.Icon,
-                        Order = instance.Order
-                    });
+                    metadata.Add(meta);
                 }
             }
             catch (Exception ex)
@@ -302,6 +319,78 @@ public class PluginLoader
         }
         
         return metadata;
+    }
+    
+    /// <summary>
+    /// Extract metadata using reflection to avoid triggering OnInitialized.
+    /// Reads Icon, Title, Order, Tooltip properties directly from the type.
+    /// </summary>
+    private PluginComponentMetadata? ExtractMetadataViaReflection(Type componentType)
+    {
+        // Get property values via reflection without instantiating
+        // These are virtual properties with default implementations, so we need to create
+        // an instance but use FormatterServices to skip the constructor
+        object? instance = null;
+        
+        try
+        {
+            // Use RuntimeHelpers.GetUninitializedObject to create instance without calling constructor
+            // This avoids triggering OnInitialized and accessing injected services
+            instance = System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(componentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not create uninitialized instance of {Type}, using defaults", componentType.Name);
+        }
+        
+        string icon = "extension"; // Default icon
+        string title = componentType.Name;
+        int order = 100;
+        string? tooltip = null;
+        
+        if (instance != null)
+        {
+            try
+            {
+                var iconProp = componentType.GetProperty("Icon");
+                if (iconProp?.GetValue(instance) is string iconValue)
+                    icon = iconValue;
+            }
+            catch { /* Use default */ }
+            
+            try
+            {
+                var titleProp = componentType.GetProperty("Title");
+                if (titleProp?.GetValue(instance) is string titleValue)
+                    title = titleValue;
+            }
+            catch { /* Use default */ }
+            
+            try
+            {
+                var orderProp = componentType.GetProperty("Order");
+                if (orderProp?.GetValue(instance) is int orderValue)
+                    order = orderValue;
+            }
+            catch { /* Use default */ }
+            
+            try
+            {
+                var tooltipProp = componentType.GetProperty("Tooltip");
+                if (tooltipProp?.GetValue(instance) is string tooltipValue)
+                    tooltip = tooltipValue;
+            }
+            catch { /* Use default */ }
+        }
+        
+        return new PluginComponentMetadata
+        {
+            ComponentType = componentType,
+            Title = title,
+            Icon = icon,
+            Order = order,
+            Tooltip = tooltip
+        };
     }
 }
 

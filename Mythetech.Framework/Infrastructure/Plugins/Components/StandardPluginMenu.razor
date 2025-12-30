@@ -3,6 +3,7 @@
 @inject PluginState PluginState
 @inject PluginLoader PluginLoader
 @inject IFileOpenService FileOpenService
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudMenu ActivationEvent="@ActivationEvent" 
@@ -28,6 +29,9 @@
         
         <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.FileUpload" OnClick="HandleImportPlugin">
             Import Plugin...
+        </MudMenuItem>
+        <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.Link" OnClick="HandleImportPluginFromUrl">
+            Import from URL...
         </MudMenuItem>
     </ChildContent>
 </MudMenu>
@@ -77,6 +81,18 @@
                 PluginState.RegisterPlugin(pluginInfo);
             }
         }
+    }
+    
+    private async Task HandleImportPluginFromUrl()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+        
+        await DialogService.ShowAsync<DefaultPluginUrlLoadDialog>("Import Plugin from URL", options);
     }
 
     public void Dispose()

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mythetech.Framework.Infrastructure.MessageBus;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
@@ -22,7 +23,9 @@ public static class PluginRegistrationExtensions
         services.AddSingleton<PluginState>();
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<PluginStateStore>();
-        services.AddSingleton<IPluginAssetLoader, JsPluginAssetLoader>();
+        
+        services.TryAddScoped<IPluginAssetLoader, JsPluginAssetLoader>();
+        
         services.AddScoped<PluginContext>(sp =>
         {
             var messageBus = sp.GetRequiredService<IMessageBus>();

@@ -4,6 +4,7 @@
 @using Mythetech.Framework.Infrastructure.Plugins.Components
 @inherits LayoutComponentBase
 @inject PluginState PluginState
+@inject IPluginAssetLoader AssetLoader
 @implements IDisposable
 
 <MudLayout>
@@ -35,13 +36,13 @@
             @Body
         </div>
         
-        <!-- Plugin context panels rendered as a side bar -->
-        @if (PluginState.EnabledContextPanelComponents.Any())
+        <!-- Plugin context panels rendered as a side bar (only after assets are loaded) -->
+        @if (_assetsLoaded && PluginState.EnabledContextPanelComponentsMetadata.Any())
         {
             <MudPaper Width="320px" Elevation="0" Class="border-l" Style="overflow: auto;">
-                @foreach (var panelType in PluginState.EnabledContextPanelComponents.OrderBy(GetPanelOrder))
+                @foreach (var panel in PluginState.EnabledContextPanelComponentsMetadata.OrderBy(p => p.Order))
                 {
-                    <DynamicComponent Type="@panelType" />
+                    <DynamicComponent Type="@panel.ComponentType" />
                     <MudDivider />
                 }
             </MudPaper>
@@ -51,21 +52,35 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _assetsLoaded = false;
 
     protected override void OnInitialized()
     {
         PluginState.StateChanged += OnPluginStateChanged;
     }
 
-    private void OnPluginStateChanged(object? sender, EventArgs e)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        InvokeAsync(StateHasChanged);
+        if (firstRender || !_assetsLoaded)
+        {
+            await LoadAllPluginAssetsAsync();
+            _assetsLoaded = true;
+            StateHasChanged();
+        }
     }
 
-    private int GetPanelOrder(Type panelType)
+    private async Task LoadAllPluginAssetsAsync()
     {
-        var instance = Activator.CreateInstance(panelType) as PluginContextPanel;
-        return instance?.Order ?? 100;
+        foreach (var plugin in PluginState.EnabledPlugins)
+        {
+            await AssetLoader.LoadPluginAssetsAsync(plugin);
+        }
+    }
+
+    private void OnPluginStateChanged(object? sender, EventArgs e)
+    {
+        _assetsLoaded = false;
+        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()

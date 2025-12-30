@@ -1,0 +1,237 @@
+@using MudBlazor
+@using System.IO.Compression
+@using System.Net.Http
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider ServiceProvider
+@inject PluginLoader PluginLoader
+@inject PluginState PluginState
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="4">
+            <MudText Typo="Typo.body2">
+                Enter a name for the plugin and a URL to a DLL or ZIP file containing the plugin.
+            </MudText>
+            
+            <MudTextField @bind-Value="_pluginName"
+                          Label="Plugin Name"
+                          Placeholder="MyPlugin"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Plugin name is required"
+                          HelperText="This will be the folder name in the plugins directory" />
+            
+            <MudTextField @bind-Value="_pluginUrl"
+                          Label="Plugin URL"
+                          Placeholder="https://example.com/plugin.dll"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="URL is required"
+                          HelperText="URL to a .dll file or .zip archive" />
+            
+            @if (_isLoading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@_statusMessage</MudText>
+            }
+            
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_isLoading">Cancel</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="DownloadAndLoadPlugin" 
+                   Disabled="@(!IsValid || _isLoading)">
+            @if (_isLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Import
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    private IMudDialogInstance? MudDialog { get; set; }
+    
+    [Parameter]
+    public string? PluginsDirectory { get; set; }
+    
+    private string _pluginName = string.Empty;
+    private string _pluginUrl = string.Empty;
+    private bool _isLoading;
+    private string _statusMessage = string.Empty;
+    private string? _errorMessage;
+    
+    private bool IsValid => !string.IsNullOrWhiteSpace(_pluginName) && 
+                            !string.IsNullOrWhiteSpace(_pluginUrl) &&
+                            Uri.TryCreate(_pluginUrl, UriKind.Absolute, out _);
+    
+    private string GetPluginsDirectory()
+    {
+        if (!string.IsNullOrEmpty(PluginsDirectory))
+            return PluginsDirectory;
+            
+        return Path.Combine(AppContext.BaseDirectory, PluginRegistrationExtensions.DefaultPluginDirectory);
+    }
+    
+    private HttpClient? GetHttpClient()
+    {
+        var factory = ServiceProvider.GetService<IHttpClientFactory>();
+        if (factory is not null)
+            return factory.CreateClient();
+            
+        return ServiceProvider.GetService<HttpClient>();
+    }
+    
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+    
+    private async Task DownloadAndLoadPlugin()
+    {
+        if (!IsValid) return;
+        
+        _isLoading = true;
+        _errorMessage = null;
+        _statusMessage = "Downloading...";
+        StateHasChanged();
+        
+        try
+        {
+            var pluginDir = GetPluginsDirectory();
+            var targetDir = Path.Combine(pluginDir, SanitizeFolderName(_pluginName));
+            
+            if (Directory.Exists(targetDir))
+            {
+                _errorMessage = $"A plugin folder named '{_pluginName}' already exists.";
+                return;
+            }
+            
+            Directory.CreateDirectory(targetDir);
+            
+            var httpClient = GetHttpClient();
+            if (httpClient is null)
+            {
+                _errorMessage = "HttpClient not configured. Register IHttpClientFactory or HttpClient in DI.";
+                Directory.Delete(targetDir, recursive: true);
+                return;
+            }
+            
+            _statusMessage = "Downloading plugin...";
+            StateHasChanged();
+            
+            var response = await httpClient.GetAsync(_pluginUrl);
+            response.EnsureSuccessStatusCode();
+            
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+            var fileName = GetFileNameFromUrl(_pluginUrl);
+            var isZip = fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                        contentType.Contains("zip", StringComparison.OrdinalIgnoreCase) ||
+                        contentType.Contains("octet-stream", StringComparison.OrdinalIgnoreCase);
+            
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            
+            if (isZip || await IsZipStreamAsync(stream))
+            {
+                _statusMessage = "Extracting archive...";
+                StateHasChanged();
+                
+                stream.Position = 0;
+                using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+                archive.ExtractToDirectory(targetDir, overwriteFiles: true);
+            }
+            else
+            {
+                _statusMessage = "Saving DLL...";
+                StateHasChanged();
+                
+                stream.Position = 0;
+                var dllFileName = fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) 
+                    ? fileName 
+                    : $"{_pluginName}.dll";
+                    
+                var dllPath = Path.Combine(targetDir, dllFileName);
+                await using var fileStream = File.Create(dllPath);
+                await stream.CopyToAsync(fileStream);
+            }
+            
+            _statusMessage = "Loading plugin...";
+            StateHasChanged();
+            
+            var loadedPlugins = PluginLoader.LoadPluginsFromDirectory(targetDir);
+            
+            if (loadedPlugins.Count == 0)
+            {
+                Directory.Delete(targetDir, recursive: true);
+                _errorMessage = "No valid plugins found in the downloaded content. The folder has been removed.";
+                return;
+            }
+            
+            foreach (var plugin in loadedPlugins)
+            {
+                PluginState.RegisterPlugin(plugin);
+            }
+            
+            Snackbar.Add($"Successfully loaded {loadedPlugins.Count} plugin(s) from '{_pluginName}'", Severity.Success);
+            MudDialog?.Close(DialogResult.Ok(loadedPlugins));
+        }
+        catch (HttpRequestException ex)
+        {
+            _errorMessage = $"Failed to download: {ex.Message}";
+        }
+        catch (InvalidDataException)
+        {
+            _errorMessage = "The downloaded file is not a valid ZIP archive or DLL.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+            _statusMessage = string.Empty;
+            StateHasChanged();
+        }
+    }
+    
+    private static string SanitizeFolderName(string name)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        return new string(name.Where(c => !invalidChars.Contains(c)).ToArray());
+    }
+    
+    private static string GetFileNameFromUrl(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return Path.GetFileName(uri.LocalPath);
+        }
+        return string.Empty;
+    }
+    
+    private static async Task<bool> IsZipStreamAsync(Stream stream)
+    {
+        if (!stream.CanSeek) return false;
+        
+        var buffer = new byte[4];
+        var originalPosition = stream.Position;
+        
+        var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, 4));
+        stream.Position = originalPosition;
+        
+        if (bytesRead < 4) return false;
+        
+        return buffer[0] == 0x50 && buffer[1] == 0x4B && buffer[2] == 0x03 && buffer[3] == 0x04;
+    }
+}
+
