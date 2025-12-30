@@ -22,7 +22,8 @@ public class PluginLoader
     }
     
     /// <summary>
-    /// Load a plugin from a DLL file path
+    /// Load a plugin from a DLL file path.
+    /// Uses a custom AssemblyLoadContext to resolve dependencies from the plugin's directory.
     /// </summary>
     /// <param name="dllPath">Full path to the plugin DLL</param>
     /// <returns>PluginInfo if loaded successfully, null otherwise</returns>
@@ -36,8 +37,15 @@ public class PluginLoader
 
         try
         {
-            var loadContext = AssemblyLoadContext.Default;
-            var assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath(dllPath));
+            var fullPath = Path.GetFullPath(dllPath);
+            var pluginDirectory = Path.GetDirectoryName(fullPath)!;
+            
+            // Pre-load all DLLs from the plugin directory to ensure dependencies are available
+            PreloadDependencies(pluginDirectory, Path.GetFileName(fullPath));
+            
+            // Use custom load context for dependency resolution
+            var loadContext = new PluginLoadContext(fullPath);
+            var assembly = loadContext.LoadFromAssemblyPath(fullPath);
             
             return LoadPlugin(assembly, dllPath);
         }
@@ -45,6 +53,44 @@ public class PluginLoader
         {
             _logger.LogError(ex, "Failed to load plugin assembly from {Path}", dllPath);
             return null;
+        }
+    }
+    
+    private void PreloadDependencies(string directory, string mainDllName)
+    {
+        foreach (var dllPath in Directory.GetFiles(directory, "*.dll"))
+        {
+            var fileName = Path.GetFileName(dllPath);
+            
+            // Skip the main plugin DLL and any already-loaded assemblies
+            if (fileName.Equals(mainDllName, StringComparison.OrdinalIgnoreCase))
+                continue;
+            
+            try
+            {
+                // Check if already loaded in default context
+                var assemblyName = AssemblyName.GetAssemblyName(dllPath);
+                var existingAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == assemblyName.Name);
+                
+                if (existingAssembly != null)
+                {
+                    _logger.LogDebug("Dependency {Name} already loaded, skipping", assemblyName.Name);
+                    continue;
+                }
+                
+                // Load into default context so it's available to all plugins
+                AssemblyLoadContext.Default.LoadFromAssemblyPath(dllPath);
+                _logger.LogDebug("Pre-loaded dependency: {Name}", assemblyName.Name);
+            }
+            catch (BadImageFormatException)
+            {
+                // Not a .NET assembly, skip
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not pre-load dependency: {Path}", dllPath);
+            }
         }
     }
     

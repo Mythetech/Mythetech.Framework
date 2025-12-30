@@ -57,7 +57,7 @@
 
     private IEnumerable<Type> GetAllPluginMenuTypes()
     {
-        return PluginState.EnabledPlugins
+        return PluginState.Plugins
             .SelectMany(p => p.MenuComponents);
     }
 
