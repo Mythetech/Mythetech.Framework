@@ -151,6 +151,34 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
         base.OnInitialized();
         StateStore.StateChanged += OnPluginStateChanged;
     }
+    
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        
+        // Auto-load plugin assets on first render
+        await LoadPluginAssetsAsync();
+    }
+    
+    /// <summary>
+    /// Loads all assets declared in this plugin's manifest.
+    /// Called automatically on first render, but can be called manually if needed.
+    /// Assets are deduplicated so multiple calls are safe.
+    /// </summary>
+    protected async Task LoadPluginAssetsAsync()
+    {
+        if (AssetLoader == null) return;
+        
+        var pluginState = Context.Services.GetService(typeof(PluginState)) as PluginState;
+        var assembly = GetType().Assembly;
+        var pluginInfo = pluginState?.Plugins.FirstOrDefault(p => p.Assembly == assembly);
+        
+        if (pluginInfo != null)
+        {
+            await AssetLoader.LoadPluginAssetsAsync(pluginInfo);
+        }
+    }
 
     private void OnPluginStateChanged(object? sender, PluginStateChangedEventArgs e)
     {
