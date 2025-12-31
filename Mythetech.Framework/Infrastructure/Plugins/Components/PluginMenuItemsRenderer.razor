@@ -1,0 +1,53 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Infrastructure.Plugins.Components
+
+@foreach (var item in _menu?.Items ?? [])
+{
+    <MudMenuItem Class="@(_menu?.ItemClass ?? ItemClass)"
+                 Icon="@item.Icon"
+                 OnClick="@(() => HandleItemClick(item))"
+                 Disabled="@item.Disabled">
+        @item.Text
+    </MudMenuItem>
+}
+
+@* Hidden render of the actual PluginMenu component to get proper Blazor lifecycle *@
+<div style="display: none;">
+    <DynamicComponent Type="@MenuType" @ref="_dynamicComponent"/>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Type MenuType { get; set; } = default!;
+
+    [Parameter] public string ItemClass { get; set; } = "rounded";
+    
+    [Parameter, EditorRequired] public PluginContext PluginContext { get; set; } = default!;
+
+    private DynamicComponent? _dynamicComponent;
+    private PluginMenu? _menu;
+    private bool _initialized;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!_initialized && _dynamicComponent?.Instance is PluginMenu menu)
+        {
+            _menu = menu;
+            _initialized = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleItemClick(PluginMenuItem item)
+    {
+        await item.OnClick(PluginContext);
+
+        if (_dynamicComponent?.Instance is PluginMenu menu)
+        {
+            _menu = menu;
+            StateHasChanged();
+        }
+    }
+}
+

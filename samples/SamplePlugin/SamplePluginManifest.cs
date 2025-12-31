@@ -1,3 +1,4 @@
+using MudBlazor;
 using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace SamplePlugin;
@@ -12,6 +13,7 @@ public class SamplePluginManifest : IPluginManifest
     public Version Version => new(1, 0, 0);
     public string Developer => "Mythetech";
     public string Description => "A sample plugin demonstrating the plugin framework";
+    public string? Icon => Icons.Material.Outlined.Extension;
     public string? ProjectUrl => "https://github.com/mythetech/Mythetech.Framework";
     
     /// <summary>

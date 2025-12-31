@@ -153,6 +153,26 @@ public class PluginState : IDisposable
     }
     
     /// <summary>
+    /// Remove a plugin by its ID
+    /// </summary>
+    /// <returns>True if the plugin was removed, false if not found</returns>
+    public bool RemovePlugin(string pluginId)
+    {
+        var plugin = GetPlugin(pluginId);
+        if (plugin is null) return false;
+        
+        if (plugin.IsEnabled)
+        {
+            DisablePlugin(pluginId);
+        }
+        
+        _plugins.Remove(plugin);
+        NotifyStateChanged();
+        
+        return true;
+    }
+    
+    /// <summary>
     /// Notify listeners that state has changed
     /// </summary>
     public void NotifyStateChanged()

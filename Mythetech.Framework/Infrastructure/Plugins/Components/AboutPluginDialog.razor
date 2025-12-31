@@ -1,0 +1,120 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Badge
+@inject ILinkOpenService? LinkOpenService
+
+<MudDialog>
+    <DialogContent>
+        @if (Plugin is not null)
+        {
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.h6">@Plugin.Manifest.Name</MudText>
+                
+                <MudDivider />
+                
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">ID</MudText>
+                    <MudText Typo="Typo.body1">@Plugin.Manifest.Id</MudText>
+                </MudStack>
+                
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Version</MudText>
+                    <MudText Typo="Typo.body1">@Plugin.Manifest.Version</MudText>
+                </MudStack>
+                
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Developer</MudText>
+                    <MudText Typo="Typo.body1">@Plugin.Manifest.Developer</MudText>
+                </MudStack>
+                
+                @if (!string.IsNullOrWhiteSpace(Plugin.Manifest.Description))
+                {
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Description</MudText>
+                        <MudText Typo="Typo.body1">@Plugin.Manifest.Description</MudText>
+                    </MudStack>
+                }
+                
+                @if (!string.IsNullOrWhiteSpace(Plugin.Manifest.ProjectUrl))
+                {
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Project URL</MudText>
+                        @if (LinkOpenService is not null)
+                        {
+                            <MudLink Href="@Plugin.Manifest.ProjectUrl" Target="_blank">
+                                @Plugin.Manifest.ProjectUrl
+                            </MudLink>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body1">@Plugin.Manifest.ProjectUrl</MudText>
+                        }
+                    </MudStack>
+                }
+                
+                @if (Plugin.Manifest.MinimumFrameworkVersion is not null)
+                {
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Minimum Framework Version</MudText>
+                        <MudText Typo="Typo.body1">@Plugin.Manifest.MinimumFrameworkVersion</MudText>
+                    </MudStack>
+                }
+                
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Status</MudText>
+                    <Badge Size="Size.Small" 
+                           Color="@(Plugin.IsEnabled ? Color.Success : Color.Error)"
+                           Style="width: 10%;"
+                             Variant="Variant.Filled">
+                        @(Plugin.IsEnabled ? "Enabled" : "Disabled")
+                    </Badge>
+                </MudStack>
+                
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Loaded At</MudText>
+                    <MudText Typo="Typo.body1">@Plugin.LoadedAt.ToString("g")</MudText>
+                </MudStack>
+                
+                @if (!string.IsNullOrWhiteSpace(Plugin.SourcePath))
+                {
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Source Path</MudText>
+                        <MudText Typo="Typo.body1" Style="word-break: break-all;">@Plugin.SourcePath</MudText>
+                    </MudStack>
+                }
+                
+                @if (Plugin.MenuComponents.Count > 0 || Plugin.ContextPanelComponents.Count > 0)
+                {
+                    <MudDivider />
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Components</MudText>
+                        @if (Plugin.MenuComponents.Count > 0)
+                        {
+                            <MudText Typo="Typo.body1">Menu Components: @Plugin.MenuComponents.Count</MudText>
+                        }
+                        @if (Plugin.ContextPanelComponents.Count > 0)
+                        {
+                            <MudText Typo="Typo.body1">Context Panel Components: @Plugin.ContextPanelComponents.Count</MudText>
+                        }
+                    </MudStack>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+    
+    [Parameter]
+    public PluginInfo? Plugin { get; set; }
+    
+    private void Close()
+    {
+        MudDialog?.Close();
+    }
+}
+

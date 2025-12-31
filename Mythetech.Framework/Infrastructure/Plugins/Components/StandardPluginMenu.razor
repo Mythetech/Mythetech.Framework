@@ -4,6 +4,7 @@
 @inject PluginLoader PluginLoader
 @inject IFileOpenService FileOpenService
 @inject IDialogService DialogService
+@inject PluginContext PluginContext
 @implements IDisposable
 
 <MudMenu ActivationEvent="@ActivationEvent" 
@@ -17,12 +18,52 @@
         </MudButton>
     </ActivatorContent>
     <ChildContent>
-        @foreach (var menuType in GetAllPluginMenuTypes())
+        @{
+            var plugins = PluginState.Plugins.ToList();
+        }
+        @foreach (var plugin in plugins)
         {
-            <PluginMenuHost MenuType="@menuType" ItemClass="@ItemClass" />
+            <MudMenu ActivationEvent="MouseEvent.MouseOver"
+                     AnchorOrigin="Origin.TopRight"
+                     TransformOrigin="Origin.TopLeft"
+                     Dense="@Dense"
+                     ListClass="@ListClass">
+                <ActivatorContent>
+                    <MudMenuItem Class="@ItemClass" Icon="@(plugin.Manifest?.Icon ?? PluginIcons.DefaultPluginIcon)">
+                        @plugin.Manifest?.Name
+                    </MudMenuItem>
+                </ActivatorContent>
+                <ChildContent>
+                    @foreach (var menuType in plugin.MenuComponents)
+                    {
+                        <PluginMenuItemsRenderer MenuType="@menuType" ItemClass="@ItemClass" PluginContext="@PluginContext" />
+                    }
+                    
+                    @if (plugin.MenuComponents.Any())
+                    {
+                        <MudDivider />
+                    }
+                    
+                    <MudMenuItem Class="@ItemClass" 
+                                Icon="@Icons.Material.Filled.Info" 
+                                OnClick="() => HandleAboutPlugin(plugin)">
+                        About...
+                    </MudMenuItem>
+                    <MudMenuItem Class="@ItemClass" 
+                                Icon="@(plugin.IsEnabled ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
+                                OnClick="() => HandleDisablePlugin(plugin)">
+                        @(plugin.IsEnabled ? "Disable" : "Enable")
+                    </MudMenuItem>
+                    <MudMenuItem Class="@ItemClass" 
+                                Icon="@Icons.Material.Filled.Delete" 
+                                OnClick="() => HandleDeletePlugin(plugin)">
+                        Delete...
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
         }
         
-        @if (GetAllPluginMenuTypes().Any())
+        @if (plugins.Any())
         {
             <MudDivider />
         }
@@ -59,10 +100,47 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private IEnumerable<Type> GetAllPluginMenuTypes()
+    private async Task HandleAboutPlugin(PluginInfo plugin)
     {
-        return PluginState.Plugins
-            .SelectMany(p => p.MenuComponents);
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+        
+        var parameters = new DialogParameters
+        {
+            { "Plugin", plugin }
+        };
+        
+        await DialogService.ShowAsync<AboutPluginDialog>($"About {plugin.Manifest.Name}", parameters, options);
+    }
+    
+    private async Task HandleDisablePlugin(PluginInfo plugin)
+    {
+        if (plugin.IsEnabled)
+        {
+            PluginState.DisablePlugin(plugin.Manifest.Id);
+        }
+        else
+        {
+            PluginState.EnablePlugin(plugin.Manifest.Id);
+        }
+    }
+    
+    private async Task HandleDeletePlugin(PluginInfo plugin)
+    {
+        var result = await DialogService.ShowMessageBox(
+            title: "Delete Plugin",
+            message: $"Are you sure you want to delete '{plugin.Manifest.Name}'? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+        
+        if (result == true)
+        {
+            PluginState.RemovePlugin(plugin.Manifest.Id);
+        }
     }
 
     private async Task HandleImportPlugin()

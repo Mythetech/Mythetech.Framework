@@ -33,6 +33,11 @@ public interface IPluginManifest
     string Description { get; }
     
     /// <summary>
+    /// Optional icon to display for this plugin in menus (e.g., Icons.Material.Filled.Extension)
+    /// </summary>
+    string? Icon => null;
+    
+    /// <summary>
     /// Optional URL for more information
     /// </summary>
     string? ProjectUrl => null;
