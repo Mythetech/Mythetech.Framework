@@ -1,0 +1,158 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@inject PluginState PluginState
+@implements IDisposable
+
+<ErrorBoundary @ref="_errorBoundary">
+    <ChildContent>
+        @if (IsPluginDeleted)
+        {
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Large" Color="Color.Error" />
+                    <MudText Typo="Typo.h6">Plugin Deleted</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        The plugin "@PluginInfo.Manifest.Name" has been deleted and is no longer available.
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        }
+        else if (IsPluginDisabled)
+        {
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Large" Color="Color.Warning" />
+                    <MudText Typo="Typo.h6">Plugin Disabled</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        The plugin "@PluginInfo.Manifest.Name" is currently disabled.
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Version @PluginInfo.Manifest.Version
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        }
+        else
+        {
+            @ChildContent
+        }
+    </ChildContent>
+    <ErrorContent Context="errorContext">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudStack Spacing="3">
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Large" Color="Color.Error" />
+                    <MudText Typo="Typo.h6" Color="Color.Error">Plugin Error</MudText>
+                </MudStack>
+                
+                <MudText Typo="Typo.body1">
+                    An error occurred while rendering the plugin component.
+                </MudText>
+                
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.body2">
+                        <strong>Plugin:</strong> @PluginInfo.Manifest.Name
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        <strong>Version:</strong> @PluginInfo.Manifest.Version
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        <strong>Component:</strong> @Metadata.Title
+                    </MudText>
+                </MudStack>
+                
+                @if (ShowErrorDetails)
+                {
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Error Details:</MudText>
+                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-dark-darkenen); max-height: 300px; overflow: auto;">
+                        <MudText Typo="Typo.body2" Color="Color.Error" Class="mb-2">@errorContext.Message</MudText>
+                        @if (!string.IsNullOrWhiteSpace(errorContext.StackTrace))
+                        {
+                            <pre style="margin: 0; font-size: 0.75rem; color: var(--mud-palette-text-secondary); white-space: pre-wrap; word-wrap: break-word;">@errorContext.StackTrace</pre>
+                        }
+                    </MudPaper>
+                }
+            </MudStack>
+        </MudPaper>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    private ErrorBoundary? _errorBoundary;
+    
+    /// <summary>
+    /// The plugin information for the plugin being guarded
+    /// </summary>
+    [Parameter, EditorRequired]
+    public PluginInfo PluginInfo { get; set; } = null!;
+    
+    /// <summary>
+    /// The component metadata for the specific component being guarded
+    /// </summary>
+    [Parameter, EditorRequired]
+    public PluginComponentMetadata Metadata { get; set; } = null!;
+    
+    /// <summary>
+    /// Child content to render when the plugin is enabled and not deleted
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    
+    /// <summary>
+    /// Whether to show detailed error information (stack traces, etc.). 
+    /// Should be true in development environments.
+    /// </summary>
+    [Parameter]
+    public bool ShowErrorDetails { get; set; }
+    
+    /// <summary>
+    /// Whether the plugin is currently deleted (removed from PluginState)
+    /// </summary>
+    private bool IsPluginDeleted => PluginState.GetPlugin(PluginInfo.Manifest.Id) is null;
+    
+    /// <summary>
+    /// Whether the plugin is currently disabled
+    /// </summary>
+    private bool IsPluginDisabled
+    {
+        get
+        {
+            if (!PluginState.PluginsActive) return true;
+            var plugin = PluginState.GetPlugin(PluginInfo.Manifest.Id);
+            return plugin is null || !plugin.IsEnabled;
+        }
+    }
+    
+    protected override void OnInitialized()
+    {
+        PluginState.StateChanged += OnStateChanged;
+    }
+    
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && _errorBoundary is not null)
+        {
+            _errorBoundary.Recover();
+        }
+    }
+    
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+            if (_errorBoundary is not null)
+            {
+                _errorBoundary.Recover();
+            }
+        });
+    }
+    
+    public void Dispose()
+    {
+        PluginState.StateChanged -= OnStateChanged;
+    }
+}
+

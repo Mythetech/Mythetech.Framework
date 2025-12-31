@@ -1,0 +1,203 @@
+@using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Infrastructure.Plugins.Components
+@using Mythetech.Framework.Storybook.Stories
+@using MudBlazor
+@attribute [Stories("Infrastructure/Plugins/PluginGuard")]
+
+<Stories TComponent="PluginGuard">
+
+    <Story Name="Enabled Plugin" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <PluginGuardStoryWrapper Scenario="PluginScenario.Enabled">
+                <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                    <MudText Typo="Typo.h5">Plugin Guard - Enabled State</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        When a plugin is enabled, the PluginGuard renders its child content normally.
+                    </MudText>
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <PluginGuard PluginInfo="@StorybookPluginData.EnabledPluginInfo" 
+                                     Metadata="@StorybookPluginData.ComponentMetadata"
+                                     ShowErrorDetails="true">
+                            <MudPaper Class="pa-4" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                <MudStack Spacing="2">
+                                    <MudText Typo="Typo.h6">Sample Plugin Component</MudText>
+                                    <MudText Typo="Typo.body2">
+                                        This is the content that would normally be rendered by a DynamicComponent
+                                        wrapping a plugin component. The PluginGuard allows it to render when the plugin is enabled.
+                                    </MudText>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Plugin Active</MudChip>
+                                </MudStack>
+                            </MudPaper>
+                        </PluginGuard>
+                    </MudPaper>
+                </MudStack>
+            </PluginGuardStoryWrapper>
+        </Template>
+    </Story>
+
+    <Story Name="Disabled Plugin" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <PluginGuardStoryWrapper Scenario="PluginScenario.Disabled">
+                <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                    <MudText Typo="Typo.h5">Plugin Guard - Disabled State</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        When a plugin is disabled, the PluginGuard shows a disabled message instead of the child content.
+                    </MudText>
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <PluginGuard PluginInfo="@StorybookPluginData.DisabledPluginInfo" 
+                                     Metadata="@StorybookPluginData.ComponentMetadata"
+                                     ShowErrorDetails="true">
+                            <MudText>This content should not be visible when the plugin is disabled.</MudText>
+                        </PluginGuard>
+                    </MudPaper>
+                </MudStack>
+            </PluginGuardStoryWrapper>
+        </Template>
+    </Story>
+
+    <Story Name="Deleted Plugin" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <PluginGuardStoryWrapper Scenario="PluginScenario.Deleted">
+                <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                    <MudText Typo="Typo.h5">Plugin Guard - Deleted State</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        When a plugin is deleted (removed from PluginState), the PluginGuard shows a deleted message.
+                    </MudText>
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <PluginGuard PluginInfo="@StorybookPluginData.DeletedPluginInfo" 
+                                     Metadata="@StorybookPluginData.ComponentMetadata"
+                                     ShowErrorDetails="true">
+                            <MudText>This content should not be visible when the plugin is deleted.</MudText>
+                        </PluginGuard>
+                    </MudPaper>
+                </MudStack>
+            </PluginGuardStoryWrapper>
+        </Template>
+    </Story>
+
+    <Story Name="Error State (No Details)" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <PluginGuardStoryWrapper Scenario="PluginScenario.Enabled">
+                <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                    <MudText Typo="Typo.h5">Plugin Guard - Error State (Production)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        When a plugin component throws an error, the PluginGuard shows an error message with plugin information.
+                        In production (ShowErrorDetails=false), detailed error information is hidden.
+                    </MudText>
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <PluginGuard PluginInfo="@StorybookPluginData.EnabledPluginInfo" 
+                                     Metadata="@StorybookPluginData.ComponentMetadata"
+                                     ShowErrorDetails="false">
+                            <ThrowingComponent />
+                        </PluginGuard>
+                    </MudPaper>
+                </MudStack>
+            </PluginGuardStoryWrapper>
+        </Template>
+    </Story>
+
+    <Story Name="Error State (With Details)" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <PluginGuardStoryWrapper Scenario="PluginScenario.Enabled">
+                <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                    <MudText Typo="Typo.h5">Plugin Guard - Error State (Development)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        In development (ShowErrorDetails=true), the PluginGuard shows detailed error information including
+                        the error message and stack trace to help with debugging.
+                    </MudText>
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <PluginGuard PluginInfo="@StorybookPluginData.EnabledPluginInfo" 
+                                     Metadata="@StorybookPluginData.ComponentMetadata"
+                                     ShowErrorDetails="true">
+                            <ThrowingComponent />
+                        </PluginGuard>
+                    </MudPaper>
+                </MudStack>
+            </PluginGuardStoryWrapper>
+        </Template>
+    </Story>
+
+    <Story Name="Interactive State Changes" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                <MudText Typo="Typo.h5">Plugin Guard - Interactive State Changes</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    The PluginGuard automatically updates when the plugin state changes. Use the buttons below to change the state.
+                </MudText>
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudStack Spacing="3">
+                        <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary">
+                            <MudButton OnClick="EnablePlugin">Enable Plugin</MudButton>
+                            <MudButton OnClick="DisablePlugin">Disable Plugin</MudButton>
+                            <MudButton OnClick="DeletePlugin" Color="Color.Error">Delete Plugin</MudButton>
+                            <MudButton OnClick="RestorePlugin" Color="Color.Success">Restore Plugin</MudButton>
+                        </MudButtonGroup>
+                        
+                        <MudDivider />
+                        
+                        <PluginGuard PluginInfo="@_currentPluginInfo" 
+                                     Metadata="@StorybookPluginData.ComponentMetadata"
+                                     ShowErrorDetails="true">
+                            <MudPaper Class="pa-4" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                <MudStack Spacing="2">
+                                    <MudText Typo="Typo.h6">Sample Plugin Component</MudText>
+                                    <MudText Typo="Typo.body2">
+                                        This content is visible when the plugin is enabled.
+                                    </MudText>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Plugin Active</MudChip>
+                                </MudStack>
+                            </MudPaper>
+                        </PluginGuard>
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </Template>
+    </Story>
+</Stories>
+
+@code {
+    [Inject]
+    protected PluginState PluginState { get; set; } = default!;
+    
+    private PluginInfo _currentPluginInfo = StorybookPluginData.EnabledPluginInfo;
+    
+    protected override void OnInitialized()
+    {
+        if (PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id) is null)
+        {
+            PluginState.RegisterPlugin(StorybookPluginData.EnabledPluginInfo);
+        }
+        _currentPluginInfo = StorybookPluginData.EnabledPluginInfo;
+    }
+    
+    private void EnablePlugin()
+    {
+        PluginState.EnablePlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
+        _currentPluginInfo = PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id)!;
+        StateHasChanged();
+    }
+    
+    private void DisablePlugin()
+    {
+        PluginState.DisablePlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
+        _currentPluginInfo = PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id)!;
+        StateHasChanged();
+    }
+    
+    private void DeletePlugin()
+    {
+        PluginState.RemovePlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
+        StateHasChanged();
+    }
+    
+    private void RestorePlugin()
+    {
+        if (PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id) is null)
+        {
+            PluginState.RegisterPlugin(StorybookPluginData.EnabledPluginInfo);
+        }
+        _currentPluginInfo = StorybookPluginData.EnabledPluginInfo;
+        StateHasChanged();
+    }
+}
+

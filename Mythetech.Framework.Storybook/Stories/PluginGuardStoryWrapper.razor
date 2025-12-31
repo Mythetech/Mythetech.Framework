@@ -1,0 +1,46 @@
+@using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Storybook.Stories
+@using Microsoft.AspNetCore.Components
+
+@ChildContent
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    
+    [Parameter]
+    public PluginScenario Scenario { get; set; }
+    
+    [Inject]
+    protected PluginState PluginState { get; set; } = default!;
+    
+    protected override void OnInitialized()
+    {
+        var pluginId = StorybookPluginData.EnabledPluginInfo.Manifest.Id;
+        var existingPlugin = PluginState.GetPlugin(pluginId);
+        
+        if (existingPlugin is not null)
+        {
+            PluginState.RemovePlugin(pluginId);
+        }
+        
+        switch (Scenario)
+        {
+            case PluginScenario.Enabled:
+                var enabledPlugin = StorybookPluginData.EnabledPluginInfo;
+                PluginState.RegisterPlugin(enabledPlugin);
+                PluginState.EnablePlugin(pluginId);
+                break;
+                
+            case PluginScenario.Disabled:
+                var disabledPlugin = StorybookPluginData.DisabledPluginInfo;
+                PluginState.RegisterPlugin(disabledPlugin);
+                PluginState.DisablePlugin(pluginId);
+                break;
+                
+            case PluginScenario.Deleted:
+                break;
+        }
+    }
+}
+
