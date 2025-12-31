@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
 using MudBlazor.Services;
 using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.WebAssembly;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -25,6 +26,8 @@ builder.Services.AddMudMarkdownServices();
 builder.Services.AddWebAssemblyServices();
 
 builder.Services.AddMessageBus();
+
+builder.Services.AddPluginFramework();
 
 var host = builder.Build();
 
