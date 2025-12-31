@@ -1,5 +1,10 @@
 @using MudBlazor
-@inherits Mythetech.Framework.Infrastructure.Plugins.Components.PluginContextPanel
+@using Mythetech.Framework.Infrastructure.Plugins.Components
+@attribute [PluginComponentMetadata(
+    Icon = PluginIcons.Dashboard,
+    Title = "Sample Panel",
+    Order = 10)]
+@inherits PluginContextPanel
 @implements Mythetech.Framework.Infrastructure.MessageBus.IConsumer<SamplePluginMessage>
 
 <MudPaper Class="pa-4 sample-plugin-loaded" Elevation="0">

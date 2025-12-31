@@ -323,38 +323,49 @@ public class PluginLoader
     }
     
     /// <summary>
-    /// Extract metadata using reflection to avoid triggering OnInitialized.
-    /// Reads Icon, Title, Order, Tooltip properties directly from the type.
+    /// Extract metadata from a plugin component type.
+    /// First checks for PluginComponentMetadataAttribute, then falls back to property reflection.
     /// </summary>
     private PluginComponentMetadata? ExtractMetadataViaReflection(Type componentType)
     {
-        // Get property values via reflection without instantiating
-        // These are virtual properties with default implementations, so we need to create
-        // an instance but use FormatterServices to skip the constructor
-        object? instance = null;
-        
-        try
-        {
-            // Use RuntimeHelpers.GetUninitializedObject to create instance without calling constructor
-            // This avoids triggering OnInitialized and accessing injected services
-            instance = System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(componentType);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Could not create uninitialized instance of {Type}, using defaults", componentType.Name);
-        }
-        
         string icon = Icons.Material.Filled.Extension;
         string title = componentType.Name;
         int order = 100;
         string? tooltip = null;
         
-        if (instance != null)
+        var metadataAttr = componentType.GetCustomAttribute<Components.PluginComponentMetadataAttribute>();
+        if (metadataAttr is not null)
         {
-            icon = TryGetPropertyValue<string>(componentType, instance, "Icon") ?? icon;
-            title = TryGetPropertyValue<string>(componentType, instance, "Title") ?? title;
-            order = TryGetPropertyValue<int?>(componentType, instance, "Order") ?? order;
-            tooltip = TryGetPropertyValue<string>(componentType, instance, "Tooltip");
+            _logger.LogDebug("Found PluginComponentMetadataAttribute on {Type}", componentType.Name);
+            
+            if (!string.IsNullOrEmpty(metadataAttr.Icon))
+                icon = metadataAttr.Icon;
+            if (!string.IsNullOrEmpty(metadataAttr.Title))
+                title = metadataAttr.Title;
+            order = metadataAttr.Order;
+            tooltip = metadataAttr.Tooltip;
+        }
+        else
+        {
+            _logger.LogDebug("No attribute found on {Type}, attempting property reflection", componentType.Name);
+            
+            object? instance = null;
+            try
+            {
+                instance = System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(componentType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not create uninitialized instance of {Type}, using defaults", componentType.Name);
+            }
+            
+            if (instance != null)
+            {
+                icon = TryGetPropertyValue<string>(componentType, instance, "Icon") ?? icon;
+                title = TryGetPropertyValue<string>(componentType, instance, "Title") ?? title;
+                order = TryGetPropertyValue<int?>(componentType, instance, "Order") ?? order;
+                tooltip = TryGetPropertyValue<string>(componentType, instance, "Tooltip");
+            }
         }
         
         return new PluginComponentMetadata

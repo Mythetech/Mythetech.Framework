@@ -31,6 +31,7 @@
                             <MudListItem>
                                 <div class="d-flex align-center justify-space-between">
                                     <div>
+                                        <MudIcon Icon="@plugin.ContextPanelComponentsMetadata.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Icon)).Icon" />
                                         <MudText Typo="Typo.body1">@plugin.Manifest.Name</MudText>
                                         <MudText Typo="Typo.caption">v@(plugin.Manifest.Version) by @plugin.Manifest.Developer</MudText>
                                     </div>
