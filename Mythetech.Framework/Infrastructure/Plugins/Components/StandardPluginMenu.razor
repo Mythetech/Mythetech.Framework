@@ -27,13 +27,10 @@
                      AnchorOrigin="Origin.TopRight"
                      TransformOrigin="Origin.TopLeft"
                      Dense="@Dense"
+                     Label="@plugin.Manifest?.Name"
+                     StartIcon="@(plugin.Manifest?.Icon ?? PluginIcons.DefaultPluginIcon)"
                      ListClass="@ListClass">
-                <ActivatorContent>
-                    <MudMenuItem Class="@ItemClass" Icon="@(plugin.Manifest?.Icon ?? PluginIcons.DefaultPluginIcon)">
-                        @plugin.Manifest?.Name
-                    </MudMenuItem>
-                </ActivatorContent>
-                <ChildContent>
+                
                     @foreach (var menuType in plugin.MenuComponents)
                     {
                         <PluginMenuItemsRenderer MenuType="@menuType" ItemClass="@ItemClass" PluginContext="@PluginContext" />
@@ -59,7 +56,6 @@
                                 OnClick="() => HandleDeletePlugin(plugin)">
                         Delete...
                     </MudMenuItem>
-                </ChildContent>
             </MudMenu>
         }
         
