@@ -147,7 +147,7 @@
                 
                 stream.Position = 0;
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
-                archive.ExtractToDirectory(targetDir, overwriteFiles: true);
+                ExtractZipFlattened(archive, targetDir);
             }
             else
             {
@@ -232,6 +232,70 @@
         if (bytesRead < 4) return false;
         
         return buffer[0] == 0x50 && buffer[1] == 0x4B && buffer[2] == 0x03 && buffer[3] == 0x04;
+    }
+    
+    private static void ExtractZipFlattened(ZipArchive archive, string targetDir)
+    {
+        var singleRootFolder = GetSingleRootFolder(archive);
+        var prefixToStrip = singleRootFolder is not null ? singleRootFolder + "/" : string.Empty;
+        
+        foreach (var entry in archive.Entries)
+        {
+            if (string.IsNullOrEmpty(entry.Name))
+                continue;
+            
+            var relativePath = entry.FullName;
+            
+            if (!string.IsNullOrEmpty(prefixToStrip) && relativePath.StartsWith(prefixToStrip, StringComparison.OrdinalIgnoreCase))
+            {
+                relativePath = relativePath[prefixToStrip.Length..];
+            }
+            
+            if (string.IsNullOrEmpty(relativePath))
+                continue;
+            
+            var destinationPath = Path.Combine(targetDir, relativePath);
+            var destinationDir = Path.GetDirectoryName(destinationPath);
+            
+            if (!string.IsNullOrEmpty(destinationDir))
+            {
+                Directory.CreateDirectory(destinationDir);
+            }
+            
+            entry.ExtractToFile(destinationPath, overwrite: true);
+        }
+    }
+    
+    private static string? GetSingleRootFolder(ZipArchive archive)
+    {
+        string? rootFolder = null;
+        
+        foreach (var entry in archive.Entries)
+        {
+            var parts = entry.FullName.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0)
+                continue;
+                
+            var topLevel = parts[0];
+            
+            if (rootFolder is null)
+            {
+                rootFolder = topLevel;
+            }
+            else if (!rootFolder.Equals(topLevel, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+        }
+        
+        if (rootFolder is null)
+            return null;
+        
+        var hasFilesAtRoot = archive.Entries.Any(e => 
+            !string.IsNullOrEmpty(e.Name) && 
+            !e.FullName.Contains('/'));
+        
+        return hasFilesAtRoot ? null : rootFolder;
     }
 }
 

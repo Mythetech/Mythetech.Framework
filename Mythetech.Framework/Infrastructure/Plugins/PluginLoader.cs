@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
+using MudBlazor;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -343,44 +344,17 @@ public class PluginLoader
             _logger.LogDebug(ex, "Could not create uninitialized instance of {Type}, using defaults", componentType.Name);
         }
         
-        string icon = "extension"; // Default icon
+        string icon = Icons.Material.Filled.Extension;
         string title = componentType.Name;
         int order = 100;
         string? tooltip = null;
         
         if (instance != null)
         {
-            try
-            {
-                var iconProp = componentType.GetProperty("Icon");
-                if (iconProp?.GetValue(instance) is string iconValue)
-                    icon = iconValue;
-            }
-            catch { /* Use default */ }
-            
-            try
-            {
-                var titleProp = componentType.GetProperty("Title");
-                if (titleProp?.GetValue(instance) is string titleValue)
-                    title = titleValue;
-            }
-            catch { /* Use default */ }
-            
-            try
-            {
-                var orderProp = componentType.GetProperty("Order");
-                if (orderProp?.GetValue(instance) is int orderValue)
-                    order = orderValue;
-            }
-            catch { /* Use default */ }
-            
-            try
-            {
-                var tooltipProp = componentType.GetProperty("Tooltip");
-                if (tooltipProp?.GetValue(instance) is string tooltipValue)
-                    tooltip = tooltipValue;
-            }
-            catch { /* Use default */ }
+            icon = TryGetPropertyValue<string>(componentType, instance, "Icon") ?? icon;
+            title = TryGetPropertyValue<string>(componentType, instance, "Title") ?? title;
+            order = TryGetPropertyValue<int?>(componentType, instance, "Order") ?? order;
+            tooltip = TryGetPropertyValue<string>(componentType, instance, "Tooltip");
         }
         
         return new PluginComponentMetadata
@@ -391,6 +365,47 @@ public class PluginLoader
             Order = order,
             Tooltip = tooltip
         };
+    }
+    
+    private T? TryGetPropertyValue<T>(Type componentType, object instance, string propertyName)
+    {
+        try
+        {
+            var prop = componentType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (prop is null)
+            {
+                _logger.LogDebug("Property {Property} not found on {Type}", propertyName, componentType.Name);
+                return default;
+            }
+            
+            var value = prop.GetValue(instance);
+            
+            if (value is T typedValue)
+            {
+                return typedValue;
+            }
+            
+            if (value is null)
+            {
+                _logger.LogDebug("Property {Property} on {Type} returned null", propertyName, componentType.Name);
+                return default;
+            }
+            
+            _logger.LogDebug("Property {Property} on {Type} returned {ValueType} instead of {ExpectedType}", 
+                propertyName, componentType.Name, value.GetType().Name, typeof(T).Name);
+            return default;
+        }
+        catch (TargetInvocationException ex)
+        {
+            _logger.LogDebug(ex.InnerException ?? ex, 
+                "Property getter {Property} on {Type} threw an exception", propertyName, componentType.Name);
+            return default;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read {Property} from {Type}", propertyName, componentType.Name);
+            return default;
+        }
     }
 }
 
