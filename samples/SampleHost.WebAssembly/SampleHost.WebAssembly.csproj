@@ -17,6 +17,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Mythetech.Framework\Mythetech.Framework.csproj" />
         <ProjectReference Include="..\..\Mythetech.Framework.WebAssembly\Mythetech.Framework.WebAssembly.csproj" />
+        <ProjectReference Include="..\SampleHost.Shared\SampleHost.Shared.csproj" />
         <!-- Reference SamplePlugin to load as embedded plugin in WASM -->
         <ProjectReference Include="..\SamplePlugin\SamplePlugin.csproj" />
     </ItemGroup>

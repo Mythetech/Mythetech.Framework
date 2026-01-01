@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Secrets;
 using Mythetech.Framework.WebAssembly;
 using SampleHost.WebAssembly;
 
@@ -16,6 +17,7 @@ builder.Services.AddMudServices();
 builder.Services.AddWebAssemblyServices();
 builder.Services.AddMessageBus();
 builder.Services.AddPluginFramework();
+builder.Services.AddSecretManagerFramework();
 
 var host = builder.Build();
 

@@ -17,6 +17,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Mythetech.Framework\Mythetech.Framework.csproj" />
         <ProjectReference Include="..\..\Mythetech.Framework.Desktop\Mythetech.Framework.Desktop.csproj" />
+        <ProjectReference Include="..\SampleHost.Shared\SampleHost.Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>

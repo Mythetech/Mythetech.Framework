@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleHost.Desktop", "sampl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleHost.WebAssembly", "samples\SampleHost.WebAssembly\SampleHost.WebAssembly.csproj", "{61221248-C220-4ECD-A6F5-CBC4451DFE6F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleHost.Shared", "samples\SampleHost.Shared\SampleHost.Shared.csproj", "{B8247D74-8BB2-4DA9-B4FE-2832408813C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -124,6 +126,18 @@ Global
 		{61221248-C220-4ECD-A6F5-CBC4451DFE6F}.Release|x64.Build.0 = Release|Any CPU
 		{61221248-C220-4ECD-A6F5-CBC4451DFE6F}.Release|x86.ActiveCfg = Release|Any CPU
 		{61221248-C220-4ECD-A6F5-CBC4451DFE6F}.Release|x86.Build.0 = Release|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Debug|x64.Build.0 = Debug|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Debug|x86.Build.0 = Debug|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Release|x64.ActiveCfg = Release|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Release|x64.Build.0 = Release|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Release|x86.ActiveCfg = Release|Any CPU
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -132,5 +146,6 @@ Global
 		{5CAE6AFC-95FB-45C7-8200-AFE20C9A3628} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{AB2FCEE7-C4DF-4342-AAA6-FB344420CBF4} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{61221248-C220-4ECD-A6F5-CBC4451DFE6F} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{B8247D74-8BB2-4DA9-B4FE-2832408813C4} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 EndGlobal

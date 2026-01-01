@@ -3,6 +3,7 @@
 @using Mythetech.Framework.Infrastructure.Files
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.Plugins.Components
+@using SampleHost.Shared
 @inherits LayoutComponentBase
 @inject PluginState PluginState
 @inject IPluginAssetLoader AssetLoader
@@ -25,6 +26,8 @@
                            ListClass="pa-1"
                            ItemClass="rounded"
                            ButtonClass="text-transform-none" />
+        
+        <ToolsMenu />
         
         <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" />
     </MudAppBar>
