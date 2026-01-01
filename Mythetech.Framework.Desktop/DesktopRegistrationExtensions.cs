@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Mythetech.Framework.Desktop.Photino;
 using Mythetech.Framework.Desktop.Services;
 using Mythetech.Framework.Infrastructure;
+using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.Desktop;
@@ -33,6 +34,7 @@ public static class DesktopRegistrationExtensions
         services.AddLinkOpenService();
         services.AddPluginStorage();
         services.AddDesktopAssetLoader();
+        services.AddShowFileService();
 
         return services;
     }
@@ -84,6 +86,16 @@ public static class DesktopRegistrationExtensions
     {
         services.AddSingleton<IPluginStorageFactory>(new LiteDbPluginStorageFactory(databasePath));
         
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the show file service for Desktop (cross-platform file/folder reveal)
+    /// </summary>
+    public static IServiceCollection AddShowFileService(this IServiceCollection services)
+    {
+        services.AddTransient<IShowFileService, ShowFileService>();
+
         return services;
     }
 }

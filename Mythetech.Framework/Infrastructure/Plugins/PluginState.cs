@@ -87,6 +87,12 @@ public class PluginState : IDisposable
         EnabledPlugins.SelectMany(p => p.ContextPanelComponentsMetadata);
     
     /// <summary>
+    /// The directory path from which plugins were loaded.
+    /// Set when plugins are loaded via UsePlugins().
+    /// </summary>
+    public string? PluginDirectory { get; private set; }
+    
+    /// <summary>
     /// Register a newly loaded plugin
     /// </summary>
     public void RegisterPlugin(PluginInfo plugin)
@@ -170,6 +176,14 @@ public class PluginState : IDisposable
         NotifyStateChanged();
         
         return true;
+    }
+    
+    /// <summary>
+    /// Sets the plugin directory path. Called when plugins are loaded.
+    /// </summary>
+    internal void SetPluginDirectory(string pluginDirectory)
+    {
+        PluginDirectory = pluginDirectory;
     }
     
     /// <summary>

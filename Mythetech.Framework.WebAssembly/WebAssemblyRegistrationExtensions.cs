@@ -1,6 +1,6 @@
 using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.Extensions.DependencyInjection;
-using Mythetech.Framework.Infrastructure;
+using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.WebAssembly;
@@ -54,6 +54,16 @@ public static class WebAssemblyRegistrationExtensions
     }
 
     /// <summary>
+    /// Registers the show file service for WebAssembly (no-op with logging)
+    /// </summary>
+    public static IServiceCollection AddShowFileService(this IServiceCollection services)
+    {
+        services.AddTransient<IShowFileService, ShowFileService>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Registers all WebAssembly-specific services
     /// </summary>
     public static IServiceCollection AddWebAssemblyServices(this IServiceCollection services)
@@ -62,6 +72,7 @@ public static class WebAssemblyRegistrationExtensions
         services.AddFileOpenService();
         services.AddFileSaveService();
         services.AddPluginStorage();
+        services.AddShowFileService();
 
         return services;
     }
