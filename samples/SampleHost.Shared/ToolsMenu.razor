@@ -1,0 +1,52 @@
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Secrets
+@using Mythetech.Framework.Components.Secrets
+@inject SecretManagerState SecretManagerState
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudMenu Label="Tools" 
+         ListClass="pa-1" 
+         Class="rounded" 
+         ActivationEvent="MouseEvent.MouseOver" 
+         Dense="true">
+    <MudMenuItem Icon="@Icons.Material.Filled.Key" OnClick="OpenSecretManager">
+        Secret Manager
+    </MudMenuItem>
+</MudMenu>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (SecretManagerState != null)
+        {
+            SecretManagerState.StateChanged += OnStateChanged;
+        }
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenSecretManager()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+        
+        await DialogService.ShowAsync<SecretManagerDialog>("Secret Manager", options);
+    }
+
+    public void Dispose()
+    {
+        if (SecretManagerState != null)
+        {
+            SecretManagerState.StateChanged -= OnStateChanged;
+        }
+    }
+}
+

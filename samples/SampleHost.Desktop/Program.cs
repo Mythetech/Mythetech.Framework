@@ -4,6 +4,7 @@ using MudBlazor.Services;
 using Mythetech.Framework.Desktop;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Secrets;
 using Photino.Blazor;
 using SampleHost.Desktop;
 
@@ -18,12 +19,13 @@ class Program
         builder.Services.AddLogging(logging =>
         {
             logging.AddConsole();
-            logging.SetMinimumLevel(LogLevel.Debug);
+            logging.SetMinimumLevel(LogLevel.Information);
         });
         builder.Services.AddMudServices();
         builder.Services.AddDesktopServices();
         builder.Services.AddMessageBus();
         builder.Services.AddPluginFramework();
+        builder.Services.AddOnePasswordSecretManager();
         builder.Services.AddHttpClient();
         
         builder.RootComponents.Add<App>("app");
@@ -31,6 +33,7 @@ class Program
         var app = builder.Build();
         
         app.Services.UseMessageBus();
+        app.Services.UseSecretManager();
         
         // Explicitly specify plugin directory and log it
         var pluginDir = Path.Combine(AppContext.BaseDirectory, "plugins");
@@ -58,7 +61,7 @@ class Program
         app.Services.UsePlugins(pluginDir);
         
         app.MainWindow
-            .SetTitle("Sample Plugin Host (Desktop)")
+            .SetTitle("Sample Host (Desktop)")
             .SetSize(1920, 1080)
             .SetUseOsDefaultSize(false);
         

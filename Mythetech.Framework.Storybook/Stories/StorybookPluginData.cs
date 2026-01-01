@@ -21,6 +21,9 @@ public static class StorybookPluginData
     
     private static readonly Assembly _assembly = typeof(StorybookPluginData).Assembly;
     
+    /// <summary>
+    /// Enabled plugin info
+    /// </summary>
     public static readonly PluginInfo EnabledPluginInfo = new PluginInfo
     {
         Manifest = _manifest,
@@ -29,6 +32,9 @@ public static class StorybookPluginData
         LoadedAt = DateTime.UtcNow.AddDays(-5)
     };
     
+    /// <summary>
+    /// Disabled plugin ino
+    /// </summary>
     public static readonly PluginInfo DisabledPluginInfo = new PluginInfo
     {
         Manifest = _manifest,
@@ -37,6 +43,9 @@ public static class StorybookPluginData
         LoadedAt = DateTime.UtcNow.AddDays(-5)
     };
     
+    /// <summary>
+    /// Deleted plugin info
+    /// </summary>
     public static readonly PluginInfo DeletedPluginInfo = new PluginInfo
     {
         Manifest = _manifest,
@@ -45,6 +54,9 @@ public static class StorybookPluginData
         LoadedAt = DateTime.UtcNow.AddDays(-5)
     };
     
+    /// <summary>
+    /// Component metadata
+    /// </summary>
     public static readonly PluginComponentMetadata ComponentMetadata = new PluginComponentMetadata
     {
         ComponentType = typeof(StorybookPluginData),
@@ -68,10 +80,22 @@ public static class StorybookPluginData
     }
 }
 
+/// <summary>
+/// Type of plugin scenario
+/// </summary>
 public enum PluginScenario
 {
+    /// <summary>
+    /// Enabled plugin
+    /// </summary>
     Enabled,
+    /// <summary>
+    /// Disabled plugin
+    /// </summary>
     Disabled,
+    /// <summary>
+    /// Deleted plugin
+    /// </summary>
     Deleted
 }
 
