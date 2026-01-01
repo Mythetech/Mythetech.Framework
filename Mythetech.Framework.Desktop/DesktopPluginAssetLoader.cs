@@ -172,7 +172,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
         // Use Base64 encoding to safely transfer the script content.
         // This avoids all escaping issues with template literals and complex JS.
         var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
-        
+                
         // The script decodes the Base64 and creates a script element with the decoded content.
         // Using a script element (not eval) ensures proper global scope execution.
         var js = $$"""

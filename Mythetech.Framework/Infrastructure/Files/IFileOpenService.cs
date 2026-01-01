@@ -1,4 +1,4 @@
-namespace Mythetech.Framework.Infrastructure;
+namespace Mythetech.Framework.Infrastructure.Files;
 
 /// <summary>
 /// An abstract way to open files and folders for components

@@ -1,4 +1,4 @@
-namespace Mythetech.Framework.Infrastructure;
+namespace Mythetech.Framework.Infrastructure.Files;
 
 /// <summary>
 /// An abstract way to save files for components
@@ -19,3 +19,4 @@ public interface IFileSaveService
     /// <param name="extension">Extension to show by default in the prompt</param>
     public Task<string?> PromptFileSaveAsync(string fileName, string extension = "txt");
 }
+

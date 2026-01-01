@@ -1,16 +1,24 @@
 @namespace SampleHost.Desktop
 @using MudBlazor
+@using Mythetech.Framework.Infrastructure.Files
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.Plugins.Components
 @inherits LayoutComponentBase
 @inject PluginState PluginState
 @inject IPluginAssetLoader AssetLoader
+@inject IShowFileService ShowFileService
 @implements IDisposable
 
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudText Typo="Typo.h5" Class="ml-3">Plugin Host Sample</MudText>
         <MudSpacer />
+        
+        <MudMenu Label="File" ListClass="pa-1" Class="rounded" ActivationEvent="MouseEvent.MouseOver" Dense="true">
+            <MudMenuItem OnClick="@OpenPluginDirectory" Disabled="@(string.IsNullOrEmpty(PluginState.PluginDirectory))">
+                Open Plugin Directory
+            </MudMenuItem>
+        </MudMenu>
         
         <!-- Standard Plugin Menu with nested plugin actions -->
         <StandardPluginMenu MenuText="Plugins"
@@ -81,6 +89,14 @@
     {
         _assetsLoaded = false;
         InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenPluginDirectory()
+    {
+        if (!string.IsNullOrEmpty(PluginState.PluginDirectory))
+        {
+            await ShowFileService.ShowFolderAsync(PluginState.PluginDirectory);
+        }
     }
 
     public void Dispose()

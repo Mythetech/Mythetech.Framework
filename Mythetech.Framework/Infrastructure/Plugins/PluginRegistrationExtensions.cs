@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.MessageBus;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
@@ -73,7 +74,10 @@ public static class PluginRegistrationExtensions
         var loader = services.GetRequiredService<PluginLoader>();
         var state = services.GetRequiredService<PluginState>();
         
-        var plugins = loader.LoadPluginsFromDirectory(pluginDirectory);
+        var fullPath = Path.GetFullPath(pluginDirectory);
+        state.SetPluginDirectory(fullPath);
+        
+        var plugins = loader.LoadPluginsFromDirectory(fullPath);
         
         foreach (var plugin in plugins)
         {

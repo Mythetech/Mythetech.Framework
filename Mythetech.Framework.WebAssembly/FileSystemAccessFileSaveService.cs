@@ -1,6 +1,6 @@
 using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.JSInterop;
-using Mythetech.Framework.Infrastructure;
+using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.WebAssembly.Exceptions;
 
 namespace Mythetech.Framework.WebAssembly;

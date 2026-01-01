@@ -1,4 +1,4 @@
-namespace Mythetech.Framework.Infrastructure;
+namespace Mythetech.Framework.Infrastructure.Files;
 
 /// <summary>
 /// Represents a file filter for file dialogs with a display name and associated extensions
