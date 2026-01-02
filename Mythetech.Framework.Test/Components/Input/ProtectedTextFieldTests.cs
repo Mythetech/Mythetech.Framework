@@ -1,0 +1,76 @@
+using Bunit;
+using Microsoft.AspNetCore.Components;
+using MudBlazor.Services;
+using Mythetech.Framework.Components.Input;
+using Shouldly;
+
+namespace Mythetech.Framework.Test.Components.Input;
+
+public class ProtectedTextFieldTests : TestContext
+{
+    public ProtectedTextFieldTests()
+    {
+        Services.AddMudServices();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
+    [Fact(DisplayName = "ProtectedTextField can render and bind value")]
+    public void ProtectedTextField_CanRenderAndBindValue()
+    {
+        // Arrange
+        var value = "Test Value";
+        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+            .Add(p => p.Value, value)
+            .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (string val) => value = val)));
+
+        // Act
+        var input = cut.Find("input");
+        input.Change("New Value");
+
+        // Assert
+        value.ShouldBe("New Value");
+    }
+
+    [Fact(DisplayName = "Password is hidden by default")]
+    public void Password_IsHidden_ByDefault()
+    {
+        // Arrange
+        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+            .Add(p => p.Value, "Test Password"));
+
+        // Assert
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("password");
+    }
+
+    [Fact(DisplayName = "Clicking visibility toggle shows password")]
+    public void Clicking_VisibilityToggle_ShowsPassword()
+    {
+        // Arrange
+        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+            .Add(p => p.Value, "Test Password"));
+
+        // Act
+        cut.Find("button").Click();
+
+        // Assert
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("text");
+    }
+
+    [Fact(DisplayName = "Clicking visibility toggle twice hides password")]
+    public void Clicking_VisibilityToggle_Twice_HidesPassword()
+    {
+        // Arrange
+        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+            .Add(p => p.Value, "Test Password"));
+
+        // Act
+        cut.Find("button").Click();
+        cut.Find("button").Click();
+
+        // Assert
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("password");
+    }
+}
