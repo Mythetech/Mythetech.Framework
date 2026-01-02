@@ -51,5 +51,62 @@ public class PluginInfo
     /// Path to the plugin DLL if loaded from disk
     /// </summary>
     public string? SourcePath { get; init; }
+    
+    /// <summary>
+    /// Parse a version string (e.g., "1.0.0") to a Version object
+    /// </summary>
+    /// <param name="versionString">Version string in x.y.z format</param>
+    /// <returns>Parsed Version, or null if parsing fails</returns>
+    public static Version? ParseVersion(string versionString)
+    {
+        if (string.IsNullOrWhiteSpace(versionString))
+            return null;
+            
+        if (Version.TryParse(versionString, out var version))
+            return version;
+            
+        return null;
+    }
+    
+    /// <summary>
+    /// Compare this plugin's version with another version
+    /// </summary>
+    /// <param name="otherVersion">Version to compare against</param>
+    /// <returns>Negative if this version is older, 0 if same, positive if newer</returns>
+    public int CompareVersion(Version otherVersion)
+    {
+        ArgumentNullException.ThrowIfNull(otherVersion);
+        return Manifest.Version.CompareTo(otherVersion);
+    }
+    
+    /// <summary>
+    /// Check if this plugin's version is newer than the specified version
+    /// </summary>
+    /// <param name="otherVersion">Version to compare against</param>
+    /// <returns>True if this version is newer</returns>
+    public bool IsNewerThan(Version otherVersion)
+    {
+        return CompareVersion(otherVersion) > 0;
+    }
+    
+    /// <summary>
+    /// Check if this plugin's version is the same as the specified version
+    /// </summary>
+    /// <param name="otherVersion">Version to compare against</param>
+    /// <returns>True if versions are the same</returns>
+    public bool IsSameVersion(Version otherVersion)
+    {
+        return CompareVersion(otherVersion) == 0;
+    }
+    
+    /// <summary>
+    /// Check if this plugin's version is older than the specified version
+    /// </summary>
+    /// <param name="otherVersion">Version to compare against</param>
+    /// <returns>True if this version is older</returns>
+    public bool IsOlderThan(Version otherVersion)
+    {
+        return CompareVersion(otherVersion) < 0;
+    }
 }
 
