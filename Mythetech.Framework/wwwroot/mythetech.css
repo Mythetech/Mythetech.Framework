@@ -220,3 +220,7 @@
 .rounded-lg {
     border-radius: calc(var(--mud-default-borderradius) * 3)!important;
 }
+
+.align-items-center {
+    align-items: center;
+}

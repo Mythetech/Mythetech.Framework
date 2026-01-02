@@ -1,0 +1,474 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.SimpleTabs
+@using Mythetech.Framework.Components.Badge
+@using System.IO.Compression
+@using System.Net.Http
+@using Microsoft.Extensions.DependencyInjection
+@inject IPluginRegistryService RegistryService
+@inject PluginState PluginState
+@inject PluginLoader PluginLoader
+@inject ISnackbar Snackbar
+@inject IServiceProvider ServiceProvider
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLoadingRegistry)
+        {
+            <MudStack Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height: 200px;">
+                <MudProgressCircular Indeterminate="true" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Loading plugin registry...</MudText>
+            </MudStack>
+        }
+        else if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+        }
+        else
+        {
+            <SimpleTabs>
+                <Tab Name="@_installedTabName">
+                    <MudTable Items="@PluginState.Plugins" Hover="true" Dense="true">
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Developer</MudTh>
+                            <MudTh>Version</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh Style="width: 50px;"></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name">@context.Manifest.Name</MudTd>
+                            <MudTd DataLabel="Developer">@context.Manifest.Developer</MudTd>
+                            <MudTd DataLabel="Version">@context.Manifest.Version</MudTd>
+                            <MudTd DataLabel="Status">
+                                <Badge Size="Size.Small" 
+                                       Color="@(context.IsEnabled ? Color.Success : Color.Error)"
+                                       Variant="Variant.Filled">
+                                    @(context.IsEnabled ? "Enabled" : "Disabled")
+                                </Badge>
+                            </MudTd>
+                            <MudTd DataLabel="Actions">
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Variant="Variant.Text">
+                                    <MudMenuItem Icon="@(context.IsEnabled ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)"
+                                                 OnClick="@(() => HandleTogglePlugin(context))">
+                                        @(context.IsEnabled ? "Disable" : "Enable")
+                                    </MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Delete"
+                                                 OnClick="@(() => HandleDeletePlugin(context))">
+                                        Delete
+                                    </MudMenuItem>
+                                </MudMenu>
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">No plugins installed</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                </Tab>
+                <Tab Name="@_availableTabName">
+                    @if (_availablePlugins is null || _availablePlugins.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">No plugins available</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="@_availablePlugins" Hover="true" Dense="true">
+                            <HeaderContent>
+                                <MudTh>Name</MudTh>
+                                <MudTh>Version</MudTh>
+                                <MudTh>Action</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">@context.Name</MudTd>
+                                <MudTd DataLabel="Version">@context.Version</MudTd>
+                                <MudTd DataLabel="Action">
+                                    @{
+                                        var installedPlugin = PluginState.GetPlugin(context.Id);
+                                        var registryVersion = PluginInfo.ParseVersion(context.Version);
+                                        var isUpgrade = installedPlugin is not null && registryVersion is not null && 
+                                                       installedPlugin.IsOlderThan(registryVersion);
+                                        var isInstalled = installedPlugin is not null && registryVersion is not null && 
+                                                        installedPlugin.IsSameVersion(registryVersion);
+                                    }
+                                    @if (isInstalled)
+                                    {
+                                        <Badge Size="Size.Small" Color="Color.Info">Installed</Badge>
+                                    }
+                                    else if (isUpgrade)
+                                    {
+                                        <MudButton Size="Size.Small" 
+                                                   Variant="Variant.Filled" 
+                                                   Color="Color.Warning"
+                                                   StartIcon="@Icons.Material.Filled.Upgrade"
+                                                   OnClick="@(() => HandleInstallPlugin(context))"
+                                                   Disabled="@_isInstalling">
+                                            Upgrade
+                                        </MudButton>
+                                    }
+                                    else
+                                    {
+                                        <MudButton Size="Size.Small" 
+                                                   Variant="Variant.Filled" 
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.Download"
+                                                   OnClick="@(() => HandleInstallPlugin(context))"
+                                                   Disabled="@_isInstalling">
+                                            Install
+                                        </MudButton>
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </Tab>
+            </SimpleTabs>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+    
+    private PluginRegistry? _registry;
+    private List<RegistryPluginEntry>? _availablePlugins;
+    private bool _isLoadingRegistry = true;
+    private bool _isInstalling;
+    private string? _errorMessage;
+    private string _installedTabName = "Installed (0)";
+    private string _availableTabName = "Available (0)";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        PluginState.StateChanged += OnStateChanged;
+        UpdateTabNames();
+        await LoadRegistryAsync();
+    }
+    
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            UpdateAvailablePlugins();
+            UpdateTabNames();
+            StateHasChanged();
+        });
+    }
+    
+    private async Task LoadRegistryAsync()
+    {
+        _isLoadingRegistry = true;
+        _errorMessage = null;
+        StateHasChanged();
+        
+        try
+        {
+            _registry = await RegistryService.FetchRegistryAsync();
+            if (_registry is null)
+            {
+                _errorMessage = "Failed to load plugin registry. Please check your connection and try again.";
+            }
+            else
+            {
+                UpdateAvailablePlugins();
+                UpdateTabNames();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error loading registry: {ex.Message}";
+        }
+        finally
+        {
+            _isLoadingRegistry = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void UpdateTabNames()
+    {
+        _installedTabName = $"Installed ({PluginState.Plugins.Count})";
+        _availableTabName = $"Available ({_availablePlugins?.Count ?? 0})";
+    }
+    
+    private void UpdateAvailablePlugins()
+    {
+        if (_registry is null)
+        {
+            _availablePlugins = [];
+            return;
+        }
+        
+        _availablePlugins = _registry.Plugins
+            .Where(registryPlugin =>
+            {
+                var installedPlugin = PluginState.GetPlugin(registryPlugin.Id);
+                var registryVersion = PluginInfo.ParseVersion(registryPlugin.Version);
+                
+                if (installedPlugin is null)
+                    return true;
+                
+                if (registryVersion is null)
+                    return false;
+                
+                return installedPlugin.IsOlderThan(registryVersion);
+            })
+            .ToList();
+    }
+    
+    
+    private void HandleTogglePlugin(PluginInfo plugin)
+    {
+        if (plugin.IsEnabled)
+        {
+            PluginState.DisablePlugin(plugin.Manifest.Id);
+        }
+        else
+        {
+            PluginState.EnablePlugin(plugin.Manifest.Id);
+        }
+    }
+    
+    private async Task HandleDeletePlugin(PluginInfo plugin)
+    {
+        var result = await DialogService.ShowMessageBox(
+            title: "Delete Plugin",
+            message: $"Are you sure you want to delete '{plugin.Manifest.Name}'? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+        
+        if (result == true)
+        {
+            PluginState.RemovePlugin(plugin.Manifest.Id);
+            UpdateAvailablePlugins();
+            UpdateTabNames();
+            StateHasChanged();
+        }
+    }
+    
+    private async Task HandleInstallPlugin(RegistryPluginEntry registryPlugin)
+    {
+        if (_isInstalling) return;
+        
+        _isInstalling = true;
+        StateHasChanged();
+        
+        try
+        {
+            var pluginDir = GetPluginsDirectory();
+            var targetDir = Path.Combine(pluginDir, SanitizeFolderName(registryPlugin.Name));
+            
+            if (Directory.Exists(targetDir))
+            {
+                Directory.Delete(targetDir, recursive: true);
+            }
+            
+            Directory.CreateDirectory(targetDir);
+            
+            var httpClient = GetHttpClient();
+            if (httpClient is null)
+            {
+                Snackbar.Add("HttpClient not configured. Register IHttpClientFactory or HttpClient in DI.", Severity.Error);
+                Directory.Delete(targetDir, recursive: true);
+                return;
+            }
+            
+            var response = await httpClient.GetAsync(registryPlugin.Uri);
+            response.EnsureSuccessStatusCode();
+            
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+            var fileName = GetFileNameFromUrl(registryPlugin.Uri);
+            var isZip = fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                        contentType.Contains("zip", StringComparison.OrdinalIgnoreCase) ||
+                        contentType.Contains("octet-stream", StringComparison.OrdinalIgnoreCase);
+            
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            
+            if (isZip || await IsZipStreamAsync(stream))
+            {
+                stream.Position = 0;
+                using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+                ExtractZipFlattened(archive, targetDir);
+            }
+            else
+            {
+                stream.Position = 0;
+                var dllFileName = fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) 
+                    ? fileName 
+                    : $"{registryPlugin.Name}.dll";
+                    
+                var dllPath = Path.Combine(targetDir, dllFileName);
+                await using var fileStream = File.Create(dllPath);
+                await stream.CopyToAsync(fileStream);
+            }
+            
+            var loadedPlugins = PluginLoader.LoadPluginsFromDirectory(targetDir);
+            
+            if (loadedPlugins.Count == 0)
+            {
+                Directory.Delete(targetDir, recursive: true);
+                Snackbar.Add("No valid plugins found in the downloaded content.", Severity.Error);
+                return;
+            }
+            
+            foreach (var plugin in loadedPlugins)
+            {
+                try
+                {
+                    PluginState.RegisterPlugin(plugin);
+                }
+                catch (InvalidOperationException)
+                {
+                    PluginState.RegisterOrUpgradePlugin(plugin);
+                }
+            }
+            
+            Snackbar.Add($"Successfully installed {loadedPlugins.Count} plugin(s)", Severity.Success);
+            UpdateAvailablePlugins();
+            UpdateTabNames();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"Failed to download: {ex.Message}", Severity.Error);
+        }
+        catch (InvalidDataException)
+        {
+            Snackbar.Add("The downloaded file is not a valid ZIP archive or DLL.", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isInstalling = false;
+            StateHasChanged();
+        }
+    }
+    
+    private string GetPluginsDirectory()
+    {
+        if (!string.IsNullOrEmpty(PluginState.PluginDirectory))
+            return PluginState.PluginDirectory;
+            
+        return Path.Combine(AppContext.BaseDirectory, PluginRegistrationExtensions.DefaultPluginDirectory);
+    }
+    
+    private HttpClient? GetHttpClient()
+    {
+        var factory = ServiceProvider.GetService<IHttpClientFactory>();
+        if (factory is not null)
+            return factory.CreateClient();
+            
+        return ServiceProvider.GetService<HttpClient>();
+    }
+    
+    private static string SanitizeFolderName(string name)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        return new string(name.Where(c => !invalidChars.Contains(c)).ToArray());
+    }
+    
+    private static string GetFileNameFromUrl(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return Path.GetFileName(uri.LocalPath);
+        }
+        return string.Empty;
+    }
+    
+    private static async Task<bool> IsZipStreamAsync(Stream stream)
+    {
+        if (!stream.CanSeek) return false;
+        
+        var buffer = new byte[4];
+        var originalPosition = stream.Position;
+        
+        var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, 4));
+        stream.Position = originalPosition;
+        
+        if (bytesRead < 4) return false;
+        
+        return buffer[0] == 0x50 && buffer[1] == 0x4B && buffer[2] == 0x03 && buffer[3] == 0x04;
+    }
+    
+    private static void ExtractZipFlattened(ZipArchive archive, string targetDir)
+    {
+        var singleRootFolder = GetSingleRootFolder(archive);
+        var prefixToStrip = singleRootFolder is not null ? singleRootFolder + "/" : string.Empty;
+        
+        foreach (var entry in archive.Entries)
+        {
+            if (string.IsNullOrEmpty(entry.Name))
+                continue;
+            
+            var relativePath = entry.FullName;
+            
+            if (!string.IsNullOrEmpty(prefixToStrip) && relativePath.StartsWith(prefixToStrip, StringComparison.OrdinalIgnoreCase))
+            {
+                relativePath = relativePath[prefixToStrip.Length..];
+            }
+            
+            if (string.IsNullOrEmpty(relativePath))
+                continue;
+            
+            var destinationPath = Path.Combine(targetDir, relativePath);
+            var destinationDir = Path.GetDirectoryName(destinationPath);
+            
+            if (!string.IsNullOrEmpty(destinationDir))
+            {
+                Directory.CreateDirectory(destinationDir);
+            }
+            
+            entry.ExtractToFile(destinationPath, overwrite: true);
+        }
+    }
+    
+    private static string? GetSingleRootFolder(ZipArchive archive)
+    {
+        string? rootFolder = null;
+        
+        foreach (var entry in archive.Entries)
+        {
+            var parts = entry.FullName.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0)
+                continue;
+                
+            var topLevel = parts[0];
+            
+            if (rootFolder is null)
+            {
+                rootFolder = topLevel;
+            }
+            else if (!rootFolder.Equals(topLevel, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+        }
+        
+        if (rootFolder is null)
+            return null;
+        
+        var hasFilesAtRoot = archive.Entries.Any(e => 
+            !string.IsNullOrEmpty(e.Name) && 
+            !e.FullName.Contains('/'));
+        
+        return hasFilesAtRoot ? null : rootFolder;
+    }
+    
+    private void Close()
+    {
+        MudDialog?.Close();
+    }
+    
+    public void Dispose()
+    {
+        PluginState.StateChanged -= OnStateChanged;
+    }
+}
+

@@ -112,12 +112,6 @@ public class PluginLoader
                 return null;
             }
             
-            if (_pluginState.GetPlugin(manifest.Id) is not null)
-            {
-                _logger.LogWarning("Plugin with ID '{Id}' is already loaded", manifest.Id);
-                return null;
-            }
-            
             var menuComponents = DiscoverComponentsOfType<Components.PluginMenu>(assembly);
             var contextPanelComponents = DiscoverComponentsOfType<Components.PluginContextPanel>(assembly);
             

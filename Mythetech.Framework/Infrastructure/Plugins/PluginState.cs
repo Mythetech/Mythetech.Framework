@@ -94,14 +94,33 @@ public class PluginState : IDisposable
     
     /// <summary>
     /// Register a newly loaded plugin
+    /// Version-aware: throws only on identical version, upgrades on newer version
     /// </summary>
     public void RegisterPlugin(PluginInfo plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
         
-        if (_plugins.Any(p => p.Manifest.Id == plugin.Manifest.Id))
+        var existing = GetPlugin(plugin.Manifest.Id);
+        if (existing is not null)
         {
-            throw new InvalidOperationException($"Plugin with ID '{plugin.Manifest.Id}' is already registered");
+            if (plugin.IsSameVersion(existing.Manifest.Version))
+            {
+                throw new InvalidOperationException(
+                    $"Plugin with ID '{plugin.Manifest.Id}' version {plugin.Manifest.Version} is already registered");
+            }
+            
+            if (plugin.IsNewerThan(existing.Manifest.Version))
+            {
+                var wasEnabled = existing.IsEnabled;
+                _plugins.Remove(existing);
+                plugin.IsEnabled = wasEnabled;
+                _plugins.Add(plugin);
+                NotifyStateChanged();
+                return;
+            }
+            
+            throw new InvalidOperationException(
+                $"Cannot downgrade plugin '{plugin.Manifest.Id}' from version {existing.Manifest.Version} to {plugin.Manifest.Version}");
         }
         
         _plugins.Add(plugin);
@@ -156,6 +175,60 @@ public class PluginState : IDisposable
     public PluginInfo? GetPlugin(string pluginId)
     {
         return _plugins.FirstOrDefault(p => p.Manifest.Id == pluginId);
+    }
+    
+    /// <summary>
+    /// Get a plugin by its ID and version
+    /// </summary>
+    public PluginInfo? GetPlugin(string pluginId, Version version)
+    {
+        return _plugins.FirstOrDefault(p => p.Manifest.Id == pluginId && p.IsSameVersion(version));
+    }
+    
+    /// <summary>
+    /// Check if a plugin can be registered (allows upgrades, disallows downgrades and identicals)
+    /// </summary>
+    /// <param name="plugin">Plugin to check</param>
+    /// <returns>True if registration is allowed</returns>
+    public bool CanRegisterPlugin(PluginInfo plugin)
+    {
+        ArgumentNullException.ThrowIfNull(plugin);
+        
+        var existing = GetPlugin(plugin.Manifest.Id);
+        if (existing is null)
+            return true;
+        
+        return plugin.IsNewerThan(existing.Manifest.Version);
+    }
+    
+    /// <summary>
+    /// Register or upgrade a plugin. Replaces if newer version, ignores if same/older.
+    /// </summary>
+    /// <param name="plugin">Plugin to register</param>
+    /// <returns>True if plugin was registered or upgraded, false if ignored</returns>
+    public bool RegisterOrUpgradePlugin(PluginInfo plugin)
+    {
+        ArgumentNullException.ThrowIfNull(plugin);
+        
+        var existing = GetPlugin(plugin.Manifest.Id);
+        if (existing is null)
+        {
+            _plugins.Add(plugin);
+            NotifyStateChanged();
+            return true;
+        }
+        
+        if (plugin.IsNewerThan(existing.Manifest.Version))
+        {
+            var wasEnabled = existing.IsEnabled;
+            _plugins.Remove(existing);
+            plugin.IsEnabled = wasEnabled;
+            _plugins.Add(plugin);
+            NotifyStateChanged();
+            return true;
+        }
+        
+        return false;
     }
     
     /// <summary>

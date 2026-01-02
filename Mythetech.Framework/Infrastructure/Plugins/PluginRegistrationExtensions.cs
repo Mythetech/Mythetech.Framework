@@ -21,11 +21,25 @@ public static class PluginRegistrationExtensions
     /// </summary>
     public static IServiceCollection AddPluginFramework(this IServiceCollection services)
     {
+        return services.AddPluginFramework(_ => { });
+    }
+    
+    /// <summary>
+    /// Adds plugin framework infrastructure services to the DI container.
+    /// Automatically adds the DisabledPluginConsumerFilter to block consumers from disabled plugins.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="configure">Optional configuration action for plugin registry options</param>
+    public static IServiceCollection AddPluginFramework(this IServiceCollection services, Action<PluginRegistryOptions> configure)
+    {
+        services.Configure(configure);
+        
         services.AddSingleton<PluginState>();
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<PluginStateStore>();
         
         services.TryAddScoped<IPluginAssetLoader, JsPluginAssetLoader>();
+        services.TryAddScoped<IPluginRegistryService, PluginRegistryService>();
         
         services.AddScoped<PluginContext>(sp =>
         {
@@ -81,7 +95,14 @@ public static class PluginRegistrationExtensions
         
         foreach (var plugin in plugins)
         {
-            state.RegisterPlugin(plugin);
+            try
+            {
+                state.RegisterPlugin(plugin);
+            }
+            catch (InvalidOperationException)
+            {
+                state.RegisterOrUpgradePlugin(plugin);
+            }
         }
         
         return services;
@@ -98,7 +119,14 @@ public static class PluginRegistrationExtensions
         var plugin = loader.LoadPlugin(assembly);
         if (plugin is not null)
         {
-            state.RegisterPlugin(plugin);
+            try
+            {
+                state.RegisterPlugin(plugin);
+            }
+            catch (InvalidOperationException)
+            {
+                state.RegisterOrUpgradePlugin(plugin);
+            }
         }
         
         return services;
