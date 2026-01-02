@@ -16,41 +16,47 @@ public static class SecretRegistrationExtensions
         services.TryAddSingleton<SecretManagerState>();
         return services;
     }
-    
+
     /// <summary>
-    /// Register a secret manager implementation type
+    /// Register a secret manager implementation type.
+    /// Multiple managers can be registered and will all be available.
     /// </summary>
-    public static IServiceCollection AddSecretManager<T>(this IServiceCollection services) 
+    public static IServiceCollection AddSecretManager<T>(this IServiceCollection services)
         where T : class, ISecretManager
     {
         services.AddSecretManagerFramework();
         services.AddSingleton<ISecretManager, T>();
         return services;
     }
-    
+
     /// <summary>
-    /// Register a secret manager instance
+    /// Register a secret manager instance.
+    /// Multiple managers can be registered and will all be available.
     /// </summary>
     public static IServiceCollection AddSecretManager(this IServiceCollection services, ISecretManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
-        
+
         services.AddSecretManagerFramework();
-        services.AddSingleton(manager);
+        services.AddSingleton<ISecretManager>(manager);
         return services;
     }
-    
+
     /// <summary>
-    /// Wire up the registered secret manager to the state (call after building the service provider)
+    /// Wire up all registered secret managers to the state (call after building the service provider).
+    /// All registered ISecretManager implementations will be discovered and registered with SecretManagerState.
+    /// The first manager registered becomes the active manager by default.
     /// </summary>
     public static IServiceProvider UseSecretManager(this IServiceProvider services)
     {
         var state = services.GetRequiredService<SecretManagerState>();
-        var manager = services.GetService<ISecretManager>();
-        if (manager != null)
+        var managers = services.GetServices<ISecretManager>();
+
+        foreach (var manager in managers)
         {
             state.RegisterManager(manager);
         }
+
         return services;
     }
 }

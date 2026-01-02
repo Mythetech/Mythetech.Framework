@@ -1,0 +1,61 @@
+@using MudBlazor
+
+<MudTextField
+    Margin="@(Dense ? Margin.Dense : Margin.Normal)"
+    T="string"
+    Class="mud-width-full"
+    Value="@Value"
+    ValueChanged="@ValueChanged"
+    Label="@Label"
+    Variant="Variant.Filled"
+    InputType="@_passwordInput"
+    Adornment="Adornment.End"
+    AdornmentIcon="@_passwordInputIcon"
+    IconSize="Size.Small"
+    OnAdornmentClick="ToggleMask"
+    AdornmentAriaLabel="Show Password" />
+
+@code {
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool Dense { get; set; } = false;
+
+    [Parameter]
+    public string VisibilityOnIcon { get; set; } = Icons.Material.Filled.Visibility;
+
+    [Parameter]
+    public string VisibilityOffIcon { get; set; } = Icons.Material.Filled.VisibilityOff;
+
+    private bool _showing;
+    private InputType _passwordInput = InputType.Password;
+    private string _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    protected override void OnInitialized()
+    {
+        _passwordInputIcon = VisibilityOffIcon;
+    }
+
+    private void ToggleMask()
+    {
+        if (_showing)
+        {
+            _showing = false;
+            _passwordInputIcon = VisibilityOffIcon;
+            _passwordInput = InputType.Password;
+        }
+        else
+        {
+            _showing = true;
+            _passwordInputIcon = VisibilityOnIcon;
+            _passwordInput = InputType.Text;
+        }
+    }
+}

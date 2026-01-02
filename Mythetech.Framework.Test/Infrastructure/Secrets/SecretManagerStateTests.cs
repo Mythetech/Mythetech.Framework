@@ -5,15 +5,23 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Infrastructure.Secrets;
 
+/// <summary>
+/// Mock that implements both ISecretManager and ISecretSearcher for testing
+/// </summary>
+public interface ITestSecretManager : ISecretManager, ISecretSearcher
+{
+}
+
 public class SecretManagerStateTests
 {
     private readonly SecretManagerState _state;
-    private ISecretManager _mockManager;
+    private ITestSecretManager _mockManager;
 
     public SecretManagerStateTests()
     {
         _state = new SecretManagerState();
-        _mockManager = Substitute.For<ISecretManager>();
+        _mockManager = Substitute.For<ITestSecretManager>();
+        _mockManager.Name.Returns("Test Manager");
     }
 
     #region State-Manager Integration Tests
@@ -27,7 +35,8 @@ public class SecretManagerStateTests
             new() { Key = "secret1", Value = "value1", Name = "Secret 1" },
             new() { Key = "secret2", Value = "value2", Name = "Secret 2" }
         };
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(secrets);
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(secrets));
         _state.RegisterManager(_mockManager);
 
         // Act
@@ -54,7 +63,8 @@ public class SecretManagerStateTests
     {
         // Arrange
         var secret = new Secret { Key = "secret1", Value = "value1", Name = "Secret 1" };
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(new[] { secret });
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(new[] { secret }));
         _state.RegisterManager(_mockManager);
         await _state.RefreshSecretsAsync();
 
@@ -62,9 +72,10 @@ public class SecretManagerStateTests
         var result = await _state.GetSecretAsync("secret1");
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Key.ShouldBe("secret1");
-        result.Value.ShouldBe("value1");
+        result.Success.ShouldBeTrue();
+        result.Value.ShouldNotBeNull();
+        result.Value.Key.ShouldBe("secret1");
+        result.Value.Value.ShouldBe("value1");
         await _mockManager.DidNotReceive().GetSecretAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
@@ -73,30 +84,34 @@ public class SecretManagerStateTests
     {
         // Arrange
         var secret = new Secret { Key = "secret1", Value = "value1", Name = "Secret 1" };
-        _mockManager.GetSecretAsync("secret1", Arg.Any<CancellationToken>()).Returns(secret);
+        _mockManager.GetSecretAsync("secret1", Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<Secret>.Ok(secret));
         _state.RegisterManager(_mockManager);
 
         // Act
         var result = await _state.GetSecretAsync("secret1");
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Key.ShouldBe("secret1");
+        result.Success.ShouldBeTrue();
+        result.Value.ShouldNotBeNull();
+        result.Value.Key.ShouldBe("secret1");
         _state.Secrets.ShouldContain(s => s.Key == "secret1");
     }
 
-    [Fact(DisplayName = "GetSecretAsync_ManagerReturnsNull_ReturnsNull")]
-    public async Task GetSecretAsync_ManagerReturnsNull_ReturnsNull()
+    [Fact(DisplayName = "GetSecretAsync_ManagerReturnsNotFound_ReturnsFailure")]
+    public async Task GetSecretAsync_ManagerReturnsNotFound_ReturnsFailure()
     {
         // Arrange
-        _mockManager.GetSecretAsync("nonexistent", Arg.Any<CancellationToken>()).Returns((Secret?)null);
+        _mockManager.GetSecretAsync("nonexistent", Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<Secret>.Fail("Not found", SecretOperationErrorKind.NotFound));
         _state.RegisterManager(_mockManager);
 
         // Act
         var result = await _state.GetSecretAsync("nonexistent");
 
         // Assert
-        result.ShouldBeNull();
+        result.Success.ShouldBeFalse();
+        result.ErrorKind.ShouldBe(SecretOperationErrorKind.NotFound);
     }
 
     [Fact(DisplayName = "SearchSecretsAsync_SearchesCachedSecrets")]
@@ -108,7 +123,8 @@ public class SecretManagerStateTests
             new() { Key = "api-key", Value = "value1", Name = "API Key" },
             new() { Key = "db-password", Value = "value2", Name = "Database Password" }
         };
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(secrets);
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(secrets));
         _state.RegisterManager(_mockManager);
         await _state.RefreshSecretsAsync();
 
@@ -136,17 +152,19 @@ public class SecretManagerStateTests
 
     #region Failure Handling Tests
 
-    [Fact(DisplayName = "RefreshSecretsAsync_ManagerThrowsException_HandlesGracefully")]
-    public async Task RefreshSecretsAsync_ManagerThrowsException_HandlesGracefully()
+    [Fact(DisplayName = "RefreshSecretsAsync_ManagerReturnsError_HandlesGracefully")]
+    public async Task RefreshSecretsAsync_ManagerReturnsError_HandlesGracefully()
     {
         // Arrange
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Throws(new Exception("Connection failed"));
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Fail("Connection failed", SecretOperationErrorKind.ConnectionFailed));
         _state.RegisterManager(_mockManager);
 
         // Act
-        await _state.RefreshSecretsAsync();
+        var result = await _state.RefreshSecretsAsync();
 
         // Assert
+        result.Success.ShouldBeFalse();
         _state.Secrets.Count.ShouldBe(0);
     }
 
@@ -154,35 +172,39 @@ public class SecretManagerStateTests
     public async Task RefreshSecretsAsync_ManagerReturnsEmpty_UpdatesCacheToEmpty()
     {
         // Arrange
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Secret>());
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(Array.Empty<Secret>()));
         _state.RegisterManager(_mockManager);
         await _state.RefreshSecretsAsync();
-        
+
         var initialSecrets = new List<Secret> { new() { Key = "secret1", Value = "value1" } };
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(initialSecrets);
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(initialSecrets));
         await _state.RefreshSecretsAsync();
         _state.Secrets.Count.ShouldBe(1);
 
         // Act
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Secret>());
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(Array.Empty<Secret>()));
         await _state.RefreshSecretsAsync();
 
         // Assert
         _state.Secrets.Count.ShouldBe(0);
     }
 
-    [Fact(DisplayName = "GetSecretAsync_ManagerThrowsException_ReturnsNull")]
-    public async Task GetSecretAsync_ManagerThrowsException_ReturnsNull()
+    [Fact(DisplayName = "GetSecretAsync_ManagerReturnsError_ReturnsFailure")]
+    public async Task GetSecretAsync_ManagerReturnsError_ReturnsFailure()
     {
         // Arrange
-        _mockManager.GetSecretAsync("secret1", Arg.Any<CancellationToken>()).Throws(new Exception("Error"));
+        _mockManager.GetSecretAsync("secret1", Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<Secret>.Fail("Error", SecretOperationErrorKind.Unknown));
         _state.RegisterManager(_mockManager);
 
         // Act
         var result = await _state.GetSecretAsync("secret1");
 
         // Assert
-        result.ShouldBeNull();
+        result.Success.ShouldBeFalse();
     }
 
     [Fact(DisplayName = "IsAvailable_NoManager_ReturnsFalse")]
@@ -220,8 +242,10 @@ public class SecretManagerStateTests
         // Arrange
         var eventRaised = false;
         _state.StateChanged += (_, _) => eventRaised = true;
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Secret>());
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(Array.Empty<Secret>()));
         _state.RegisterManager(_mockManager);
+        eventRaised = false; // Reset after RegisterManager
 
         // Act
         await _state.RefreshSecretsAsync();
@@ -250,7 +274,8 @@ public class SecretManagerStateTests
         // Arrange
         var notificationCount = 0;
         _state.StateChanged += (_, _) => notificationCount++;
-        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Secret>());
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(Array.Empty<Secret>()));
         _state.RegisterManager(_mockManager);
 
         // Act
@@ -258,6 +283,63 @@ public class SecretManagerStateTests
 
         // Assert
         notificationCount.ShouldBeGreaterThan(0);
+    }
+
+    #endregion
+
+    #region Multi-Manager Tests
+
+    [Fact(DisplayName = "CanSearch_WithSearchableManager_ReturnsTrue")]
+    public void CanSearch_WithSearchableManager_ReturnsTrue()
+    {
+        // Arrange
+        _state.RegisterManager(_mockManager);
+
+        // Act & Assert
+        _state.CanSearch().ShouldBeTrue();
+    }
+
+    [Fact(DisplayName = "CanSearch_WithNonSearchableManager_ReturnsFalse")]
+    public void CanSearch_WithNonSearchableManager_ReturnsFalse()
+    {
+        // Arrange
+        var basicManager = Substitute.For<ISecretManager>();
+        basicManager.Name.Returns("Basic Manager");
+        _state.RegisterManager(basicManager);
+
+        // Act & Assert
+        _state.CanSearch().ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "AvailableManagers_MultipleRegistered_ContainsAll")]
+    public void AvailableManagers_MultipleRegistered_ContainsAll()
+    {
+        // Arrange
+        var manager2 = Substitute.For<ISecretManager>();
+        manager2.Name.Returns("Manager 2");
+
+        // Act
+        _state.RegisterManager(_mockManager);
+        _state.RegisterManager(manager2);
+
+        // Assert
+        _state.AvailableManagers.Count.ShouldBe(2);
+    }
+
+    [Fact(DisplayName = "SetActiveManager_ByName_SwitchesManager")]
+    public void SetActiveManager_ByName_SwitchesManager()
+    {
+        // Arrange
+        var manager2 = Substitute.For<ISecretManager>();
+        manager2.Name.Returns("Manager 2");
+        _state.RegisterManager(_mockManager);
+        _state.RegisterManager(manager2);
+
+        // Act
+        _state.SetActiveManager("Manager 2");
+
+        // Assert
+        _state.CurrentManager.ShouldBe(manager2);
     }
 
     #endregion

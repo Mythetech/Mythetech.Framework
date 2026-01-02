@@ -26,6 +26,7 @@ class Program
         builder.Services.AddMessageBus();
         builder.Services.AddPluginFramework();
         builder.Services.AddOnePasswordSecretManager();
+        builder.Services.AddNativeSecretManager();
         builder.Services.AddHttpClient();
         
         builder.RootComponents.Add<App>("app");
