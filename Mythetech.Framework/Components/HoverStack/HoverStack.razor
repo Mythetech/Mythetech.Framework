@@ -1,18 +1,9 @@
 @using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
 @inherits MudComponentBase
-<div
-    @onmouseenter="HandleMouseEnter"
-    @onmouseleave="HandleMouseLeave">
-    <MudStack Class="@Class"
-              Style="@Style"
-              Row="@Row"
-              Reverse="@Reverse"
-              Spacing="@Spacing"
-              Wrap="@Wrap"
-              Justify="@Justify"
-              AlignItems="@AlignItems"
-              StretchItems="@StretchItems">
+<div class="d-flex w-100" @onmouseenter="HandleMouseEnter" @onmouseleave="HandleMouseLeave">
+    <MudStack Class="@Class" Style="@Style" Row="@Row" Reverse="@Reverse" Spacing="@Spacing" Wrap="@Wrap"
+        Justify="@Justify" AlignItems="@AlignItems" StretchItems="@StretchItems">
         @if (ChildContent is not null)
         {
             @ChildContent(_context)
