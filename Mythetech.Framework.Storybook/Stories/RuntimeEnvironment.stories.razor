@@ -1,0 +1,199 @@
+@using Mythetech.Framework.Infrastructure.Environment
+@using Mythetech.Framework.Infrastructure.Platform
+@using Microsoft.JSInterop
+@attribute [Stories("Infrastructure/RuntimeEnvironment")]
+
+<Stories TComponent="IRuntimeEnvironment">
+
+    <Story Name="Current Environment" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Class="mud-height-full" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height:50dvh;" Spacing="4">
+                <MudText Typo="Typo.h5">Runtime Environment</MudText>
+
+                <MudPaper Class="pa-4" Elevation="2" Style="min-width: 400px;">
+                    <MudStack Spacing="3">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">Environment:</MudText>
+                            <MudChip T="string" Color="@GetEnvironmentColor()" Size="Size.Small">@RuntimeEnvironment.Name</MudChip>
+                        </MudStack>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">Version:</MudText>
+                            <MudText Typo="Typo.body1">@RuntimeEnvironment.Version</MudText>
+                        </MudStack>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">Base Address:</MudText>
+                            <MudText Typo="Typo.body1" Style="word-break: break-all;">@RuntimeEnvironment.BaseAddress</MudText>
+                        </MudStack>
+
+                        <MudDivider Class="my-2" />
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">IsDevelopment:</MudText>
+                            <MudIcon Icon="@(RuntimeEnvironment.IsDevelopment() ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                     Color="@(RuntimeEnvironment.IsDevelopment() ? Color.Success : Color.Default)" />
+                        </MudStack>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">IsProduction:</MudText>
+                            <MudIcon Icon="@(RuntimeEnvironment.IsProduction() ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                     Color="@(RuntimeEnvironment.IsProduction() ? Color.Success : Color.Default)" />
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                <MudDivider Class="my-4" Style="width: 100%;" />
+
+                <MudMarkdown Value="@_environmentMarkdown" CodeBlockTheme="CodeBlockTheme.Dark" />
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Platform Info" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Class="mud-height-full" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height:50dvh;" Spacing="4">
+                <MudText Typo="Typo.h5">Platform Detection</MudText>
+
+                <MudPaper Class="pa-4" Elevation="2" Style="min-width: 400px;">
+                    <MudStack Spacing="3">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">User Agent:</MudText>
+                            <MudText Typo="Typo.caption" Style="max-width: 250px; word-break: break-all;">@(_userAgent ?? "Loading...")</MudText>
+                        </MudStack>
+
+                        <MudDivider />
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">IsMac:</MudText>
+                            <MudIcon Icon="@(PlatformInfo.IsMac(_userAgent) ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                     Color="@(PlatformInfo.IsMac(_userAgent) ? Color.Success : Color.Default)" />
+                        </MudStack>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">IsWindows:</MudText>
+                            <MudIcon Icon="@(PlatformInfo.IsWindows(_userAgent) ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                     Color="@(PlatformInfo.IsWindows(_userAgent) ? Color.Success : Color.Default)" />
+                        </MudStack>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">IsLinux:</MudText>
+                            <MudIcon Icon="@(PlatformInfo.IsLinux(_userAgent) ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                     Color="@(PlatformInfo.IsLinux(_userAgent) ? Color.Success : Color.Default)" />
+                        </MudStack>
+
+                        <MudDivider />
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">Meta Key Symbol:</MudText>
+                            <MudText Typo="Typo.h6">@PlatformInfo.GetMetaKeySymbol(_userAgent)</MudText>
+                        </MudStack>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">Meta Key Name:</MudText>
+                            <MudText Typo="Typo.body1">@PlatformInfo.GetMetaKeyName(_userAgent)</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                <MudDivider Class="my-4" Style="width: 100%;" />
+
+                <MudMarkdown Value="@_platformMarkdown" CodeBlockTheme="CodeBlockTheme.Dark" />
+            </MudStack>
+        </Template>
+    </Story>
+</Stories>
+
+@code {
+    [Inject]
+    protected IRuntimeEnvironment RuntimeEnvironment { get; set; } = default!;
+
+    [Inject]
+    protected IJSRuntime JSRuntime { get; set; } = default!;
+
+    private string? _userAgent;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _userAgent = await JSRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
+            StateHasChanged();
+        }
+    }
+
+    private Color GetEnvironmentColor() => RuntimeEnvironment.Name switch
+    {
+        "Development" => Color.Info,
+        "Production" => Color.Success,
+        "Staging" => Color.Warning,
+        _ => Color.Default
+    };
+
+    private string _environmentMarkdown = @"
+## IRuntimeEnvironment
+
+A cross-platform abstraction for runtime environment information. Microsoft doesn't provide a common interface across Blazor hosting models, so this fills that gap.
+
+### Registration
+
+**WebAssembly:**
+```csharp
+services.AddRuntimeEnvironment(); // Uses IWebAssemblyHostEnvironment
+```
+
+**Desktop:**
+```csharp
+services.AddRuntimeEnvironment(); // Defaults to Development
+services.AddRuntimeEnvironment(DesktopRuntimeEnvironment.Production(version));
+```
+
+### Usage
+
+```csharp
+@inject IRuntimeEnvironment Runtime
+
+@if (Runtime.IsDevelopment())
+{
+    <DebugPanel />
+}
+
+<footer>v@Runtime.Version</footer>
+```
+";
+
+    private string _platformMarkdown = @"
+## PlatformInfo
+
+Static utility for detecting platform from user agent strings. Useful for showing platform-specific keyboard shortcuts.
+
+### Usage
+
+```csharp
+@inject IJSRuntime JS
+
+var userAgent = await JS.InvokeAsync<string>(""eval"", ""navigator.userAgent"");
+
+if (PlatformInfo.IsMac(userAgent))
+{
+    shortcut = ""Cmd+S"";
+}
+else
+{
+    shortcut = ""Ctrl+S"";
+}
+
+// Or use the helpers
+var symbol = PlatformInfo.GetMetaKeySymbol(userAgent); // ⌘ or ⊞
+var name = PlatformInfo.GetMetaKeyName(userAgent);     // Cmd or Ctrl
+```
+
+### Methods
+
+- `IsMac(userAgent)` - Detects macOS
+- `IsWindows(userAgent)` - Detects Windows
+- `IsLinux(userAgent)` - Detects Linux (excludes Android)
+- `GetMetaKeySymbol(userAgent)` - Returns ⌘ for Mac, ⊞ for others
+- `GetMetaKeyName(userAgent)` - Returns ""Cmd"" for Mac, ""Ctrl"" for others
+";
+}

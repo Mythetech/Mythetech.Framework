@@ -1,0 +1,43 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Progress
+
+<MudStack Class="mythetech-notification-bar" Spacing="1">
+    @foreach (string message in Message.Split(System.Environment.NewLine))
+    {
+        <MudText Color="GetColor(Severity)">@message</MudText>
+    }
+    <MudSpacer />
+    <ProgressCountdown Duration="@GetDuration(Severity)" Color="@GetColor(Severity)" />
+</MudStack>
+
+@code {
+    [Inject]
+    protected ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>
+    /// The notification message to display. Supports multi-line via Environment.NewLine.
+    /// </summary>
+    [Parameter]
+    public string Message { get; set; } = "";
+
+    /// <summary>
+    /// The severity level of the notification, affecting color and duration.
+    /// </summary>
+    [Parameter]
+    public Severity Severity { get; set; } = Severity.Info;
+
+    private static Color GetColor(Severity severity) => severity switch
+    {
+        Severity.Success => Color.Success,
+        Severity.Error => Color.Error,
+        Severity.Warning => Color.Warning,
+        Severity.Info => Color.Info,
+        _ => Color.Primary
+    };
+
+    private int GetDuration(Severity severity) => severity switch
+    {
+        Severity.Error => 5500,
+        _ => Snackbar.Configuration.VisibleStateDuration
+    };
+}

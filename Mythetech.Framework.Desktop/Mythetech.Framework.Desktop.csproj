@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.Desktop</PackageId>
-        <Version>0.2.1</Version>
+        <Version>0.2.3</Version>
         <Authors>Mythetech</Authors>
         <Description>Desktop-specific components for cross platform blazor applications</Description>
         <PackageTags>blazor;desktop;photino;components;ui</PackageTags>

@@ -32,4 +32,42 @@ public interface IMessageBus
     /// Removes an IConsumer of TMessage subscription from the bus.
     /// </summary>
     void Unsubscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class;
+
+    /// <summary>
+    /// Sends a query message and waits for a response from the registered handler.
+    /// Unlike PublishAsync, this expects exactly one handler and returns a result.
+    /// </summary>
+    /// <typeparam name="TMessage">The query message type</typeparam>
+    /// <typeparam name="TResponse">The expected response type</typeparam>
+    /// <param name="message">The query message to send</param>
+    /// <returns>The response from the handler</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no handler is registered for the query</exception>
+    Task<TResponse> SendAsync<TMessage, TResponse>(TMessage message)
+        where TMessage : class
+        where TResponse : class;
+
+    /// <summary>
+    /// Sends a query message with configuration for timeout and cancellation.
+    /// </summary>
+    /// <typeparam name="TMessage">The query message type</typeparam>
+    /// <typeparam name="TResponse">The expected response type</typeparam>
+    /// <param name="message">The query message to send</param>
+    /// <param name="configuration">Configuration specifying timeout and cancellation options</param>
+    /// <returns>The response from the handler</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no handler is registered for the query</exception>
+    Task<TResponse> SendAsync<TMessage, TResponse>(TMessage message, QueryConfiguration configuration)
+        where TMessage : class
+        where TResponse : class;
+
+    /// <summary>
+    /// Registers a query handler for the specified message and response types.
+    /// Only one handler can be registered per message type.
+    /// </summary>
+    /// <typeparam name="TMessage">The query message type</typeparam>
+    /// <typeparam name="TResponse">The response type</typeparam>
+    /// <typeparam name="THandler">The handler type implementing <see cref="IQueryHandler{TMessage, TResponse}"/></typeparam>
+    void RegisterQueryHandler<TMessage, TResponse, THandler>()
+        where TMessage : class
+        where TResponse : class
+        where THandler : IQueryHandler<TMessage, TResponse>;
 }

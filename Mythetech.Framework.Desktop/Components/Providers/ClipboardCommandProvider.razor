@@ -1,0 +1,12 @@
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Commands
+@using Mythetech.Framework.Infrastructure.MessageBus
+@inherits ComponentConsumer<CopyToClipboard>
+@inject IJsApiService JsApiService
+
+@code {
+    protected override async Task Consume(CopyToClipboard message, CancellationToken cancellationToken)
+    {
+        await JsApiService.CopyToClipboardAsync(message.Text);
+    }
+}

@@ -15,6 +15,8 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 builder.Services.AddMemoryCache();
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddMudServices(config =>
 {
     config.PopoverOptions.ThrowOnDuplicateProvider = false;
@@ -22,8 +24,9 @@ builder.Services.AddMudServices(config =>
 
 builder.Services.AddMudMarkdownServices();
 
-
 builder.Services.AddWebAssemblyServices();
+
+builder.Services.AddRuntimeEnvironment();
 
 builder.Services.AddMessageBus();
 
@@ -32,5 +35,7 @@ builder.Services.AddPluginFramework();
 var host = builder.Build();
 
 host.Services.UseMessageBus();
+
+host.Services.UsePlugins();
 
 await host.RunAsync();

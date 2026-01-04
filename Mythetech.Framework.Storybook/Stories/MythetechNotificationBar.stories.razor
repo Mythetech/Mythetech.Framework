@@ -1,0 +1,108 @@
+@using Mythetech.Framework.Components.Snackbar
+@using Mythetech.Framework.Components.Buttons
+@attribute [Stories("Components/MythetechNotificationBar")]
+
+<Stories TComponent="MythetechNotificationBar">
+
+    <Story Name="Interactive Demo" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Class="mud-height-full" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height:50dvh;" Spacing="4">
+                <MudText Typo="Typo.h5">Click to show notifications</MudText>
+
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => ShowNotification(Severity.Normal))">
+                        Primary
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="@(() => ShowNotification(Severity.Info))">
+                        Info
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => ShowNotification(Severity.Success))">
+                        Success
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="@(() => ShowNotification(Severity.Warning))">
+                        Warning
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => ShowNotification(Severity.Error))">
+                        Error
+                    </MudButton>
+                </MudStack>
+
+                <MudDivider Class="my-4" Style="width: 100%;" />
+
+                <MudMarkdown Value="@_markdown" CodeBlockTheme="CodeBlockTheme.Dark" />
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Multi-line Message" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Class="mud-height-full" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height:50dvh;" Spacing="4">
+                <MudText Typo="Typo.h5">Multi-line notifications</MudText>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ShowMultilineNotification">
+                    Show Multi-line
+                </MudButton>
+
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Use Environment.NewLine to create multi-line notifications
+                </MudText>
+            </MudStack>
+        </Template>
+    </Story>
+</Stories>
+
+@code {
+    [Inject]
+    protected ISnackbar Snackbar { get; set; } = default!;
+
+    private void ShowNotification(Severity severity)
+    {
+        var message = severity switch
+        {
+            Severity.Info => "This is an informational message",
+            Severity.Success => "Operation completed successfully!",
+            Severity.Warning => "Please review before continuing",
+            Severity.Error => "An error occurred during the operation",
+            _ => "Notification message"
+        };
+
+        Snackbar.AddMythetechNotification(message, severity);
+    }
+
+    private void ShowMultilineNotification()
+    {
+        var message = "Build completed" + System.Environment.NewLine +
+                      "3 warnings, 0 errors";
+        Snackbar.AddMythetechNotification(message, Severity.Success);
+    }
+
+    private string _markdown = @"
+## Usage
+
+The `MythetechNotificationBar` provides a styled notification with a countdown progress indicator.
+
+### Extension Methods
+
+Use the `SnackbarExtensions` for easy access:
+
+```csharp
+@inject ISnackbar Snackbar
+
+// Generic method with severity
+Snackbar.AddMythetechNotification(""Message"", Severity.Success);
+
+// Convenience methods
+Snackbar.AddInfo(""Info message"");
+Snackbar.AddSuccess(""Success message"");
+Snackbar.AddWarning(""Warning message"");
+Snackbar.AddError(""Error message"");
+```
+
+### Features
+
+- **Countdown Progress**: Visual indicator showing remaining display time
+- **Severity Colors**: Automatically styled based on severity level
+- **Multi-line Support**: Split messages using `Environment.NewLine`
+- **Error Duration**: Errors display longer (5.5s) than other notifications
+";
+}
