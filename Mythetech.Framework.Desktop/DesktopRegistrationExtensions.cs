@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Desktop.Photino;
 using Mythetech.Framework.Desktop.Services;
 using Mythetech.Framework.Infrastructure;
+using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
 
@@ -96,6 +98,29 @@ public static class DesktopRegistrationExtensions
     {
         services.AddTransient<IShowFileService, ShowFileService>();
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the runtime environment for Desktop with default Development configuration.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="development">Is development</param>
+    /// <param name="version">Application version (defaults to entry assembly version)</param>
+    /// <param name="baseAddress">Base address (defaults to "app://")</param>
+    public static IServiceCollection AddRuntimeEnvironment(this IServiceCollection services, bool? development = false, Version? version = null, string baseAddress = "app://")
+    {
+        return services.AddRuntimeEnvironment(development is true ? DesktopRuntimeEnvironment.Development(version, baseAddress) : DesktopRuntimeEnvironment.Production(version, baseAddress));
+    }
+
+    /// <summary>
+    /// Registers a custom runtime environment for Desktop.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="environment">The runtime environment instance</param>
+    public static IServiceCollection AddRuntimeEnvironment(this IServiceCollection services, DesktopRuntimeEnvironment environment)
+    {
+        services.AddSingleton<IRuntimeEnvironment>(environment);
         return services;
     }
 }

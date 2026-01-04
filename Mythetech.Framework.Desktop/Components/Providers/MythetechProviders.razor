@@ -1,0 +1,14 @@
+@*
+    Composite component containing all Mythetech message bus providers.
+    Add this component once in your main layout to enable:
+    - Clipboard copy commands via CopyToClipboard messages
+    - Snackbar notifications via AddNotification messages
+    - Dialog display via ShowDialog messages
+
+    Usage in App.razor or MainLayout.razor:
+    <MythetechProviders />
+*@
+
+<ClipboardCommandProvider />
+<SnackbarCommandProvider />
+<DialogCommandProvider />

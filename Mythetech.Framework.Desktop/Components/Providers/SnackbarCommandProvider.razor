@@ -1,0 +1,16 @@
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Commands
+@using Mythetech.Framework.Infrastructure.MessageBus
+@using Mythetech.Framework.Components.Snackbar
+@inherits ComponentConsumer<AddNotification>
+
+@code {
+    [Inject]
+    protected ISnackbar Snackbar { get; set; } = default!;
+
+    protected override Task Consume(AddNotification message, CancellationToken cancellationToken)
+    {
+        Snackbar.AddMythetechNotification(message.Message, message.Severity);
+        return Task.CompletedTask;
+    }
+}

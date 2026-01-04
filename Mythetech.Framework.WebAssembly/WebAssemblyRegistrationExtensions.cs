@@ -1,8 +1,10 @@
 using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.Extensions.DependencyInjection;
 using Mythetech.Framework.Infrastructure;
+using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.WebAssembly.Environment;
 
 namespace Mythetech.Framework.WebAssembly;
 
@@ -74,6 +76,24 @@ public static class WebAssemblyRegistrationExtensions
         services.AddFileSaveService();
         services.AddPluginStorage();
         services.AddShowFileService();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the runtime environment for WebAssembly.
+    /// Uses IWebAssemblyHostEnvironment for environment detection and NavigationManager for base URL.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="version">Optional version override. If not specified, uses the entry assembly version.</param>
+    public static IServiceCollection AddRuntimeEnvironment(this IServiceCollection services, Version? version = null)
+    {
+        services.AddScoped<IRuntimeEnvironment>(sp =>
+        {
+            var hostEnvironment = sp.GetRequiredService<Microsoft.AspNetCore.Components.WebAssembly.Hosting.IWebAssemblyHostEnvironment>();
+            var navigationManager = sp.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+            return new WebAssemblyRuntimeEnvironment(hostEnvironment, navigationManager, version);
+        });
 
         return services;
     }

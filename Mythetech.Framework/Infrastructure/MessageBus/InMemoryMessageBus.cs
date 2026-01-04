@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Mythetech.Framework.Infrastructure.Telemetry;
 
 namespace Mythetech.Framework.Infrastructure.MessageBus;
 
@@ -11,6 +13,8 @@ public class InMemoryMessageBus : IMessageBus
     private readonly Dictionary<Type, List<Type>> _registeredConsumerTypes = new();
     private readonly Dictionary<Type, List<object>> _cachedConsumers = new();
     private readonly Dictionary<Type, List<object>> _subscribers = new();
+    private readonly Dictionary<Type, (Type HandlerType, Type ResponseType)> _registeredQueryHandlerTypes = new();
+    private readonly Dictionary<Type, object> _cachedQueryHandlers = new();
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<InMemoryMessageBus> _logger;
@@ -43,18 +47,28 @@ public class InMemoryMessageBus : IMessageBus
     /// <inheritdoc/>
     public async Task PublishAsync<TMessage>(TMessage message, PublishConfiguration configuration) where TMessage : class
     {
+        var messageTypeName = typeof(TMessage).Name;
+        using var activity = FrameworkTelemetry.MessageBusSource.StartActivity($"Publish:{messageTypeName}");
+        activity?.SetTag(FrameworkTelemetry.Tags.MessageType, messageTypeName);
+
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(configuration.CancellationToken);
-        
+
         if (configuration.Timeout != Timeout.InfiniteTimeSpan)
         {
             linkedCts.CancelAfter(configuration.Timeout);
         }
 
         if (!await RunGlobalPipesAsync(message, linkedCts.Token))
+        {
+            activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
             return;
+        }
 
         if (!await RunTypedPipesAsync(message, linkedCts.Token))
+        {
+            activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
             return;
+        }
 
         var registeredConsumers = GetOrResolveConsumers<TMessage>();
 
@@ -63,33 +77,46 @@ public class InMemoryMessageBus : IMessageBus
             : [];
 
         var allConsumers = registeredConsumers.Concat(manualSubscribers);
-        
-        var filteredConsumers = allConsumers.Where(consumer => 
-            _filters.All(filter => filter.ShouldInvoke(consumer, message)));
+
+        var filteredConsumers = allConsumers.Where(consumer =>
+            _filters.All(filter => filter.ShouldInvoke(consumer, message))).ToList();
+
+        activity?.SetTag(FrameworkTelemetry.Tags.ConsumerCount, filteredConsumers.Count);
 
         var tasks = filteredConsumers.Select(async consumer =>
         {
+            var consumerTypeName = consumer.GetType().Name;
+            using var consumerActivity = FrameworkTelemetry.MessageBusSource.StartActivity($"Consume:{consumerTypeName}");
+            consumerActivity?.SetTag(FrameworkTelemetry.Tags.ConsumerType, consumerTypeName);
+            consumerActivity?.SetTag(FrameworkTelemetry.Tags.MessageType, messageTypeName);
+
             try
             {
                 await consumer.Consume(message).WaitAsync(linkedCts.Token);
+                consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, true);
             }
             catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
             {
+                consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, false);
+                consumerActivity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, "Timed out or cancelled");
                 _logger.LogWarning(
                     "Consumer {ConsumerType} timed out or was cancelled for message {MessageType}",
-                    consumer.GetType().Name,
-                    typeof(TMessage).Name);
+                    consumerTypeName,
+                    messageTypeName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, 
-                    "Error in message bus consumer {ConsumerType} handling message {MessageType}", 
-                    consumer.GetType().Name,
-                    typeof(TMessage).Name);
+                consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, false);
+                consumerActivity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, ex.Message);
+                _logger.LogError(ex,
+                    "Error in message bus consumer {ConsumerType} handling message {MessageType}",
+                    consumerTypeName,
+                    messageTypeName);
             }
         });
-        
+
         await Task.WhenAll(tasks);
+        activity?.SetTag(FrameworkTelemetry.Tags.Success, true);
     }
 
     private async Task<bool> RunGlobalPipesAsync<TMessage>(TMessage message, CancellationToken cancellationToken) 
@@ -192,9 +219,118 @@ public class InMemoryMessageBus : IMessageBus
     public void Unsubscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class
     {
         if (!_subscribers.TryGetValue(typeof(TMessage), out var handlers)) return;
-        
+
         handlers.Remove(consumer);
         if (handlers.Count == 0)
             _subscribers.Remove(typeof(TMessage));
+    }
+
+    /// <inheritdoc/>
+    public Task<TResponse> SendAsync<TMessage, TResponse>(TMessage message)
+        where TMessage : class
+        where TResponse : class
+        => SendAsync<TMessage, TResponse>(message, new QueryConfiguration());
+
+    /// <inheritdoc/>
+    public async Task<TResponse> SendAsync<TMessage, TResponse>(TMessage message, QueryConfiguration configuration)
+        where TMessage : class
+        where TResponse : class
+    {
+        var messageTypeName = typeof(TMessage).Name;
+        using var activity = FrameworkTelemetry.MessageBusSource.StartActivity($"Query:{messageTypeName}");
+        activity?.SetTag(FrameworkTelemetry.Tags.MessageType, messageTypeName);
+
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(configuration.CancellationToken);
+
+        if (configuration.Timeout != Timeout.InfiniteTimeSpan)
+        {
+            linkedCts.CancelAfter(configuration.Timeout);
+        }
+
+        var handler = GetOrResolveQueryHandler<TMessage, TResponse>();
+
+        if (handler == null)
+        {
+            activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
+            activity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, "No handler registered");
+            throw new InvalidOperationException(
+                $"No query handler registered for message type {messageTypeName} with response type {typeof(TResponse).Name}");
+        }
+
+        var handlerTypeName = handler.GetType().Name;
+        activity?.SetTag(FrameworkTelemetry.Tags.HandlerType, handlerTypeName);
+
+        try
+        {
+            var result = await handler.Handle(message).WaitAsync(linkedCts.Token);
+            activity?.SetTag(FrameworkTelemetry.Tags.Success, true);
+            return result;
+        }
+        catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
+        {
+            activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
+            activity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, "Timed out or cancelled");
+            _logger.LogWarning(
+                "Query handler {HandlerType} timed out or was cancelled for message {MessageType}",
+                handlerTypeName,
+                messageTypeName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
+            activity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, ex.Message);
+            _logger.LogError(ex,
+                "Error in query handler {HandlerType} handling message {MessageType}",
+                handlerTypeName,
+                messageTypeName);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public void RegisterQueryHandler<TMessage, TResponse, THandler>()
+        where TMessage : class
+        where TResponse : class
+        where THandler : IQueryHandler<TMessage, TResponse>
+    {
+        var messageType = typeof(TMessage);
+
+        if (_registeredQueryHandlerTypes.ContainsKey(messageType))
+        {
+            _logger.LogWarning(
+                "Query handler for message type {MessageType} is being overwritten. Previous: {PreviousHandler}, New: {NewHandler}",
+                messageType.Name,
+                _registeredQueryHandlerTypes[messageType].HandlerType.Name,
+                typeof(THandler).Name);
+        }
+
+        _registeredQueryHandlerTypes[messageType] = (typeof(THandler), typeof(TResponse));
+    }
+
+    private IQueryHandler<TMessage, TResponse>? GetOrResolveQueryHandler<TMessage, TResponse>()
+        where TMessage : class
+        where TResponse : class
+    {
+        var messageType = typeof(TMessage);
+
+        if (_cachedQueryHandlers.TryGetValue(messageType, out var cached))
+        {
+            return cached as IQueryHandler<TMessage, TResponse>;
+        }
+
+        if (!_registeredQueryHandlerTypes.TryGetValue(messageType, out var registration))
+        {
+            return null;
+        }
+
+        var handler = _serviceProvider.GetService(registration.HandlerType);
+
+        if (handler != null)
+        {
+            _cachedQueryHandlers[messageType] = handler;
+        }
+
+        return handler as IQueryHandler<TMessage, TResponse>;
     }
 }
