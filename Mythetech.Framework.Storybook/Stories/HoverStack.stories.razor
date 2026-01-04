@@ -1,0 +1,117 @@
+@using Mythetech.Framework.Components.HoverStack
+@attribute [Stories("Components/HoverStack")]
+
+<Stories TComponent="HoverStack">
+    <Story Name="Interactive Demo" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Class="mud-height-full pa-4" Spacing="4">
+                <MudText Typo="Typo.h5">Hover over items to reveal actions</MudText>
+
+                <MudPaper Class="pa-2" Elevation="1">
+                    <MudStack Spacing="0">
+                        @foreach (var item in _treeItems)
+                        {
+                            <HoverStack Row AlignItems="AlignItems.Center" Class="pa-2 rounded" Style="min-height: 40px;" Context="hover">
+                                <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Class="mr-2" />
+                                <MudText Style="flex-grow: 1;">@item</MudText>
+                                @if (hover.IsHovering)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   Color="Color.Default" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error" />
+                                }
+                            </HoverStack>
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                <MudDivider Class="my-4" />
+
+                <MudMarkdown Value="@_markdown" CodeBlockTheme="CodeBlockTheme.Dark" />
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Nested Hover" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Class="mud-height-full pa-4" Spacing="4">
+                <MudText Typo="Typo.h5">Nested HoverStacks with independent hover states</MudText>
+
+                <MudPaper Class="pa-4" Elevation="1">
+                    <HoverStack Class="pa-4 rounded" Style="background: var(--mud-palette-background-gray);" Context="parentHover">
+                        <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.FolderOpen" />
+                            <MudText>Parent Container</MudText>
+                            @if (parentHover.IsHovering)
+                            {
+                                <MudChip T="string" Color="Color.Primary" Size="Size.Small">Parent Hovered</MudChip>
+                            }
+                        </MudStack>
+
+                        <MudStack Class="ml-6 mt-2" Spacing="1">
+                            @foreach (var child in _nestedItems)
+                            {
+                                <HoverStack Row AlignItems="AlignItems.Center" Class="pa-2 rounded"
+                                            Style="background: var(--mud-palette-surface);" Context="childHover">
+                                    <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Size="Size.Small" Class="mr-2" />
+                                    <MudText Style="flex-grow: 1;">@child</MudText>
+                                    @if (childHover.IsHovering)
+                                    {
+                                        <MudChip T="string" Color="Color.Secondary" Size="Size.Small">Hovered</MudChip>
+                                    }
+                                </HoverStack>
+                            }
+                        </MudStack>
+                    </HoverStack>
+                </MudPaper>
+
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Notice how child items have their own independent hover states from the parent.
+                </MudText>
+            </MudStack>
+        </Template>
+    </Story>
+</Stories>
+
+@code {
+    private List<string> _treeItems = ["Documents", "Downloads", "Pictures", "Music"];
+    private List<string> _nestedItems = ["config.json", "readme.md", "index.ts"];
+
+    private string _markdown = @"
+## Usage
+
+The `HoverStack` component wraps `MudStack` and exposes hover state to child content via a templated context.
+
+### Basic Example
+
+```razor
+<HoverStack Row AlignItems=""AlignItems.Center"" Context=""hover"">
+    <MudText>Item Name</MudText>
+    @if (hover.IsHovering)
+    {
+        <MudIconButton Icon=""@Icons.Material.Filled.Delete"" />
+    }
+</HoverStack>
+```
+
+### Parameters
+
+All `MudStack` parameters are supported:
+- `Row` - Display items horizontally
+- `Reverse` - Reverse item order
+- `Spacing` - Gap between items (0-16)
+- `Wrap` - Item wrapping behavior
+- `Justify` - Main axis justification
+- `AlignItems` - Cross axis alignment
+- `StretchItems` - Which children expand to fill space
+- `Class` / `Style` - CSS styling
+
+### Context
+
+The child content receives a `HoverContext` with:
+- `IsHovering` (bool) - Whether the mouse is over the stack
+";
+}
