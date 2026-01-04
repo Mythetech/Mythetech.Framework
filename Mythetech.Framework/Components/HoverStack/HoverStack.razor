@@ -1,0 +1,85 @@
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@inherits MudComponentBase
+<div
+    @onmouseenter="HandleMouseEnter"
+    @onmouseleave="HandleMouseLeave">
+    <MudStack Class="@Class"
+              Style="@Style"
+              Row="@Row"
+              Reverse="@Reverse"
+              Spacing="@Spacing"
+              Wrap="@Wrap"
+              Justify="@Justify"
+              AlignItems="@AlignItems"
+              StretchItems="@StretchItems">
+        @if (ChildContent is not null)
+        {
+            @ChildContent(_context)
+        }
+    </MudStack>
+</div>
+@code {
+    private HoverContext _context = new();
+
+    /// <summary>
+    /// The child content to render. Receives a HoverContext with IsHovering state.
+    /// </summary>
+    [Parameter]
+    public RenderFragment<HoverContext>? ChildContent { get; set; }
+
+    /// <summary>
+    /// If true, displays items horizontally in a row instead of vertically.
+    /// </summary>
+    [Parameter]
+    public bool Row { get; set; }
+
+    /// <summary>
+    /// If true, reverses the order of items along the main axis.
+    /// </summary>
+    [Parameter]
+    public bool Reverse { get; set; }
+
+    /// <summary>
+    /// The spacing between items (0-16).
+    /// </summary>
+    [Parameter]
+    public int Spacing { get; set; } = 3;
+
+    /// <summary>
+    /// Controls how items wrap when they exceed the container width.
+    /// </summary>
+    [Parameter]
+    public Wrap Wrap { get; set; } = Wrap.Wrap;
+
+    /// <summary>
+    /// Defines how space is distributed along the main axis.
+    /// </summary>
+    [Parameter]
+    public Justify Justify { get; set; } = Justify.FlexStart;
+
+    /// <summary>
+    /// Controls item alignment on the cross axis.
+    /// </summary>
+    [Parameter]
+    public AlignItems AlignItems { get; set; } = AlignItems.Stretch;
+
+    /// <summary>
+    /// Specifies which children should expand to fill available space.
+    /// </summary>
+    [Parameter]
+    public StretchItems StretchItems { get; set; } = StretchItems.None;
+
+    private void HandleMouseEnter(MouseEventArgs args)
+    {
+        _context.IsHovering = true;
+        StateHasChanged();
+    }
+
+    private void HandleMouseLeave(MouseEventArgs args)
+    {
+        _context.IsHovering = false;
+        StateHasChanged();
+    }
+
+}
