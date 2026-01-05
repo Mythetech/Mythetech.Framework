@@ -74,11 +74,65 @@
             </MudStack>
         </Template>
     </Story>
+
+    <Story Name="Click Handler" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Class="mud-height-full pa-4" Spacing="4">
+                <MudText Typo="Typo.h5">Click on items to select them</MudText>
+
+                <MudPaper Class="pa-2" Elevation="1">
+                    <MudStack Spacing="0">
+                        @foreach (var item in _clickItems)
+                        {
+                            <HoverStack Row AlignItems="AlignItems.Center"
+                                        Class="@GetItemClass(item)"
+                                        Style="min-height: 40px; cursor: pointer;"
+                                        Context="hover"
+                                        OnClick="@(() => HandleItemClick(item))">
+                                <MudIcon Icon="@(item == _selectedItem ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
+                                         Size="Size.Small"
+                                         Class="mr-2"
+                                         Color="@(item == _selectedItem ? Color.Primary : Color.Default)" />
+                                <MudText Style="flex-grow: 1;">@item</MudText>
+                                @if (hover.IsHovering && item != _selectedItem)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Click to select</MudText>
+                                }
+                            </HoverStack>
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                <MudText Typo="Typo.body2">
+                    Selected: <strong>@(_selectedItem ?? "None")</strong>
+                </MudText>
+
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Click count: @_clickCount
+                </MudText>
+            </MudStack>
+        </Template>
+    </Story>
 </Stories>
 
 @code {
     private List<string> _treeItems = ["Documents", "Downloads", "Pictures", "Music"];
     private List<string> _nestedItems = ["config.json", "readme.md", "index.ts"];
+    private List<string> _clickItems = ["Option A", "Option B", "Option C", "Option D"];
+    private string? _selectedItem;
+    private int _clickCount;
+
+    private void HandleItemClick(string item)
+    {
+        _selectedItem = item;
+        _clickCount++;
+    }
+
+    private string GetItemClass(string item)
+    {
+        var baseClass = "pa-2 rounded";
+        return item == _selectedItem ? $"{baseClass} mud-primary-text" : baseClass;
+    }
 
     private string _markdown = @"
 ## Usage

@@ -1,7 +1,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
 @inherits MudComponentBase
-<div class="d-flex w-100" @onmouseenter="HandleMouseEnter" @onmouseleave="HandleMouseLeave">
+<div class="d-flex w-100" @onmouseenter="HandleMouseEnter" @onmouseleave="HandleMouseLeave" @onclick="HandleClick">
     <MudStack Class="@Class" Style="@Style" Row="@Row" Reverse="@Reverse" Spacing="@Spacing" Wrap="@Wrap"
         Justify="@Justify" AlignItems="@AlignItems" StretchItems="@StretchItems">
         @if (ChildContent is not null)
@@ -60,6 +60,17 @@
     /// </summary>
     [Parameter]
     public StretchItems StretchItems { get; set; } = StretchItems.None;
+
+    /// <summary>
+    /// Event callback invoked when the stack is clicked.
+    /// </summary>
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private async Task HandleClick(MouseEventArgs args)
+    {
+        await OnClick.InvokeAsync(args);
+    }
 
     private void HandleMouseEnter(MouseEventArgs args)
     {
