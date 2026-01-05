@@ -1,6 +1,7 @@
 @using MudBlazor
 @using Mythetech.Framework.Components.SimpleTabs
 @using Mythetech.Framework.Components.Badge
+@using Mythetech.Framework.Infrastructure.Environment
 @using System.IO.Compression
 @using System.Net.Http
 @using Microsoft.Extensions.DependencyInjection
@@ -10,6 +11,7 @@
 @inject ISnackbar Snackbar
 @inject IServiceProvider ServiceProvider
 @inject IDialogService DialogService
+@inject IRuntimeEnvironment RuntimeEnvironment
 @implements IDisposable
 
 <MudDialog>
@@ -86,19 +88,32 @@
                                     @{
                                         var installedPlugin = PluginState.GetPlugin(context.Id);
                                         var registryVersion = PluginInfo.ParseVersion(context.Version);
-                                        var isUpgrade = installedPlugin is not null && registryVersion is not null && 
+                                        var isUpgrade = installedPlugin is not null && registryVersion is not null &&
                                                        installedPlugin.IsOlderThan(registryVersion);
-                                        var isInstalled = installedPlugin is not null && registryVersion is not null && 
+                                        var isInstalled = installedPlugin is not null && registryVersion is not null &&
                                                         installedPlugin.IsSameVersion(registryVersion);
+                                        var supportsPlatform = context.SupportsPlatform(RuntimeEnvironment.Platform);
                                     }
                                     @if (isInstalled)
                                     {
                                         <Badge Size="Size.Small" Color="Color.Info">Installed</Badge>
                                     }
+                                    else if (!supportsPlatform)
+                                    {
+                                        <MudTooltip Text="@GetPlatformNotSupportedMessage(context)">
+                                            <MudButton Size="Size.Small"
+                                                       Variant="Variant.Filled"
+                                                       Color="Color.Default"
+                                                       StartIcon="@Icons.Material.Filled.Block"
+                                                       Disabled="true">
+                                                @(isUpgrade ? "Upgrade" : "Install")
+                                            </MudButton>
+                                        </MudTooltip>
+                                    }
                                     else if (isUpgrade)
                                     {
-                                        <MudButton Size="Size.Small" 
-                                                   Variant="Variant.Filled" 
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Filled"
                                                    Color="Color.Warning"
                                                    StartIcon="@Icons.Material.Filled.Upgrade"
                                                    OnClick="@(() => HandleInstallPlugin(context))"
@@ -108,8 +123,8 @@
                                     }
                                     else
                                     {
-                                        <MudButton Size="Size.Small" 
-                                                   Variant="Variant.Filled" 
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Filled"
                                                    Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Filled.Download"
                                                    OnClick="@(() => HandleInstallPlugin(context))"
@@ -133,7 +148,7 @@
 @code {
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
-    
+
     private PluginRegistry? _registry;
     private List<RegistryPluginEntry>? _availablePlugins;
     private bool _isLoadingRegistry = true;
@@ -141,7 +156,7 @@
     private string? _errorMessage;
     private string _installedTabName = "Installed (0)";
     private string _availableTabName = "Available (0)";
-    
+
     protected override async Task OnInitializedAsync()
     {
         PluginState.StateChanged += OnStateChanged;
@@ -461,11 +476,21 @@
         return hasFilesAtRoot ? null : rootFolder;
     }
     
+    private string GetPlatformNotSupportedMessage(RegistryPluginEntry plugin)
+    {
+        var supported = plugin.ParsedPlatforms;
+        if (supported is null || supported.Length == 0)
+            return "This plugin is not available for your platform.";
+
+        var platformNames = string.Join(" or ", supported.Select(p => p.ToString()));
+        return $"This plugin only supports {platformNames}.";
+    }
+
     private void Close()
     {
         MudDialog?.Close();
     }
-    
+
     public void Dispose()
     {
         PluginState.StateChanged -= OnStateChanged;

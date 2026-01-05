@@ -1,4 +1,5 @@
 using Mythetech.Framework.Infrastructure.Environment;
+using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.Desktop.Environment;
 
@@ -17,6 +18,9 @@ public class DesktopRuntimeEnvironment : IRuntimeEnvironment
 
     /// <inheritdoc/>
     public string BaseAddress { get; }
+
+    /// <inheritdoc/>
+    public Platform Platform => Platform.Desktop;
 
     /// <summary>
     /// Creates a new desktop runtime environment.

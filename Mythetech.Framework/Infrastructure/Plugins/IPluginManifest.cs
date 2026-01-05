@@ -52,5 +52,10 @@ public interface IPluginManifest
     /// These are loaded when the plugin is enabled.
     /// </summary>
     PluginAsset[] Assets => [];
+
+    /// <summary>
+    /// Platforms this plugin supports. If null or empty, the plugin supports all platforms.
+    /// </summary>
+    Platform[]? SupportedPlatforms => null;
 }
 

@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Mythetech.Framework.Infrastructure.Environment;
+using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.WebAssembly.Environment;
 
@@ -20,6 +21,9 @@ public class WebAssemblyRuntimeEnvironment : IRuntimeEnvironment
 
     /// <inheritdoc/>
     public string BaseAddress { get; }
+
+    /// <inheritdoc/>
+    public Platform Platform => Platform.WebAssembly;
 
     /// <summary>
     /// Creates a new WebAssembly runtime environment.

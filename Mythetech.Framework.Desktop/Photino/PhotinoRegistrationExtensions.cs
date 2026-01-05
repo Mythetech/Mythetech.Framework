@@ -20,14 +20,14 @@ public static class PhotinoRegistrationExtensions
 
         return services;
     }
-    
+
     /// <summary>
     /// Registers an instance of the running Photino App into the DI container for interop options
     /// </summary>
     public static PhotinoBlazorApp RegisterProvider(this PhotinoBlazorApp app)
     {
         var provider = app.Services;
-        
+
         return RegisterProvider(app, provider);
     }
 

@@ -42,5 +42,46 @@ public class RegistryPluginEntry
     /// </summary>
     [JsonPropertyName("uri")]
     public string Uri { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Supported platforms for this plugin (e.g., ["desktop", "webassembly"]).
+    /// If null or empty, supports all platforms.
+    /// </summary>
+    [JsonPropertyName("supportedPlatforms")]
+    public string[]? SupportedPlatforms { get; set; }
+
+    /// <summary>
+    /// Gets the parsed Platform values from SupportedPlatforms.
+    /// Returns null if all platforms are supported.
+    /// </summary>
+    [JsonIgnore]
+    public Platform[]? ParsedPlatforms
+    {
+        get
+        {
+            if (SupportedPlatforms is null || SupportedPlatforms.Length == 0)
+                return null;
+
+            var platforms = new List<Platform>();
+            foreach (var platformStr in SupportedPlatforms)
+            {
+                if (Enum.TryParse<Platform>(platformStr, ignoreCase: true, out var platform))
+                {
+                    platforms.Add(platform);
+                }
+            }
+            return platforms.Count > 0 ? platforms.ToArray() : null;
+        }
+    }
+
+    /// <summary>
+    /// Checks if this plugin supports the specified platform.
+    /// Returns true if SupportedPlatforms is null/empty (supports all).
+    /// </summary>
+    public bool SupportsPlatform(Platform platform)
+    {
+        var parsed = ParsedPlatforms;
+        return parsed is null || parsed.Contains(platform);
+    }
 }
 

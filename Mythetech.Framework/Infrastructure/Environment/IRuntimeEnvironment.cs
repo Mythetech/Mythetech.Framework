@@ -21,6 +21,11 @@ public interface IRuntimeEnvironment
     /// The base address/URL for the application.
     /// </summary>
     string BaseAddress { get; }
+
+    /// <summary>
+    /// The hosting platform (Desktop or WebAssembly).
+    /// </summary>
+    Plugins.Platform Platform { get; }
 }
 
 /// <summary>
