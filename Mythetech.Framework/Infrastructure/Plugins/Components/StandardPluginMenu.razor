@@ -1,11 +1,13 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components
 @using Mythetech.Framework.Infrastructure.Files
+@using Mythetech.Framework.Infrastructure.Guards
 @inject PluginState PluginState
 @inject PluginLoader PluginLoader
 @inject IFileOpenService FileOpenService
 @inject IDialogService DialogService
 @inject PluginContext PluginContext
+@inject IShowFileService ShowFileService
 @implements IDisposable
 
 <MudMenu ActivationEvent="@ActivationEvent" 
@@ -68,7 +70,16 @@
         <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.Apps" OnClick="HandleViewPlugins">
             View Plugins
         </MudMenuItem>
-        
+
+        <DesktopOnly>
+            <MudMenuItem Class="@ItemClass"
+                         Icon="@Icons.Custom.Uncategorized.FolderOpen"
+                         OnClick="HandleOpenDirectory"
+                         Disabled="@(string.IsNullOrEmpty(PluginState.PluginDirectory))">
+                Open Directory
+            </MudMenuItem>
+        </DesktopOnly>
+
         <MudDivider />
         
         <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.FileUpload" OnClick="HandleImportPlugin">
@@ -184,8 +195,16 @@
             FullWidth = true,
             CloseOnEscapeKey = true
         };
-        
+
         await DialogService.ShowAsync<PluginManagementDialog>("Plugin Management", options);
+    }
+
+    private async Task HandleOpenDirectory()
+    {
+        if (!string.IsNullOrEmpty(PluginState.PluginDirectory))
+        {
+            await ShowFileService.ShowFolderAsync(PluginState.PluginDirectory);
+        }
     }
 
     public void Dispose()

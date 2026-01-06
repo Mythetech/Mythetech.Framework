@@ -65,4 +65,20 @@ public static class IRuntimeEnvironmentExtensions
     /// <returns>True if running in Staging, false otherwise</returns>
     public static bool IsStaging(this IRuntimeEnvironment runtime)
         => runtime.IsEnvironment("Staging");
+
+    /// <summary>
+    /// Checks if the current platform is Desktop.
+    /// </summary>
+    /// <param name="runtime">The runtime environment</param>
+    /// <returns>True if running on Desktop, false otherwise</returns>
+    public static bool IsDesktop(this IRuntimeEnvironment runtime)
+        => runtime.Platform == Plugins.Platform.Desktop;
+
+    /// <summary>
+    /// Checks if the current platform is WebAssembly.
+    /// </summary>
+    /// <param name="runtime">The runtime environment</param>
+    /// <returns>True if running on WebAssembly, false otherwise</returns>
+    public static bool IsWebAssembly(this IRuntimeEnvironment runtime)
+        => runtime.Platform == Plugins.Platform.WebAssembly;
 }

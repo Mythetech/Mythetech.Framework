@@ -5,6 +5,7 @@ using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Secrets;
 using Mythetech.Framework.WebAssembly;
+using Mythetech.Framework.WebAssembly.Environment;
 using SampleHost.WebAssembly;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -18,6 +19,8 @@ builder.Services.AddWebAssemblyServices();
 builder.Services.AddMessageBus();
 builder.Services.AddPluginFramework();
 builder.Services.AddSecretManagerFramework();
+builder.Services.AddRuntimeEnvironment();
+builder.Services.AddHttpClient();
 
 var host = builder.Build();
 

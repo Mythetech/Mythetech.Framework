@@ -1,0 +1,16 @@
+@using Mythetech.Framework.Infrastructure.Environment
+@using Mythetech.Framework.Infrastructure.Plugins
+@inject IRuntimeEnvironment Runtime
+
+@if (Runtime.Platform == Platform.Desktop)
+{
+    @ChildContent
+}
+
+@code {
+    /// <summary>
+    /// Content to render when the platform is Desktop.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
