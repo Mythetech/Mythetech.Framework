@@ -7,7 +7,7 @@
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <PackageId>Mythetech.Framework</PackageId>
-        <Version>0.2.6</Version>
+        <Version>0.2.7</Version>
         <Authors>Mythetech</Authors>
         <Description>Base component library for Mythetech applications</Description>
         <PackageTags>blazor;components;ui</PackageTags>
@@ -42,6 +42,16 @@
     <ItemGroup>
       <None Include="..\README.md" Pack="true" PackagePath="\"/>
       <None Include="..\icon.png" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Components\Guards\DesktopOnly.razor" />
+      <UpToDateCheckInput Remove="Components\Guards\WebAssemblyOnly.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Infrastructure\Guards\DesktopOnly.razor" />
+      <AdditionalFiles Include="Infrastructure\Guards\WebAssemblyOnly.razor" />
     </ItemGroup>
 
 </Project>

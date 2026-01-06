@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using Mythetech.Framework.Desktop;
+using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Secrets;
@@ -28,6 +29,8 @@ class Program
         builder.Services.AddOnePasswordSecretManager();
         builder.Services.AddNativeSecretManager();
         builder.Services.AddHttpClient();
+        builder.Services.AddRuntimeEnvironment(DesktopRuntimeEnvironment.Development());
+
         
         builder.RootComponents.Add<App>("app");
         
