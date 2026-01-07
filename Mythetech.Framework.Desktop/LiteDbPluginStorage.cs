@@ -1,4 +1,5 @@
 using LiteDB;
+using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Plugins;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -96,77 +97,109 @@ internal class PluginStorageEntry
 }
 
 /// <summary>
-/// Factory for creating LiteDB-based plugin storage instances
+/// Factory for creating LiteDB-based plugin storage instances.
+/// Uses lazy initialization to defer database creation until first use,
+/// allowing graceful handling of permission errors.
 /// </summary>
 public class LiteDbPluginStorageFactory : IPluginStorageFactory, IDisposable
 {
-    private readonly ILiteDatabase _database;
+    private readonly Lazy<ILiteDatabase?> _database;
+    private readonly ILogger<LiteDbPluginStorageFactory>? _logger;
 
     /// <summary>
-    /// Constructor - creates or opens the plugin database
+    /// Constructor - creates or opens the plugin database lazily
     /// </summary>
     /// <param name="databasePath">Path to the LiteDB file</param>
-    public LiteDbPluginStorageFactory(string databasePath)
+    /// <param name="logger">Optional logger for error reporting</param>
+    public LiteDbPluginStorageFactory(string databasePath, ILogger<LiteDbPluginStorageFactory>? logger = null)
     {
-        _database = new LiteDatabase(databasePath);
+        _logger = logger;
+        _database = new Lazy<ILiteDatabase?>(() =>
+        {
+            try
+            {
+                return new LiteDatabase(databasePath);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to initialize plugin storage at {DatabasePath}. Plugin storage will be unavailable.", databasePath);
+                return null;
+            }
+        });
     }
 
     /// <summary>
     /// Constructor with existing database instance
     /// </summary>
-    public LiteDbPluginStorageFactory(ILiteDatabase database)
+    /// <param name="database">An existing LiteDB database instance</param>
+    /// <param name="logger">Optional logger for error reporting</param>
+    public LiteDbPluginStorageFactory(ILiteDatabase database, ILogger<LiteDbPluginStorageFactory>? logger = null)
     {
-        _database = database;
+        _logger = logger;
+        _database = new Lazy<ILiteDatabase?>(() => database);
     }
 
     /// <inheritdoc />
-    public IPluginStorage CreateForPlugin(string pluginId)
+    public IPluginStorage? CreateForPlugin(string pluginId)
     {
-        return new LiteDbPluginStorage(_database, pluginId);
+        var db = _database.Value;
+        if (db == null) return null;
+        return new LiteDbPluginStorage(db, pluginId);
     }
 
     /// <inheritdoc />
     public Task<string> ExportPluginDataAsync(string pluginId)
     {
-        var storage = CreateForPlugin(pluginId) as LiteDbPluginStorage;
+        var db = _database.Value;
+        if (db == null) return Task.FromResult("{}");
+
         var collectionName = $"plugin_{pluginId.Replace(".", "_")}";
-        var collection = _database.GetCollection<PluginStorageEntry>(collectionName);
-        
+        var collection = db.GetCollection<PluginStorageEntry>(collectionName);
+
         var data = collection.FindAll()
             .ToDictionary(e => e.Key, e => e.JsonValue);
-        
+
         return Task.FromResult(JsonSerializer.Serialize(data));
     }
 
     /// <inheritdoc />
     public Task ImportPluginDataAsync(string pluginId, string jsonData)
     {
+        var db = _database.Value;
+        if (db == null) return Task.CompletedTask;
+
         var data = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonData);
         if (data == null) return Task.CompletedTask;
-        
+
         var collectionName = $"plugin_{pluginId.Replace(".", "_")}";
-        var collection = _database.GetCollection<PluginStorageEntry>(collectionName);
-        
+        var collection = db.GetCollection<PluginStorageEntry>(collectionName);
+
         foreach (var (key, value) in data)
         {
             collection.Upsert(new PluginStorageEntry { Key = key, JsonValue = value });
         }
-        
+
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task DeletePluginDataAsync(string pluginId)
     {
+        var db = _database.Value;
+        if (db == null) return Task.CompletedTask;
+
         var collectionName = $"plugin_{pluginId.Replace(".", "_")}";
-        _database.DropCollection(collectionName);
+        db.DropCollection(collectionName);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        _database.Dispose();
+        if (_database.IsValueCreated && _database.Value != null)
+        {
+            _database.Value.Dispose();
+        }
         GC.SuppressFinalize(this);
     }
 }

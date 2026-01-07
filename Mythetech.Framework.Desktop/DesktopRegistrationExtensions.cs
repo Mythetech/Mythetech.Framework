@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Desktop.Photino;
 using Mythetech.Framework.Desktop.Services;
@@ -72,22 +73,42 @@ public static class DesktopRegistrationExtensions
     
     /// <summary>
     /// Registers the plugin storage factory for Desktop using LiteDB.
-    /// Database is stored in the application's base directory.
+    /// Database is stored in the user's local application data directory under "Mythetech".
     /// </summary>
     public static IServiceCollection AddPluginStorage(this IServiceCollection services)
+        => services.AddPluginStorage("Mythetech");
+
+    /// <summary>
+    /// Registers the plugin storage factory for Desktop using LiteDB with a custom application name.
+    /// Database is stored in the user's local application data directory under the specified app name.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="appName">Application name for the storage folder</param>
+    public static IServiceCollection AddPluginStorage(this IServiceCollection services, string appName)
     {
-        return services.AddPluginStorage(Path.Combine(AppContext.BaseDirectory, DefaultDatabaseName));
+        var pluginDbPath = Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
+            appName,
+            DefaultDatabaseName);
+
+        try { Directory.CreateDirectory(Path.GetDirectoryName(pluginDbPath)!); } catch { /* Let Lazy handle failures */ }
+
+        return services.AddPluginStorageWithPath(pluginDbPath);
     }
-    
+
     /// <summary>
     /// Registers the plugin storage factory for Desktop using LiteDB with a custom database path.
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <param name="databasePath">Full path to the LiteDB database file</param>
-    public static IServiceCollection AddPluginStorage(this IServiceCollection services, string databasePath)
+    public static IServiceCollection AddPluginStorageWithPath(this IServiceCollection services, string databasePath)
     {
-        services.AddSingleton<IPluginStorageFactory>(new LiteDbPluginStorageFactory(databasePath));
-        
+        services.AddSingleton<IPluginStorageFactory>(sp =>
+        {
+            var logger = sp.GetService<ILogger<LiteDbPluginStorageFactory>>();
+            return new LiteDbPluginStorageFactory(databasePath, logger);
+        });
+
         return services;
     }
 

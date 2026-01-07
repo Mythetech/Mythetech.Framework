@@ -111,7 +111,7 @@ public class LocalStoragePluginStorageFactory : IPluginStorageFactory
     }
 
     /// <inheritdoc />
-    public IPluginStorage CreateForPlugin(string pluginId)
+    public IPluginStorage? CreateForPlugin(string pluginId)
     {
         return new LocalStoragePluginStorage(_jsRuntime, pluginId);
     }
@@ -119,7 +119,7 @@ public class LocalStoragePluginStorageFactory : IPluginStorageFactory
     /// <inheritdoc />
     public async Task<string> ExportPluginDataAsync(string pluginId)
     {
-        var storage = CreateForPlugin(pluginId);
+        var storage = CreateForPlugin(pluginId)!;
         var keys = await storage.GetKeysAsync();
         var data = new Dictionary<string, string>();
         
@@ -152,7 +152,7 @@ public class LocalStoragePluginStorageFactory : IPluginStorageFactory
     /// <inheritdoc />
     public async Task DeletePluginDataAsync(string pluginId)
     {
-        var storage = CreateForPlugin(pluginId);
+        var storage = CreateForPlugin(pluginId)!;
         await storage.ClearAsync();
     }
 }

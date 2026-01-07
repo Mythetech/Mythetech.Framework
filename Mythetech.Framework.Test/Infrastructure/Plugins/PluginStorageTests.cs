@@ -21,8 +21,8 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_PluginA_NotVisibleTo_PluginB()
     {
         // Arrange
-        var storageA = _factory.CreateForPlugin("plugin.a");
-        var storageB = _factory.CreateForPlugin("plugin.b");
+        var storageA = _factory.CreateForPlugin("plugin.a")!;
+        var storageB = _factory.CreateForPlugin("plugin.b")!;
         
         // Act - Plugin A sets data
         await storageA.SetAsync("secret", "A's secret data");
@@ -40,8 +40,8 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_SameKeyNames_NoConflict()
     {
         // Arrange
-        var storageA = _factory.CreateForPlugin("plugin.a");
-        var storageB = _factory.CreateForPlugin("plugin.b");
+        var storageA = _factory.CreateForPlugin("plugin.a")!;
+        var storageB = _factory.CreateForPlugin("plugin.b")!;
         
         // Act - Both plugins set "config" key
         await storageA.SetAsync("config", new TestConfig { Name = "Config A" });
@@ -59,8 +59,8 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_ClearPlugin_DoesNotAffectOthers()
     {
         // Arrange
-        var storageA = _factory.CreateForPlugin("plugin.a");
-        var storageB = _factory.CreateForPlugin("plugin.b");
+        var storageA = _factory.CreateForPlugin("plugin.a")!;
+        var storageB = _factory.CreateForPlugin("plugin.b")!;
         
         await storageA.SetAsync("data", "A's data");
         await storageB.SetAsync("data", "B's data");
@@ -80,8 +80,8 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_GetKeys_OnlyReturnsOwnKeys()
     {
         // Arrange
-        var storageA = _factory.CreateForPlugin("plugin.a");
-        var storageB = _factory.CreateForPlugin("plugin.b");
+        var storageA = _factory.CreateForPlugin("plugin.a")!;
+        var storageB = _factory.CreateForPlugin("plugin.b")!;
         
         await storageA.SetAsync("note:1", "Note 1");
         await storageA.SetAsync("note:2", "Note 2");
@@ -105,7 +105,7 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_GetKeys_WithPrefix_FiltersCorrectly()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.test");
+        var storage = _factory.CreateForPlugin("plugin.test")!;
         
         await storage.SetAsync("note:1", "Note 1");
         await storage.SetAsync("note:2", "Note 2");
@@ -134,7 +134,7 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_Set_CreatesEntry()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.test");
+        var storage = _factory.CreateForPlugin("plugin.test")!;
         
         // Act
         await storage.SetAsync("key", "value");
@@ -148,7 +148,7 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_Set_OverwritesExisting()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.test");
+        var storage = _factory.CreateForPlugin("plugin.test")!;
         await storage.SetAsync("key", "original");
         
         // Act
@@ -163,7 +163,7 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_Delete_RemovesEntry()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.test");
+        var storage = _factory.CreateForPlugin("plugin.test")!;
         await storage.SetAsync("key", "value");
         
         // Act
@@ -179,8 +179,8 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_Delete_NonExistent_ReturnsFalse()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.test");
-        
+        var storage = _factory.CreateForPlugin("plugin.test")!;
+
         // Act
         var deleted = await storage.DeleteAsync("nonexistent");
         
@@ -192,8 +192,8 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_Get_NonExistent_ReturnsDefault()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.test");
-        
+        var storage = _factory.CreateForPlugin("plugin.test")!;
+
         // Act
         var stringResult = await storage.GetAsync<string>("nonexistent");
         var intResult = await storage.GetAsync<int>("nonexistent");
@@ -207,7 +207,7 @@ public class PluginStorageTests : IDisposable
     public async Task Storage_ComplexObjects_SerializeCorrectly()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.test");
+        var storage = _factory.CreateForPlugin("plugin.test")!;
         var note = new TestNote
         {
             Id = "note-123",
@@ -239,7 +239,7 @@ public class PluginStorageTests : IDisposable
     public async Task Factory_Export_ExportsAllData()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.export");
+        var storage = _factory.CreateForPlugin("plugin.export")!;
         await storage.SetAsync("key1", "value1");
         await storage.SetAsync("key2", 42);
         
@@ -262,7 +262,7 @@ public class PluginStorageTests : IDisposable
         await _factory.ImportPluginDataAsync("plugin.import", json);
         
         // Assert
-        var storage = _factory.CreateForPlugin("plugin.import");
+        var storage = _factory.CreateForPlugin("plugin.import")!;
         var exists = await storage.ExistsAsync("testKey");
         exists.ShouldBeTrue();
     }
@@ -271,7 +271,7 @@ public class PluginStorageTests : IDisposable
     public async Task Factory_Delete_RemovesAllData()
     {
         // Arrange
-        var storage = _factory.CreateForPlugin("plugin.delete");
+        var storage = _factory.CreateForPlugin("plugin.delete")!;
         await storage.SetAsync("key1", "value1");
         await storage.SetAsync("key2", "value2");
         
@@ -287,8 +287,8 @@ public class PluginStorageTests : IDisposable
     public async Task Factory_Delete_DoesNotAffectOthers()
     {
         // Arrange
-        var storageA = _factory.CreateForPlugin("plugin.a");
-        var storageB = _factory.CreateForPlugin("plugin.b");
+        var storageA = _factory.CreateForPlugin("plugin.a")!;
+        var storageB = _factory.CreateForPlugin("plugin.b")!;
         await storageA.SetAsync("data", "A's data");
         await storageB.SetAsync("data", "B's data");
         

@@ -7,10 +7,11 @@ namespace Mythetech.Framework.Infrastructure.Plugins;
 public interface IPluginStorageFactory
 {
     /// <summary>
-    /// Create a storage instance scoped to a specific plugin
+    /// Create a storage instance scoped to a specific plugin.
+    /// Returns null if storage is unavailable (e.g., permission issues).
     /// </summary>
     /// <param name="pluginId">The plugin's unique identifier</param>
-    IPluginStorage CreateForPlugin(string pluginId);
+    IPluginStorage? CreateForPlugin(string pluginId);
     
     /// <summary>
     /// Export all data for a plugin as a JSON string
