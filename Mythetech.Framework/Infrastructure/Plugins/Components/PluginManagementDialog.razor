@@ -69,6 +69,14 @@
                     </MudTable>
                 </Tab>
                 <Tab Name="@_availableTabName">
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
+                        <MudCheckBox T="bool" Value="_showPreviewPlugins"
+                                     Label="Show preview plugins"
+                                     Size="Size.Small"
+                                     Dense="true"
+                                     Color="Color.Primary"
+                                     ValueChanged="@(OnShowPreviewChanged)" />
+                    </MudStack>
                     @if (_availablePlugins is null || _availablePlugins.Count == 0)
                     {
                         <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">No plugins available</MudText>
@@ -156,6 +164,7 @@
     private string? _errorMessage;
     private string _installedTabName = "Installed (0)";
     private string _availableTabName = "Available (0)";
+    private bool _showPreviewPlugins;
 
     protected override async Task OnInitializedAsync()
     {
@@ -209,6 +218,13 @@
         _installedTabName = $"Installed ({PluginState.Plugins.Count})";
         _availableTabName = $"Available ({_availablePlugins?.Count ?? 0})";
     }
+
+    private void OnShowPreviewChanged(bool value)
+    {
+        _showPreviewPlugins = value;
+        UpdateAvailablePlugins();
+        UpdateTabNames();
+    }
     
     private void UpdateAvailablePlugins()
     {
@@ -217,19 +233,27 @@
             _availablePlugins = [];
             return;
         }
-        
+
         _availablePlugins = _registry.Plugins
             .Where(registryPlugin =>
             {
+                // Hide dev plugins in production
+                if (registryPlugin.IsDevPlugin && RuntimeEnvironment.IsProduction())
+                    return false;
+
+                // Hide preview plugins unless checkbox is checked
+                if (registryPlugin.IsPreview && !_showPreviewPlugins)
+                    return false;
+
                 var installedPlugin = PluginState.GetPlugin(registryPlugin.Id);
                 var registryVersion = PluginInfo.ParseVersion(registryPlugin.Version);
-                
+
                 if (installedPlugin is null)
                     return true;
-                
+
                 if (registryVersion is null)
                     return false;
-                
+
                 return installedPlugin.IsOlderThan(registryVersion);
             })
             .ToList();

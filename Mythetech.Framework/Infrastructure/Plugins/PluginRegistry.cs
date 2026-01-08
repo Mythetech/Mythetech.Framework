@@ -51,6 +51,18 @@ public class RegistryPluginEntry
     public string[]? SupportedPlatforms { get; set; }
 
     /// <summary>
+    /// If true, this plugin is only visible in non-production environments.
+    /// </summary>
+    [JsonPropertyName("isDevPlugin")]
+    public bool IsDevPlugin { get; set; }
+
+    /// <summary>
+    /// If true, this plugin is a preview and only shown when the user opts in.
+    /// </summary>
+    [JsonPropertyName("isPreview")]
+    public bool IsPreview { get; set; }
+
+    /// <summary>
     /// Gets the parsed Platform values from SupportedPlatforms.
     /// Returns null if all platforms are supported.
     /// </summary>
