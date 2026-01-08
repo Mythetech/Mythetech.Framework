@@ -1,0 +1,71 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using Mythetech.Framework.Infrastructure.MessageBus
+@using Mythetech.Framework.Infrastructure.Mcp.Messages
+@inject McpServerState McpState
+@inject IMessageBus MessageBus
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudMenu ActivationEvent="MouseEvent.MouseOver"
+         AnchorOrigin="Origin.TopRight"
+         TransformOrigin="Origin.TopLeft"
+         Dense="true"
+         Label="@MenuLabel"
+         StartIcon="@Icons.Material.Filled.Api"
+         ListClass="pa-1">
+    <MudMenuItem Class="rounded"
+                 Icon="@(McpState.IsRunning ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)"
+                 OnClick="HandleToggleServer">
+        @(McpState.IsRunning ? "Disable" : "Enable")
+    </MudMenuItem>
+
+    <MudMenuItem Class="rounded"
+                 Icon="@Icons.Material.Filled.Info"
+                 OnClick="HandleShowInfo">
+        Info...
+    </MudMenuItem>
+</MudMenu>
+
+@code {
+    private string MenuLabel => McpState.IsRunning ? "MCP Server •" : "MCP Server";
+
+    protected override void OnInitialized()
+    {
+        McpState.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleToggleServer()
+    {
+        if (McpState.IsRunning)
+        {
+            await MessageBus.PublishAsync(new DisableMcpServerMessage());
+        }
+        else
+        {
+            await MessageBus.PublishAsync(new EnableMcpServerMessage());
+        }
+    }
+
+    private async Task HandleShowInfo()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        await DialogService.ShowAsync<McpInfoDialog>("MCP Server Info", options);
+    }
+
+    public void Dispose()
+    {
+        McpState.StateChanged -= OnStateChanged;
+    }
+}

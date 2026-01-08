@@ -1,18 +1,25 @@
 @using MudBlazor
+@using Mythetech.Framework.Infrastructure.Mcp
+@using Mythetech.Framework.Infrastructure.Mcp.Components
 @using Mythetech.Framework.Infrastructure.Secrets
 @using Mythetech.Framework.Components.Secrets
 @inject SecretManagerState SecretManagerState
+@inject McpServerState McpState
 @inject IDialogService DialogService
 @implements IDisposable
 
-<MudMenu Label="Tools" 
-         ListClass="pa-1" 
-         Class="rounded" 
-         ActivationEvent="MouseEvent.MouseOver" 
+<MudMenu Label="Tools"
+         ListClass="pa-1"
+         Class="rounded"
+         ActivationEvent="MouseEvent.MouseOver"
          Dense="true">
     <MudMenuItem Icon="@Icons.Material.Filled.Key" OnClick="OpenSecretManager">
         Secret Manager
     </MudMenuItem>
+
+    <MudDivider />
+
+    <McpMenuItems />
 </MudMenu>
 
 @code {

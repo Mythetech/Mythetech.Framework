@@ -1,4 +1,5 @@
 using Bunit;
+using MudBlazor.Services;
 
 namespace Mythetech.Framework.Test.Components.SimpleTabs;
 
@@ -6,7 +7,8 @@ public class SimpleTabTests : TestContext
 {
     public SimpleTabTests()
     {
-        
+        Services.AddMudServices();
+        JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
     [Fact]

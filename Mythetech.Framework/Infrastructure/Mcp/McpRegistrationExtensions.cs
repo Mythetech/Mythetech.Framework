@@ -1,0 +1,215 @@
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Mcp.Messages;
+using Mythetech.Framework.Infrastructure.Mcp.Server;
+using Mythetech.Framework.Infrastructure.Mcp.Tools;
+using Mythetech.Framework.Infrastructure.Mcp.Transport;
+
+namespace Mythetech.Framework.Infrastructure.Mcp;
+
+/// <summary>
+/// Extensions for registering MCP framework services.
+/// </summary>
+public static class McpRegistrationExtensions
+{
+    /// <summary>
+    /// Add MCP framework services to the DI container.
+    /// </summary>
+    public static IServiceCollection AddMcp(this IServiceCollection services)
+        => services.AddMcp(_ => { });
+
+    /// <summary>
+    /// Add MCP framework services with configuration.
+    /// </summary>
+    public static IServiceCollection AddMcp(this IServiceCollection services, Action<McpServerOptions> configure)
+    {
+        services.Configure(configure);
+
+        // Core services
+        services.AddSingleton<McpToolRegistry>();
+        services.AddSingleton<McpToolLoader>();
+
+        // Handler for MessageBus integration
+        services.AddTransient<McpToolCallHandler>();
+
+        // Transport (stdio by default, can be overridden before calling AddMcp)
+        // Note: StdioMcpTransport is not supported on browser platform
+        #pragma warning disable CA1416
+        services.TryAddSingleton<IMcpTransport, StdioMcpTransport>();
+        #pragma warning restore CA1416
+
+        // Server
+        services.AddSingleton<IMcpServer, McpServer>();
+        services.AddSingleton<McpServerState>();
+
+        // Message consumers for enable/disable
+        services.AddTransient<EnableMcpServerConsumer>();
+        services.AddTransient<DisableMcpServerConsumer>();
+
+        // Built-in tools (automatically included)
+        services.AddTransient<GetAppInfoTool>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Register MCP tools from the calling assembly.
+    /// </summary>
+    public static IServiceCollection AddMcpTools(this IServiceCollection services)
+        => services.AddMcpTools(Assembly.GetCallingAssembly());
+
+    /// <summary>
+    /// Register MCP tools from the specified assembly.
+    /// </summary>
+    public static IServiceCollection AddMcpTools(this IServiceCollection services, Assembly assembly)
+    {
+        var toolTypes = assembly.GetTypes()
+            .Where(t => !t.IsAbstract && !t.IsInterface)
+            .Where(t => typeof(IMcpTool).IsAssignableFrom(t))
+            .Where(t => t.GetCustomAttribute<McpToolAttribute>() is not null);
+
+        foreach (var toolType in toolTypes)
+        {
+            services.AddTransient(toolType);
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Register a specific tool type.
+    /// </summary>
+    public static IServiceCollection AddMcpTool<TTool>(this IServiceCollection services)
+        where TTool : class, IMcpTool
+    {
+        services.AddTransient<TTool>();
+        return services;
+    }
+
+    /// <summary>
+    /// Initialize MCP services and register tools to the registry.
+    /// Call after building the service provider.
+    /// </summary>
+    public static IServiceProvider UseMcp(this IServiceProvider services)
+        => services.UseMcp(Assembly.GetCallingAssembly());
+
+    /// <summary>
+    /// Initialize MCP services with tools from the specified assemblies.
+    /// </summary>
+    public static IServiceProvider UseMcp(this IServiceProvider services, params Assembly[] assemblies)
+    {
+        var registry = services.GetRequiredService<McpToolRegistry>();
+        var loader = services.GetRequiredService<McpToolLoader>();
+        var messageBus = services.GetRequiredService<IMessageBus>();
+
+        // Register tool call handler to MessageBus
+        messageBus.RegisterQueryHandler<McpToolCallMessage, McpToolCallResponse, McpToolCallHandler>();
+
+        // Register enable/disable consumers
+        messageBus.RegisterConsumerType<EnableMcpServerMessage, EnableMcpServerConsumer>();
+        messageBus.RegisterConsumerType<DisableMcpServerMessage, DisableMcpServerConsumer>();
+
+        // Register built-in tools from the framework
+        foreach (var descriptor in loader.DiscoverTools(typeof(GetAppInfoTool).Assembly))
+        {
+            registry.RegisterTool(descriptor);
+        }
+
+        // Discover and register tools from specified assemblies
+        foreach (var assembly in assemblies)
+        {
+            foreach (var descriptor in loader.DiscoverTools(assembly))
+            {
+                registry.RegisterTool(descriptor);
+            }
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Checks if the application was started with --mcp flag and runs in MCP server mode if so.
+    /// Call this at the start of Main() before building your normal app.
+    /// Returns true if MCP mode was handled (app should exit), false to continue normal startup.
+    /// </summary>
+    /// <param name="args">Command line arguments</param>
+    /// <param name="configure">Optional configuration for MCP server options</param>
+    /// <returns>True if MCP server ran and completed, false if normal app should start</returns>
+    public static async Task<bool> TryRunMcpServerAsync(string[] args, Action<McpServerOptions>? configure = null)
+        => await TryRunMcpServerAsync(args, configure, Assembly.GetCallingAssembly());
+
+    /// <summary>
+    /// Checks if the application was started with --mcp flag and runs in MCP server mode if so.
+    /// </summary>
+    public static async Task<bool> TryRunMcpServerAsync(string[] args, Action<McpServerOptions>? configure, params Assembly[] toolAssemblies)
+    {
+        if (!args.Contains("--mcp"))
+            return false;
+
+        var services = new ServiceCollection();
+
+        services.AddLogging();
+        services.AddMessageBus();
+        services.AddMcp(configure ?? (_ => { }));
+
+        foreach (var assembly in toolAssemblies)
+        {
+            services.AddMcpTools(assembly);
+        }
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        serviceProvider.UseMessageBus();
+        serviceProvider.UseMcp(toolAssemblies);
+
+        var server = serviceProvider.GetRequiredService<IMcpServer>();
+
+        Console.Error.WriteLine("MCP server starting...");
+        await server.RunAsync();
+        Console.Error.WriteLine("MCP server stopped.");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks if the application was started with --mcp flag and runs in MCP server mode if so.
+    /// Allows customization of the service collection for logging, etc.
+    /// </summary>
+    public static async Task<bool> TryRunMcpServerAsync(
+        string[] args,
+        Action<McpServerOptions>? configure,
+        Action<IServiceCollection>? configureServices,
+        params Assembly[] toolAssemblies)
+    {
+        if (!args.Contains("--mcp"))
+            return false;
+
+        var services = new ServiceCollection();
+
+        services.AddLogging();
+        configureServices?.Invoke(services);
+
+        services.AddMessageBus();
+        services.AddMcp(configure ?? (_ => { }));
+
+        foreach (var assembly in toolAssemblies)
+        {
+            services.AddMcpTools(assembly);
+        }
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        serviceProvider.UseMessageBus();
+        serviceProvider.UseMcp(toolAssemblies);
+
+        var server = serviceProvider.GetRequiredService<IMcpServer>();
+
+        Console.Error.WriteLine("MCP server starting...");
+        await server.RunAsync();
+        Console.Error.WriteLine("MCP server stopped.");
+
+        return true;
+    }
+}

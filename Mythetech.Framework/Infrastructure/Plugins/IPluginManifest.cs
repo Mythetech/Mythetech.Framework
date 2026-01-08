@@ -57,5 +57,15 @@ public interface IPluginManifest
     /// Platforms this plugin supports. If null or empty, the plugin supports all platforms.
     /// </summary>
     Platform[]? SupportedPlatforms => null;
+
+    /// <summary>
+    /// If true, this plugin is a dev plugin and only shown when the user opts in.
+    /// </summary>
+    bool IsDevPlugin => false;
+
+    /// <summary>
+    /// If true, this plugin is a preview and only shown when the user opts in.
+    /// </summary>
+    bool IsPreview => false;
 }
 

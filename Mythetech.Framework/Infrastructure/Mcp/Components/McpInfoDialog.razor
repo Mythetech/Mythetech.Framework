@@ -1,0 +1,106 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Options
+@using Mythetech.Framework.Infrastructure.Mcp.Server
+@inject McpServerState McpState
+@inject IOptions<McpServerOptions> Options
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Api" />
+            <MudText Typo="Typo.h6">MCP Server Info</MudText>
+            @if (McpState.IsRunning)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Running</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Stopped</MudChip>
+            }
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Connection</MudText>
+        <MudStack Spacing="1" Class="mb-4">
+            <MudStack Row="true" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Transport:</MudText>
+                <MudText Typo="Typo.body2">stdio</MudText>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Command:</MudText>
+                <MudText Typo="Typo.body2"><code>@ExecutablePath --mcp</code></MudText>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Server:</MudText>
+                <MudText Typo="Typo.body2">@Options.Value.ServerName v@(Options.Value.ServerVersion ?? "1.0.0")</MudText>
+            </MudStack>
+        </MudStack>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Registered Tools (@McpState.RegisteredTools.Count)</MudText>
+
+        @if (McpState.RegisteredTools.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                No tools registered. Add tools using AddMcpTools() or AddMcpTool&lt;T&gt;().
+            </MudAlert>
+        }
+        else
+        {
+            <MudList T="McpToolDescriptor" Dense="true">
+                @foreach (var tool in McpState.RegisteredTools)
+                {
+                    <MudListItem T="McpToolDescriptor">
+                        <MudStack Spacing="0">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.body1"><code>@tool.Name</code></MudText>
+                            </MudStack>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-6">
+                                @tool.Description
+                            </MudText>
+                            @if (tool.InputType is not null)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="ml-6">
+                                    Input: @tool.InputType.Name
+                                </MudText>
+                            }
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    private string ExecutablePath => System.Environment.ProcessPath ?? "app";
+
+    protected override void OnInitialized()
+    {
+        McpState.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Close()
+    {
+        MudDialog?.Close();
+    }
+
+    public void Dispose()
+    {
+        McpState.StateChanged -= OnStateChanged;
+    }
+}

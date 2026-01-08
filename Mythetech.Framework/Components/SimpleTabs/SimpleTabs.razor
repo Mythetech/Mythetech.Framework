@@ -1,29 +1,71 @@
 @using MudBlazor
+@using MudBlazor.Interop
+@using MudBlazor.Services
 @inherits MudComponentBase
+@implements IAsyncDisposable
+@inject IResizeObserver ResizeObserver
 
 <CascadingValue Value="this">
     @ChildContent
 </CascadingValue>
 
 <MudStack Class="mud-width-full mud-height-full">
-    <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} mx-4 {Class}")" Spacing="0" AlignItems="AlignItems.Center" Style="@Style">
-        @foreach (var tab in _tabs)
+    <div @ref="_tabBarRef" class="mx-4">
+        <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} {Class}")" Spacing="0" AlignItems="AlignItems.Center" Style="@Style">
+        @if (_isCompactMode)
         {
-         
-            <MudLink Class="@($"flex-grow-1 rounded{(tab.IsActive ? $" {GetBackgroundClass(Color)}" : "")}")"
-                     Color="@(tab.IsActive ? Color : Color.Default)"
-                     OnClick="@(() => SelectTab(tab))">
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.Center">
-                @if (!string.IsNullOrWhiteSpace(tab.Icon))
+            @* Compact mode: show active tab + overflow menu *@
+            var activeTab = _tabs.FirstOrDefault(t => t.IsActive);
+            if (activeTab != null)
+            {
+                <MudLink Class="@($"flex-grow-1 rounded {GetBackgroundClass(Color)}")"
+                         Color="@Color"
+                         OnClick="@(() => SelectTab(activeTab))">
+                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                        @if (!string.IsNullOrWhiteSpace(activeTab.Icon))
+                        {
+                            <MudIcon Icon="@activeTab.Icon" Color="@Color"/>
+                        }
+                        @activeTab.Name
+                    </MudStack>
+                </MudLink>
+            }
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                     Size="Size.Small"
+                     Dense="true"
+                     AnchorOrigin="Origin.BottomRight"
+                     TransformOrigin="Origin.TopRight">
+                @foreach (var tab in _tabs)
                 {
-                    <MudIcon Icon="@tab.Icon"
-                             Color="@(tab.IsActive ? Color : Color.Default)"/>
+                    <MudMenuItem Icon="@tab.Icon"
+                                 OnClick="@(() => SelectTab(tab))"
+                                 Disabled="@tab.IsActive">
+                        @tab.Name
+                    </MudMenuItem>
                 }
-                @tab.Name
-                </MudStack>
-            </MudLink>
+            </MudMenu>
         }
-    </MudStack>
+        else
+        {
+            @* Normal mode: show all tabs *@
+            @foreach (var tab in _tabs)
+            {
+                <MudLink Class="@($"flex-grow-1 rounded{(tab.IsActive ? $" {GetBackgroundClass(Color)}" : "")}")"
+                         Color="@(tab.IsActive ? Color : Color.Default)"
+                         OnClick="@(() => SelectTab(tab))">
+                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                        @if (!string.IsNullOrWhiteSpace(tab.Icon))
+                        {
+                            <MudIcon Icon="@tab.Icon"
+                                     Color="@(tab.IsActive ? Color : Color.Default)"/>
+                        }
+                        @tab.Name
+                    </MudStack>
+                </MudLink>
+            }
+        }
+        </MudStack>
+    </div>
 
     <div class="mud-height-full mud-width-full px-4">
         @foreach (var tab in _tabs.Where(t => t.IsActive))
@@ -44,8 +86,17 @@
     /// Color to display the tabs in
     /// </summary>
     [Parameter] public Color Color { get; set; } = Color.Primary;
-    
+
+    /// <summary>
+    /// Width in pixels below which the tabs switch to compact mode with overflow menu
+    /// </summary>
+    [Parameter] public int CompactBreakpoint { get; set; } = 400;
+
     private List<Tab> _tabs = new();
+    private ElementReference _tabBarRef;
+    private bool _isCompactMode;
+    private double _containerWidth;
+    private bool _isObserving;
 
     /// <inheritdoc />
     protected override void OnInitialized()
@@ -54,12 +105,57 @@
     }
 
     /// <inheritdoc />
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _tabs.Count > 0 && !_tabs.Any(t => t.IsActive))
         {
             _tabs[0].IsActive = true;
             StateHasChanged();
+        }
+
+        if (!_isObserving && _tabBarRef.Id != null)
+        {
+            _isObserving = true;
+            ResizeObserver.OnResized += HandleResize;
+            var initialSize = await ResizeObserver.Observe(_tabBarRef);
+            if (initialSize != null)
+            {
+                _containerWidth = initialSize.Width;
+                EvaluateCompactMode();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void HandleResize(IDictionary<ElementReference, BoundingClientRect> changes)
+    {
+        if (_tabBarRef.Id != null && changes.TryGetValue(_tabBarRef, out var newSize))
+        {
+            if (Math.Abs(newSize.Width - _containerWidth) > 10)
+            {
+                _containerWidth = newSize.Width;
+                EvaluateCompactMode();
+                InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void EvaluateCompactMode()
+    {
+        var shouldBeCompact = _containerWidth > 0 && _containerWidth < CompactBreakpoint;
+        if (_isCompactMode != shouldBeCompact)
+        {
+            _isCompactMode = shouldBeCompact;
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        ResizeObserver.OnResized -= HandleResize;
+        if (_tabBarRef.Id != null)
+        {
+            await ResizeObserver.Unobserve(_tabBarRef);
         }
     }
 
