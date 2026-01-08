@@ -1,0 +1,92 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using Mythetech.Framework.Infrastructure.MessageBus
+@using Mythetech.Framework.Infrastructure.Mcp.Messages
+@inject McpServerState McpState
+@inject IMessageBus MessageBus
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudMenu ActivationEvent="@ActivationEvent"
+         AnchorOrigin="@AnchorOrigin"
+         TransformOrigin="@TransformOrigin"
+         Dense="@Dense"
+         ListClass="@ListClass">
+    <ActivatorContent>
+        <MudButton Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass">
+            @MenuText
+            @if (McpState.IsRunning)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="font-size: 10px;" />
+            }
+        </MudButton>
+    </ActivatorContent>
+    <ChildContent>
+        <MudMenuItem Class="@ItemClass"
+                     Icon="@(McpState.IsRunning ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)"
+                     OnClick="HandleToggleServer">
+            @(McpState.IsRunning ? "Disable Server" : "Enable Server")
+        </MudMenuItem>
+
+        <MudDivider />
+
+        <MudMenuItem Class="@ItemClass"
+                     Icon="@Icons.Material.Filled.Info"
+                     OnClick="HandleShowInfo">
+            MCP Info
+        </MudMenuItem>
+    </ChildContent>
+</MudMenu>
+
+@code {
+    [Parameter] public string MenuText { get; set; } = "MCP";
+    [Parameter] public MouseEvent ActivationEvent { get; set; } = MouseEvent.MouseOver;
+    [Parameter] public Origin AnchorOrigin { get; set; } = Origin.BottomLeft;
+    [Parameter] public Origin TransformOrigin { get; set; } = Origin.TopLeft;
+    [Parameter] public bool Dense { get; set; } = true;
+    [Parameter] public string ListClass { get; set; } = "pa-1";
+    [Parameter] public string ItemClass { get; set; } = "rounded";
+    [Parameter] public Size ButtonSize { get; set; } = Size.Small;
+    [Parameter] public Variant ButtonVariant { get; set; } = Variant.Text;
+    [Parameter] public Color ButtonColor { get; set; } = Color.Inherit;
+    [Parameter] public string ButtonClass { get; set; } = "text-transform-none";
+
+    protected override void OnInitialized()
+    {
+        McpState.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleToggleServer()
+    {
+        if (McpState.IsRunning)
+        {
+            await MessageBus.PublishAsync(new DisableMcpServerMessage());
+        }
+        else
+        {
+            await MessageBus.PublishAsync(new EnableMcpServerMessage());
+        }
+    }
+
+    private async Task HandleShowInfo()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        await DialogService.ShowAsync<McpInfoDialog>("MCP Server Info", options);
+    }
+
+    public void Dispose()
+    {
+        McpState.StateChanged -= OnStateChanged;
+    }
+}

@@ -4,6 +4,7 @@ using MudBlazor.Services;
 using Mythetech.Framework.Desktop;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Mcp;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Secrets;
 using Photino.Blazor;
@@ -12,11 +13,24 @@ using SampleHost.Desktop;
 class Program
 {
     [STAThread]
-    static void Main(string[] args)
+    static async Task Main(string[] args)
+    {
+        if (await McpRegistrationExtensions.TryRunMcpServerAsync(args, options =>
+        {
+            options.ServerName = "SampleHost.Desktop";
+            options.ServerVersion = "1.0.0";
+        }))
+        {
+            return;
+        }
+
+        RunDesktopApp(args);
+    }
+
+    static void RunDesktopApp(string[] args)
     {
         var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
-        
-        // Add console logging for debugging
+
         builder.Services.AddLogging(logging =>
         {
             logging.AddConsole();
@@ -30,29 +44,32 @@ class Program
         builder.Services.AddNativeSecretManager();
         builder.Services.AddHttpClient();
         builder.Services.AddRuntimeEnvironment(DesktopRuntimeEnvironment.Development());
+        builder.Services.AddMcp(options =>
+        {
+            options.ServerName = "SampleHost.Desktop";
+            options.ServerVersion = "1.0.0";
+        });
+        builder.Services.AddMcpTools();
 
-        
         builder.RootComponents.Add<App>("app");
-        
+
         var app = builder.Build();
-        
+
         app.Services.UseMessageBus();
         app.Services.UseSecretManager();
-        
-        // Explicitly specify plugin directory and log it
+        app.Services.UseMcp();
+
         var pluginDir = Path.Combine(AppContext.BaseDirectory, "plugins");
 
         if (Directory.Exists(pluginDir))
         {
-            // Show root DLLs
             var rootDlls = Directory.GetFiles(pluginDir, "*.dll");
             Console.WriteLine($"Root DLLs: {rootDlls.Length}");
             foreach (var dll in rootDlls)
             {
                 Console.WriteLine($"  - {Path.GetFileName(dll)}");
             }
-            
-            // Show subdirectories (plugin folders)
+
             var subdirs = Directory.GetDirectories(pluginDir);
             Console.WriteLine($"Plugin folders: {subdirs.Length}");
             foreach (var subdir in subdirs)
@@ -61,20 +78,19 @@ class Program
                 Console.WriteLine($"  [{Path.GetFileName(subdir)}] - {subDlls.Length} DLLs");
             }
         }
-        
+
         app.Services.UsePlugins(pluginDir);
-        
+
         app.MainWindow
             .SetTitle("Sample Host (Desktop)")
             .SetSize(1920, 1080)
             .SetUseOsDefaultSize(false);
-        
+
         AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
         {
             Console.Error.WriteLine($"Unhandled exception: {args.ExceptionObject}");
         };
-        
+
         app.Run();
     }
 }
-

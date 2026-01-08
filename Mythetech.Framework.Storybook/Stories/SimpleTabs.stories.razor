@@ -34,4 +34,62 @@
             </SimpleTabs>
         </Template>
     </Story>
+    <Story Name="Many Tabs (Responsive)" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <SimpleTabs>
+                <Tab Name="Dashboard" Icon="@Icons.Material.Outlined.Dashboard">
+                    <MudText>Dashboard content - your main overview</MudText>
+                </Tab>
+                <Tab Name="Analytics" Icon="@Icons.Material.Outlined.Analytics">
+                    <MudText>Analytics content - view your metrics</MudText>
+                </Tab>
+                <Tab Name="Reports" Icon="@Icons.Material.Outlined.Assessment">
+                    <MudText>Reports content - generated reports</MudText>
+                </Tab>
+                <Tab Name="Settings" Icon="@Icons.Material.Outlined.Settings">
+                    <MudText>Settings content - configure your preferences</MudText>
+                </Tab>
+                <Tab Name="Users" Icon="@Icons.Material.Outlined.People">
+                    <MudText>Users content - manage team members</MudText>
+                </Tab>
+            </SimpleTabs>
+        </Template>
+    </Story>
+    <Story Name="Resizable Container" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            @{
+                var containerWidth = _containerWidthPercent;
+            }
+            <MudStack Spacing="4">
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2">Container Width:</MudText>
+                    <MudSlider @bind-Value="_containerWidthPercent" Min="20" Max="100" Step="5" Color="Color.Primary" Style="width: 200px;" />
+                    <MudText Typo="Typo.body2">@(_containerWidthPercent)%</MudText>
+                </MudStack>
+                <div style="width: @(containerWidth)%; border: 1px dashed var(--mud-palette-lines-default); border-radius: 4px; padding: 8px;">
+                    <SimpleTabs>
+                        <Tab Name="Dashboard" Icon="@Icons.Material.Outlined.Dashboard">
+                            <MudText>Dashboard content</MudText>
+                        </Tab>
+                        <Tab Name="Analytics" Icon="@Icons.Material.Outlined.Analytics">
+                            <MudText>Analytics content</MudText>
+                        </Tab>
+                        <Tab Name="Reports" Icon="@Icons.Material.Outlined.Assessment">
+                            <MudText>Reports content</MudText>
+                        </Tab>
+                        <Tab Name="Settings" Icon="@Icons.Material.Outlined.Settings">
+                            <MudText>Settings content</MudText>
+                        </Tab>
+                        <Tab Name="Users" Icon="@Icons.Material.Outlined.People">
+                            <MudText>Users content</MudText>
+                        </Tab>
+                    </SimpleTabs>
+                </div>
+            </MudStack>
+        </Template>
+    </Story>
 </Stories>
+
+@code {
+    private double _containerWidthPercent = 100;
+}
