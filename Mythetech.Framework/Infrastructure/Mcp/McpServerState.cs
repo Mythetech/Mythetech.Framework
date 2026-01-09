@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Mcp.Server;
+using Mythetech.Framework.Infrastructure.Mcp.Transport;
 
 namespace Mythetech.Framework.Infrastructure.Mcp;
 
@@ -11,6 +12,7 @@ public class McpServerState : IDisposable
 {
     private readonly IMcpServer _server;
     private readonly McpToolRegistry _registry;
+    private readonly IMcpTransport _transport;
     private readonly ILogger<McpServerState> _logger;
     private CancellationTokenSource? _cts;
     private Task? _serverTask;
@@ -27,10 +29,12 @@ public class McpServerState : IDisposable
     public McpServerState(
         IMcpServer server,
         McpToolRegistry registry,
+        IMcpTransport transport,
         ILogger<McpServerState> logger)
     {
         _server = server;
         _registry = registry;
+        _transport = transport;
         _logger = logger;
     }
 
@@ -45,15 +49,40 @@ public class McpServerState : IDisposable
     public IReadOnlyList<McpToolDescriptor> RegisteredTools => _registry.GetAllTools();
 
     /// <summary>
+    /// The HTTP endpoint URL when HTTP MCP is running, or null if not available.
+    /// Example: http://localhost:3333/mcp
+    /// </summary>
+    public string? HttpEndpoint => GetHttpEndpoint();
+
+    private string? GetHttpEndpoint()
+    {
+        // HttpMcpTransport is not supported on browser platform, but this
+        // property is safe to call - it will return null if transport isn't HTTP
+        #pragma warning disable CA1416
+        return (_transport as HttpMcpTransport)?.Endpoint;
+        #pragma warning restore CA1416
+    }
+
+    /// <summary>
     /// Start the MCP server in the background.
     /// </summary>
-    public Task StartAsync()
+    public async Task StartAsync()
     {
         if (IsRunning)
         {
             _logger.LogWarning("MCP server is already running");
-            return Task.CompletedTask;
+            return;
         }
+
+        // Start HTTP transport if applicable
+        // HttpMcpTransport is not supported on browser platform, but this check
+        // is safe - if transport is HttpMcpTransport, we're not on browser
+        #pragma warning disable CA1416
+        if (_transport is HttpMcpTransport httpTransport)
+        {
+            await httpTransport.StartAsync();
+        }
+        #pragma warning restore CA1416
 
         _cts = new CancellationTokenSource();
         _serverTask = Task.Run(async () =>
@@ -78,7 +107,6 @@ public class McpServerState : IDisposable
 
         _logger.LogInformation("MCP server started");
         NotifyStateChanged();
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -106,6 +134,14 @@ public class McpServerState : IDisposable
                 _logger.LogWarning("MCP server did not stop gracefully within timeout");
             }
         }
+
+        // Stop HTTP transport if applicable (allows restart)
+        #pragma warning disable CA1416
+        if (_transport is HttpMcpTransport httpTransport)
+        {
+            await httpTransport.StopAsync();
+        }
+        #pragma warning restore CA1416
 
         _cts?.Dispose();
         _cts = null;

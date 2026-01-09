@@ -24,4 +24,26 @@ public class McpServerOptions
     /// Timeout for tool execution
     /// </summary>
     public TimeSpan ToolTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// Enable HTTP transport for MCP server.
+    /// When enabled, the server will listen on the configured HTTP endpoint.
+    /// </summary>
+    public bool HttpEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Port for HTTP transport (default: 3333)
+    /// </summary>
+    public int HttpPort { get; set; } = 3333;
+
+    /// <summary>
+    /// Path for HTTP transport endpoint (default: "/mcp")
+    /// </summary>
+    public string HttpPath { get; set; } = "/mcp";
+
+    /// <summary>
+    /// Host to bind HTTP server to (default: "localhost").
+    /// For security, this should always be localhost to prevent DNS rebinding attacks.
+    /// </summary>
+    public string HttpHost { get; set; } = "localhost";
 }

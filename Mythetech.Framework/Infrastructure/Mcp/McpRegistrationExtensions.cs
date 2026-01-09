@@ -1,6 +1,9 @@
 using System.Reflection;
+using System.Runtime.Versioning;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Mcp.Messages;
 using Mythetech.Framework.Infrastructure.Mcp.Server;
@@ -86,6 +89,45 @@ public static class McpRegistrationExtensions
     {
         services.AddTransient<TTool>();
         return services;
+    }
+
+    /// <summary>
+    /// Register HTTP transport for MCP instead of the default stdio transport.
+    /// This enables MCP over HTTP POST/SSE per the Streamable HTTP transport spec.
+    /// Call this BEFORE calling AddMcp() to override the default transport.
+    /// Note: HTTP transport is not supported on browser platform.
+    /// </summary>
+    [UnsupportedOSPlatform("browser")]
+    public static IServiceCollection AddMcpHttpTransport(this IServiceCollection services)
+    {
+        // Remove any existing transport registration
+        var existingTransport = services.FirstOrDefault(d => d.ServiceType == typeof(IMcpTransport));
+        if (existingTransport != null)
+        {
+            services.Remove(existingTransport);
+        }
+
+        services.AddSingleton<IMcpTransport>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<McpServerOptions>>().Value;
+            var logger = sp.GetService<ILogger<HttpMcpTransport>>();
+            return new HttpMcpTransport(options, logger);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Start the MCP HTTP server and return the endpoint URL.
+    /// The server runs alongside the main application.
+    /// </summary>
+    /// <returns>The HTTP endpoint URL (e.g., http://localhost:3333/mcp)</returns>
+    [UnsupportedOSPlatform("browser")]
+    public static async Task<string?> StartMcpHttpServerAsync(this IServiceProvider services)
+    {
+        var state = services.GetRequiredService<McpServerState>();
+        await state.StartAsync();
+        return state.HttpEndpoint;
     }
 
     /// <summary>
