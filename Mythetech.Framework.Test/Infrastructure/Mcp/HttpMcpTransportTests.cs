@@ -281,6 +281,133 @@ public class HttpMcpTransportTests : IAsyncDisposable
         try { await serverTask; } catch (OperationCanceledException) { }
     }
 
+    [Fact(DisplayName = "HTTP transport allows new client to initialize after existing session")]
+    public async Task AllowsNewClientToInitializeAfterExistingSession()
+    {
+        // Arrange
+        var options = new McpServerOptions
+        {
+            HttpPort = 33338,
+            HttpPath = "/mcp",
+            ServerName = "TestServer",
+            ServerVersion = "1.0.0"
+        };
+        _transport = new HttpMcpTransport(options);
+
+        var registry = new McpToolRegistry(Substitute.For<ILogger<McpToolRegistry>>());
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IMessageBus>(sp => new InMemoryMessageBus(
+            sp,
+            Substitute.For<ILogger<InMemoryMessageBus>>(),
+            Array.Empty<IMessagePipe>(),
+            Array.Empty<IConsumerFilter>()));
+        var serviceProvider = services.BuildServiceProvider();
+
+        var server = new McpServer(
+            _transport,
+            serviceProvider.GetRequiredService<IMessageBus>(),
+            registry,
+            Options.Create(options),
+            Substitute.For<ILogger<McpServer>>());
+
+        await _transport.StartAsync();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var serverTask = Task.Run(() => server.RunAsync(cts.Token));
+
+        _httpClient = new HttpClient();
+
+        // Act - First client initializes
+        var initRequest1 = new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { protocolVersion = "2024-11-05" } };
+        var initResponse1 = await SendJsonRpcRequest(initRequest1);
+
+        initResponse1.ShouldNotBeNull();
+        initResponse1.Error.ShouldBeNull();
+        var firstSessionId = _sessionId;
+        firstSessionId.ShouldNotBeNull();
+
+        // Act - Second client tries to initialize (simulates new client connection)
+        // Clear session ID to simulate a new client without a session
+        _sessionId = null;
+
+        var initRequest2 = new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { protocolVersion = "2024-11-05" } };
+        var initResponse2 = await SendJsonRpcRequest(initRequest2);
+
+        // Assert - Second initialize should succeed and get a new session
+        initResponse2.ShouldNotBeNull();
+        initResponse2.Error.ShouldBeNull();
+        _sessionId.ShouldNotBeNull();
+        _sessionId.ShouldNotBe(firstSessionId); // Should be a new session
+
+        // Cleanup
+        cts.Cancel();
+        try { await serverTask; } catch (OperationCanceledException) { }
+    }
+
+    [Fact(DisplayName = "HTTP transport rejects non-initialize requests without valid session ID")]
+    public async Task RejectsNonInitializeRequestsWithoutValidSession()
+    {
+        // Arrange
+        var options = new McpServerOptions
+        {
+            HttpPort = 33339,
+            HttpPath = "/mcp",
+            ServerName = "TestServer",
+            ServerVersion = "1.0.0"
+        };
+        _transport = new HttpMcpTransport(options);
+
+        var registry = new McpToolRegistry(Substitute.For<ILogger<McpToolRegistry>>());
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IMessageBus>(sp => new InMemoryMessageBus(
+            sp,
+            Substitute.For<ILogger<InMemoryMessageBus>>(),
+            Array.Empty<IMessagePipe>(),
+            Array.Empty<IConsumerFilter>()));
+        var serviceProvider = services.BuildServiceProvider();
+
+        var server = new McpServer(
+            _transport,
+            serviceProvider.GetRequiredService<IMessageBus>(),
+            registry,
+            Options.Create(options),
+            Substitute.For<ILogger<McpServer>>());
+
+        await _transport.StartAsync();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var serverTask = Task.Run(() => server.RunAsync(cts.Token));
+
+        _httpClient = new HttpClient();
+
+        // Act - First client initializes to establish a session
+        var initRequest = new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { protocolVersion = "2024-11-05" } };
+        var initResponse = await SendJsonRpcRequest(initRequest);
+        initResponse.ShouldNotBeNull();
+        initResponse.Error.ShouldBeNull();
+
+        // Clear session ID to simulate a request without valid session
+        _sessionId = null;
+
+        // Act - Try to call tools/list without a session ID (should fail)
+        var listRequest = new { jsonrpc = "2.0", id = 2, method = "tools/list" };
+        var content = new StringContent(
+            JsonSerializer.Serialize(listRequest, _jsonOptions),
+            Encoding.UTF8,
+            "application/json");
+
+        var response = await _httpClient.PostAsync(_transport.Endpoint, content);
+
+        // Assert - Should get a 400 error
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        // Cleanup
+        cts.Cancel();
+        try { await serverTask; } catch (OperationCanceledException) { }
+    }
+
     private async Task<JsonRpcResponse?> SendJsonRpcRequest(object request)
     {
         var content = new StringContent(

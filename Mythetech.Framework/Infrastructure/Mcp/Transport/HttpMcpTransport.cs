@@ -165,8 +165,10 @@ public class HttpMcpTransport : IMcpTransport
                 }
             }
 
-            // Check session ID after initialization
-            if (_initialized && _sessionId != null)
+            // Session validation for non-POST methods
+            // POST requests handle session validation after parsing the body
+            // to allow initialize requests to create new sessions
+            if (request.HttpMethod != "POST" && _initialized && _sessionId != null)
             {
                 var clientSessionId = request.Headers["Mcp-Session-Id"];
                 if (clientSessionId != _sessionId)
@@ -266,6 +268,40 @@ public class HttpMcpTransport : IMcpTransport
                     Error = new JsonRpcError { Code = JsonRpcError.ParseError, Message = "Failed to parse JSON-RPC request" }
                 });
                 return;
+            }
+
+            // Session validation for POST requests
+            // Allow initialize requests to create a new session even if one exists
+            if (_initialized && _sessionId != null)
+            {
+                var clientSessionId = request.Headers["Mcp-Session-Id"];
+                var isInitializeRequest = jsonRpcRequest.Method == "initialize";
+
+                if (clientSessionId != _sessionId)
+                {
+                    if (isInitializeRequest && string.IsNullOrEmpty(clientSessionId))
+                    {
+                        // New client is trying to initialize - reset session state
+                        _logger?.LogInformation("New initialize request received, resetting session state");
+                        _initialized = false;
+                        _sessionId = null;
+                    }
+                    else
+                    {
+                        _logger?.LogWarning("Invalid or missing session ID");
+                        response.StatusCode = 400;
+                        await WriteJsonResponse(response, new JsonRpcResponse
+                        {
+                            Id = jsonRpcRequest.Id,
+                            Error = new JsonRpcError
+                            {
+                                Code = -32600,
+                                Message = "Invalid or missing session ID"
+                            }
+                        });
+                        return;
+                    }
+                }
             }
 
             // Handle notifications (no response needed)
