@@ -26,12 +26,22 @@
         <MudStack Spacing="1" Class="mb-4">
             <MudStack Row="true" Spacing="2">
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Transport:</MudText>
-                <MudText Typo="Typo.body2">stdio</MudText>
+                <MudText Typo="Typo.body2">@TransportType</MudText>
             </MudStack>
-            <MudStack Row="true" Spacing="2">
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Command:</MudText>
-                <MudText Typo="Typo.body2"><code>@ExecutablePath --mcp</code></MudText>
-            </MudStack>
+            @if (IsHttpTransport)
+            {
+                <MudStack Row="true" Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Endpoint:</MudText>
+                    <MudText Typo="Typo.body2"><code>@(McpState.HttpEndpoint ?? "Not started")</code></MudText>
+                </MudStack>
+            }
+            else
+            {
+                <MudStack Row="true" Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Command:</MudText>
+                    <MudText Typo="Typo.body2"><code>@ExecutablePath --mcp</code></MudText>
+                </MudStack>
+            }
             <MudStack Row="true" Spacing="2">
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Server:</MudText>
                 <MudText Typo="Typo.body2">@Options.Value.ServerName v@(Options.Value.ServerVersion ?? "1.0.0")</MudText>
@@ -83,6 +93,10 @@
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
 
     private string ExecutablePath => System.Environment.ProcessPath ?? "app";
+
+    private bool IsHttpTransport => McpState.HttpEndpoint != null || Options.Value.HttpEnabled;
+
+    private string TransportType => IsHttpTransport ? "http" : "stdio";
 
     protected override void OnInitialized()
     {
