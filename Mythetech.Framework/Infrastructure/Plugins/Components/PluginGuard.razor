@@ -147,7 +147,13 @@
             {
                 _errorBoundary.Recover();
             }
-        });
+        }).ContinueWith(t =>
+        {
+            if (t.IsFaulted && t.Exception != null)
+            {
+                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
+            }
+        }, TaskScheduler.Default);
     }
     
     public void Dispose()
