@@ -1,5 +1,7 @@
 # Mythetech.Framework Coding Patterns
 
+> **Note:** This framework is built on [MudBlazor](https://mudblazor.com). For advanced Blazor component patterns, see [MudBlazor's AGENTS.md](https://github.com/MudBlazor/MudBlazor/blob/dev/AGENTS.md) which covers ParameterState patterns, EventCallback best practices, and bUnit testing patterns.
+
 ## Table of Contents
 
 - [Async Patterns](#async-patterns)

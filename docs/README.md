@@ -4,6 +4,14 @@ Welcome to the Mythetech.Framework documentation. This framework provides infras
 
 ## Infrastructure
 
+### [MessageBus](./Infrastructure/MessageBus/README.md)
+
+In-memory publish-subscribe and request-response messaging for decoupled communication.
+
+- [Publish-Subscribe](./Infrastructure/MessageBus/PublishSubscribe.md) - Fire-and-forget event distribution
+- [Request-Response](./Infrastructure/MessageBus/RequestResponse.md) - Query pattern with responses
+- [Extensibility](./Infrastructure/MessageBus/Extensibility.md) - Pipes and filters
+
 ### [MCP (Model Context Protocol)](./Infrastructure/Mcp/README.md)
 
 Expose application functionality as tools for AI assistants like Claude.
