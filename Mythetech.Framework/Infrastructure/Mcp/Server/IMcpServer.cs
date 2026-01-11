@@ -9,4 +9,9 @@ public interface IMcpServer
     /// Run the server until the transport closes or cancellation is requested.
     /// </summary>
     Task RunAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Send a notification to connected clients that the tools list has changed.
+    /// </summary>
+    Task NotifyToolsListChangedAsync(CancellationToken cancellationToken = default);
 }

@@ -114,7 +114,7 @@ public class McpServer : IMcpServer
             ProtocolVersion = _options.ProtocolVersion,
             Capabilities = new McpServerCapabilities
             {
-                Tools = new McpToolsCapability { ListChanged = false }
+                Tools = new McpToolsCapability { ListChanged = true }
             },
             ServerInfo = new McpServerInfo
             {
@@ -185,5 +185,12 @@ public class McpServer : IMcpServer
     private JsonRpcResponse HandlePing(JsonRpcRequest request)
     {
         return JsonRpcResponse.Success(request.Id, new { });
+    }
+
+    /// <inheritdoc />
+    public async Task NotifyToolsListChangedAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Sending tools/list_changed notification");
+        await _transport.WriteNotificationAsync("notifications/tools/list_changed", null, cancellationToken);
     }
 }
