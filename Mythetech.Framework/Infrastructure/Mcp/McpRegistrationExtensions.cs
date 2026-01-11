@@ -179,8 +179,13 @@ public static class McpRegistrationExtensions
     /// <param name="args">Command line arguments</param>
     /// <param name="configure">Optional configuration for MCP server options</param>
     /// <returns>True if MCP server ran and completed, false if normal app should start</returns>
-    public static async Task<bool> TryRunMcpServerAsync(string[] args, Action<McpServerOptions>? configure = null)
-        => await TryRunMcpServerAsync(args, configure, Assembly.GetCallingAssembly());
+    public static Task<bool> TryRunMcpServerAsync(string[] args, Action<McpServerOptions>? configure = null)
+    {
+        // Note: Assembly.GetCallingAssembly() must be captured in a non-async method
+        // because async state machines can break the call stack inspection
+        var callingAssembly = Assembly.GetCallingAssembly();
+        return TryRunMcpServerAsync(args, configure, callingAssembly);
+    }
 
     /// <summary>
     /// Checks if the application was started with --mcp flag and runs in MCP server mode if so.

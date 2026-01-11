@@ -60,6 +60,19 @@ public class McpServerState : IDisposable
     {
         await _registry.SetToolEnabledAsync(name, enabled);
         NotifyStateChanged();
+
+        // Notify connected MCP clients that the tools list has changed
+        if (IsRunning)
+        {
+            try
+            {
+                await _server.NotifyToolsListChangedAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send tools/list_changed notification");
+            }
+        }
     }
 
     /// <summary>
