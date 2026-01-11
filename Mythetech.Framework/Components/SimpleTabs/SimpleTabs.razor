@@ -10,7 +10,7 @@
 </CascadingValue>
 
 <MudStack Class="mud-width-full mud-height-full">
-    <div @ref="_tabBarRef" class="mx-4">
+    <div @ref="_tabBarRef" class="@WrapperClass">
         <MudStack Row="true" Justify="Justify.Center" Class="@($"pa-1 align-text-center rounded {GetBorderClass(Color)} {Class}")" Spacing="0" AlignItems="AlignItems.Center" Style="@Style">
         @if (_isCompactMode)
         {
@@ -92,6 +92,11 @@
     /// </summary>
     [Parameter] public int CompactBreakpoint { get; set; } = 400;
 
+    /// <summary>
+    /// CSS class applied to the tab bar wrapper div
+    /// </summary>
+    [Parameter] public string WrapperClass { get; set; } = "mx-4";
+
     private List<Tab> _tabs = new();
     private ElementReference _tabBarRef;
     private bool _isCompactMode;
@@ -135,7 +140,13 @@
             {
                 _containerWidth = newSize.Width;
                 EvaluateCompactMode();
-                InvokeAsync(StateHasChanged);
+                InvokeAsync(StateHasChanged).ContinueWith(t =>
+                {
+                    if (t.IsFaulted && t.Exception != null)
+                    {
+                        Console.Error.WriteLine($"Error in HandleResize: {t.Exception}");
+                    }
+                }, TaskScheduler.Default);
             }
         }
     }

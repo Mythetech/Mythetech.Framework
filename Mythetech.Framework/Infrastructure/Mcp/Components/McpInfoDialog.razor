@@ -64,20 +64,27 @@
                 @foreach (var tool in McpState.RegisteredTools)
                 {
                     <MudListItem T="McpToolDescriptor">
-                        <MudStack Spacing="0">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Color="Color.Primary" />
-                                <MudText Typo="Typo.body1"><code>@tool.Name</code></MudText>
-                            </MudStack>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-6">
-                                @tool.Description
-                            </MudText>
-                            @if (tool.InputType is not null)
-                            {
-                                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="ml-6">
-                                    Input: @tool.InputType.Name
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width: 100%;">
+                            <MudStack Spacing="0">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Color="@(McpState.IsToolEnabled(tool.Name) ? Color.Primary : Color.Default)" />
+                                    <MudText Typo="Typo.body1" Style="@(McpState.IsToolEnabled(tool.Name) ? "" : "opacity: 0.5;")"><code>@tool.Name</code></MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-6" Style="@(McpState.IsToolEnabled(tool.Name) ? "" : "opacity: 0.5;")">
+                                    @tool.Description
                                 </MudText>
-                            }
+                                @if (tool.InputType is not null)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="ml-6" Style="@(McpState.IsToolEnabled(tool.Name) ? "" : "opacity: 0.5;")">
+                                        Input: @tool.InputType.Name
+                                    </MudText>
+                                }
+                            </MudStack>
+                            <MudSwitch T="bool"
+                                       Value="@McpState.IsToolEnabled(tool.Name)"
+                                       ValueChanged="@(async v => await McpState.SetToolEnabledAsync(tool.Name, v))"
+                                       Color="Color.Primary"
+                                       Size="Size.Small" />
                         </MudStack>
                     </MudListItem>
                 }
@@ -105,7 +112,13 @@
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(StateHasChanged).ContinueWith(t =>
+        {
+            if (t.IsFaulted && t.Exception != null)
+            {
+                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
+            }
+        }, TaskScheduler.Default);
     }
 
     private void Close()

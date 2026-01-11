@@ -33,6 +33,7 @@ public class HttpMcpTransport : IMcpTransport
     // Session management per MCP spec
     private string? _sessionId;
     private bool _initialized;
+    private readonly object _sessionLock = new();
 
     private Task? _listenerTask;
     private bool _disposed;
@@ -282,9 +283,12 @@ public class HttpMcpTransport : IMcpTransport
                     if (isInitializeRequest && string.IsNullOrEmpty(clientSessionId))
                     {
                         // New client is trying to initialize - reset session state
-                        _logger?.LogInformation("New initialize request received, resetting session state");
-                        _initialized = false;
-                        _sessionId = null;
+                        lock (_sessionLock)
+                        {
+                            _logger?.LogInformation("New initialize request received, resetting session state");
+                            _initialized = false;
+                            _sessionId = null;
+                        }
                     }
                     else
                     {
@@ -379,11 +383,15 @@ public class HttpMcpTransport : IMcpTransport
     {
         // Handle initialize response - set session ID
         // Generate session ID on first successful response (typically initialize)
-        var isFirstResponse = !_initialized && response.Result != null;
-        if (isFirstResponse)
+        bool isFirstResponse;
+        lock (_sessionLock)
         {
-            _sessionId = Guid.NewGuid().ToString("N");
-            _initialized = true;
+            isFirstResponse = !_initialized && response.Result != null;
+            if (isFirstResponse)
+            {
+                _sessionId = Guid.NewGuid().ToString("N");
+                _initialized = true;
+            }
         }
 
         // Find the pending HTTP request for this response

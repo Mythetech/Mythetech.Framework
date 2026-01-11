@@ -1,10 +1,16 @@
 @using MudBlazor
+@using System.Diagnostics
+@using System.Runtime.Versioning
 @using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Options
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Infrastructure.Mcp.Messages
+@using Mythetech.Framework.Infrastructure.Mcp.Server
 @inject McpServerState McpState
 @inject IMessageBus MessageBus
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IOptions<McpServerOptions> Options
 @implements IDisposable
 
 <MudMenu ActivationEvent="MouseEvent.MouseOver"
@@ -18,6 +24,13 @@
                  Icon="@(McpState.IsRunning ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)"
                  OnClick="HandleToggleServer">
         @(McpState.IsRunning ? "Disable" : "Enable")
+    </MudMenuItem>
+
+    <MudMenuItem Class="rounded"
+                 Icon="@Icons.Material.Filled.Terminal"
+                 Disabled="@(!McpState.IsRunning || string.IsNullOrEmpty(McpState.HttpEndpoint))"
+                 OnClick="HandleAddToClaudeCode">
+        Add to Claude Code
     </MudMenuItem>
 
     <MudMenuItem Class="rounded"
@@ -37,7 +50,13 @@
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(StateHasChanged).ContinueWith(t =>
+        {
+            if (t.IsFaulted && t.Exception != null)
+            {
+                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
+            }
+        }, TaskScheduler.Default);
     }
 
     private async Task HandleToggleServer()
@@ -49,6 +68,55 @@
         else
         {
             await MessageBus.PublishAsync(new EnableMcpServerMessage());
+        }
+    }
+
+    [UnsupportedOSPlatform("browser")]
+    private async Task HandleAddToClaudeCode()
+    {
+        if (string.IsNullOrEmpty(McpState.HttpEndpoint))
+        {
+            Snackbar.Add("MCP server is not running", Severity.Warning);
+            return;
+        }
+
+        var serverName = Options.Value.ServerName.ToLowerInvariant().Replace(" ", "-");
+        var endpoint = McpState.HttpEndpoint;
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "claude",
+                Arguments = $"mcp add --transport http {serverName} {endpoint}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                Snackbar.Add("Failed to start claude CLI", Severity.Error);
+                return;
+            }
+
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode == 0)
+            {
+                Snackbar.Add($"Added '{serverName}' to Claude Code at {endpoint}", Severity.Success);
+            }
+            else
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                Snackbar.Add($"Failed to add to Claude Code: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}. Is 'claude' CLI installed?", Severity.Error);
         }
     }
 
