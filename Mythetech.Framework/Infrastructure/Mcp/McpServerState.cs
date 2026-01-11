@@ -44,9 +44,36 @@ public class McpServerState : IDisposable
     public bool IsRunning => _serverTask is not null && !_serverTask.IsCompleted;
 
     /// <summary>
-    /// All registered tools.
+    /// All registered tools (regardless of enabled state).
     /// </summary>
     public IReadOnlyList<McpToolDescriptor> RegisteredTools => _registry.GetAllTools();
+
+    /// <summary>
+    /// Check if a tool is enabled.
+    /// </summary>
+    public bool IsToolEnabled(string name) => _registry.IsToolEnabled(name);
+
+    /// <summary>
+    /// Set whether a tool is enabled.
+    /// </summary>
+    public async Task SetToolEnabledAsync(string name, bool enabled)
+    {
+        await _registry.SetToolEnabledAsync(name, enabled);
+        NotifyStateChanged();
+
+        // Notify connected MCP clients that the tools list has changed
+        if (IsRunning)
+        {
+            try
+            {
+                await _server.NotifyToolsListChangedAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send tools/list_changed notification");
+            }
+        }
+    }
 
     /// <summary>
     /// The HTTP endpoint URL when HTTP MCP is running, or null if not available.

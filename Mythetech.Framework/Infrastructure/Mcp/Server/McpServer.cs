@@ -21,11 +21,6 @@ public class McpServer : IMcpServer
     private readonly McpServerOptions _options;
     private readonly ILogger<McpServer> _logger;
 
-    // Track initialization state for potential future use (e.g., rejecting requests before init)
-    #pragma warning disable CS0414
-    private bool _initialized = false;
-    #pragma warning restore CS0414
-
     /// <summary>
     /// Creates a new MCP server instance.
     /// </summary>
@@ -112,7 +107,6 @@ public class McpServer : IMcpServer
 
     private JsonRpcResponse HandleInitialize(JsonRpcRequest request)
     {
-        _initialized = true;
         _logger.LogInformation("MCP client initializing");
 
         var result = new McpInitializeResult
@@ -120,7 +114,7 @@ public class McpServer : IMcpServer
             ProtocolVersion = _options.ProtocolVersion,
             Capabilities = new McpServerCapabilities
             {
-                Tools = new McpToolsCapability { ListChanged = false }
+                Tools = new McpToolsCapability { ListChanged = true }
             },
             ServerInfo = new McpServerInfo
             {
@@ -134,7 +128,7 @@ public class McpServer : IMcpServer
 
     private JsonRpcResponse HandleToolsList(JsonRpcRequest request)
     {
-        var tools = _registry.GetAllTools()
+        var tools = _registry.GetEnabledTools()
             .Select(t => new McpToolDefinition
             {
                 Name = t.Name,
@@ -143,7 +137,7 @@ public class McpServer : IMcpServer
             })
             .ToList();
 
-        _logger.LogDebug("Returning {Count} tools", tools.Count);
+        _logger.LogDebug("Returning {Count} enabled tools", tools.Count);
 
         var result = new McpToolsListResult { Tools = tools };
         return JsonRpcResponse.Success(request.Id, result);
@@ -191,5 +185,12 @@ public class McpServer : IMcpServer
     private JsonRpcResponse HandlePing(JsonRpcRequest request)
     {
         return JsonRpcResponse.Success(request.Id, new { });
+    }
+
+    /// <inheritdoc />
+    public async Task NotifyToolsListChangedAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Sending tools/list_changed notification");
+        await _transport.WriteNotificationAsync("notifications/tools/list_changed", null, cancellationToken);
     }
 }
