@@ -111,7 +111,13 @@
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(StateHasChanged).ContinueWith(t =>
+        {
+            if (t.IsFaulted && t.Exception != null)
+            {
+                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
+            }
+        }, TaskScheduler.Default);
     }
 
     private async Task HandleAboutPlugin(PluginInfo plugin)

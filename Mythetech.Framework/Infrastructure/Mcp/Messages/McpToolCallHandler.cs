@@ -47,6 +47,19 @@ public class McpToolCallHandler : IQueryHandler<McpToolCallMessage, McpToolCallR
             };
         }
 
+        if (!_registry.IsToolEnabled(message.ToolName))
+        {
+            activity?.SetTag(McpTelemetry.Tags.Success, false);
+            activity?.SetTag(McpTelemetry.Tags.ErrorMessage, "Tool disabled");
+
+            _logger.LogWarning("Disabled tool requested: {ToolName}", message.ToolName);
+            return new McpToolCallResponse
+            {
+                ToolName = message.ToolName,
+                Result = McpToolResult.Error($"Tool '{message.ToolName}' is disabled")
+            };
+        }
+
         try
         {
             // Resolve tool instance from DI
