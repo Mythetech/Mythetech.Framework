@@ -343,5 +343,83 @@ public class SecretManagerStateTests
     }
 
     #endregion
+
+    #region Empty Value Cache Tests
+
+    [Fact(DisplayName = "GetSecretAsync_CachedWithEmptyValue_FetchesFromManager")]
+    public async Task GetSecretAsync_CachedWithEmptyValue_FetchesFromManager()
+    {
+        // Arrange - simulate list operation returning secret with empty value
+        var secretFromList = new Secret { Key = "secret1", Value = "", Name = "Secret 1" };
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(new[] { secretFromList }));
+        _state.RegisterManager(_mockManager);
+        await _state.RefreshSecretsAsync();
+
+        // Setup GetSecretAsync to return full secret with value
+        var fullSecret = new Secret { Key = "secret1", Value = "actual-secret-value", Name = "Secret 1" };
+        _mockManager.GetSecretAsync("secret1", Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<Secret>.Ok(fullSecret));
+
+        // Act
+        var result = await _state.GetSecretAsync("secret1");
+
+        // Assert
+        result.Success.ShouldBeTrue();
+        result.Value.ShouldNotBeNull();
+        result.Value.Value.ShouldBe("actual-secret-value");
+        await _mockManager.Received(1).GetSecretAsync("secret1", Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "GetSecretAsync_CachedWithEmptyValue_UpdatesCache")]
+    public async Task GetSecretAsync_CachedWithEmptyValue_UpdatesCache()
+    {
+        // Arrange - simulate list operation returning secret with empty value
+        var secretFromList = new Secret { Key = "secret1", Value = "", Name = "Secret 1" };
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(new[] { secretFromList }));
+        _state.RegisterManager(_mockManager);
+        await _state.RefreshSecretsAsync();
+
+        // Setup GetSecretAsync to return full secret with value
+        var fullSecret = new Secret { Key = "secret1", Value = "actual-secret-value", Name = "Secret 1" };
+        _mockManager.GetSecretAsync("secret1", Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<Secret>.Ok(fullSecret));
+
+        // Act
+        await _state.GetSecretAsync("secret1");
+
+        // Assert - cache should now have the full secret
+        _state.Secrets.Count.ShouldBe(1);
+        _state.Secrets[0].Value.ShouldBe("actual-secret-value");
+
+        // Second call should use cached value and not call manager again
+        _mockManager.ClearReceivedCalls();
+        var secondResult = await _state.GetSecretAsync("secret1");
+        secondResult.Value!.Value.ShouldBe("actual-secret-value");
+        await _mockManager.DidNotReceive().GetSecretAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "GetSecretAsync_CachedWithValue_DoesNotFetch")]
+    public async Task GetSecretAsync_CachedWithValue_DoesNotFetch()
+    {
+        // Arrange - cache has secret with actual value (not from list operation)
+        var secretWithValue = new Secret { Key = "secret1", Value = "cached-value", Name = "Secret 1" };
+        _mockManager.ListSecretsAsync(Arg.Any<CancellationToken>())
+            .Returns(SecretOperationResult<IEnumerable<Secret>>.Ok(new[] { secretWithValue }));
+        _state.RegisterManager(_mockManager);
+        await _state.RefreshSecretsAsync();
+
+        // Act
+        var result = await _state.GetSecretAsync("secret1");
+
+        // Assert - should return cached value without fetching
+        result.Success.ShouldBeTrue();
+        result.Value.ShouldNotBeNull();
+        result.Value.Value.ShouldBe("cached-value");
+        await _mockManager.DidNotReceive().GetSecretAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    #endregion
 }
 

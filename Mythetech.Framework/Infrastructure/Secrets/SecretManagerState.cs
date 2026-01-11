@@ -185,7 +185,7 @@ public class SecretManagerState : IDisposable
         }
 
         var cached = _secrets.FirstOrDefault(s => s.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
-        if (cached != null)
+        if (cached != null && !string.IsNullOrEmpty(cached.Value))
         {
             return SecretOperationResult<Secret>.Ok(cached);
         }
@@ -201,11 +201,16 @@ public class SecretManagerState : IDisposable
 
         if (result.Success && result.Value != null)
         {
-            if (!_secrets.Any(s => s.Key.Equals(result.Value.Key, StringComparison.OrdinalIgnoreCase)))
+            var existingIndex = _secrets.FindIndex(s => s.Key.Equals(result.Value.Key, StringComparison.OrdinalIgnoreCase));
+            if (existingIndex >= 0)
+            {
+                _secrets[existingIndex] = result.Value;
+            }
+            else
             {
                 _secrets.Add(result.Value);
-                NotifyStateChanged();
             }
+            NotifyStateChanged();
         }
 
         return result;
