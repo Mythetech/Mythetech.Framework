@@ -7,6 +7,12 @@
     overflow: auto;
 }
 
+.mf-virtualize-container--vertical {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 .mf-virtualize-container--horizontal {
     flex-direction: row;
     overflow-x: auto;

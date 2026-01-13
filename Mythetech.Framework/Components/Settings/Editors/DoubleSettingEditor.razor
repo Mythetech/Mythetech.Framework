@@ -1,0 +1,50 @@
+@using System.Reflection
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Settings
+
+@if (Attribute.HasRange)
+{
+    <div class="mf-setting-slider-container">
+        <MudSlider T="double"
+                   Value="@GetValue()"
+                   ValueChanged="@OnValueChangedAsync"
+                   Min="@Attribute.Min"
+                   Max="@Attribute.Max"
+                   Step="@Attribute.Step"
+                   Color="Color.Primary"
+                   Class="mf-setting-slider">
+        </MudSlider>
+        <MudText Typo="Typo.body2" Class="mf-setting-slider-value">@GetValue().ToString("F1")</MudText>
+    </div>
+}
+else
+{
+    <MudNumericField T="double"
+                     Value="@GetValue()"
+                     ValueChanged="@OnValueChangedAsync"
+                     Variant="Variant.Outlined"
+                     Margin="Margin.Dense"
+                     Class="mf-setting-numeric" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public SettingsBase Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PropertyInfo Property { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public SettingAttribute Attribute { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnValueChanged { get; set; }
+
+    private double GetValue() => (double)(Property.GetValue(Settings) ?? 0.0);
+
+    private async Task OnValueChangedAsync(double value)
+    {
+        Property.SetValue(Settings, value);
+        await OnValueChanged.InvokeAsync();
+    }
+}

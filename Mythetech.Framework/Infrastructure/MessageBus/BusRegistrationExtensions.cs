@@ -77,6 +77,7 @@ public static class BusRegistrationExtensions
         var consumerTypes = assembly
             .GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
+            .Where(t => !IsMcpHandler(t))
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
                 .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))
@@ -128,6 +129,7 @@ public static class BusRegistrationExtensions
         var consumerTypes = assembly
             .GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
+            .Where(t => !IsMcpHandler(t))
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
                 .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))

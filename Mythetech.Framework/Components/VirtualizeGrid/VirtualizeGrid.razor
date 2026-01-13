@@ -1,0 +1,255 @@
+@namespace Mythetech.Framework.Components.VirtualizeGrid
+@using Microsoft.JSInterop
+@using MudBlazor.Interop
+@using MudBlazor.Services
+@typeparam TItem
+@implements IAsyncDisposable
+
+@*
+    Experimental: 2D virtualization for grid layouts.
+    Virtualizes both rows and columns for efficient rendering of large datasets.
+    Use case: SQL results panel, large spreadsheet-like data displays.
+*@
+
+<div @ref="_containerRef" class="mf-virtualize-grid @Class" style="@Style">
+    @if (_isInitialized && Items != null && Items.Count > 0)
+    {
+        var totalWidth = ColumnCount * ColumnWidth;
+        var totalHeight = TotalRows * RowHeight;
+
+        <div class="mf-virtualize-grid__spacer" style="width: @(totalWidth)px; height: @(totalHeight)px; position: relative;">
+            @foreach (var cell in VisibleCells)
+            {
+                var left = cell.Column * ColumnWidth;
+                var top = cell.Row * RowHeight;
+
+                <div class="mf-virtualize-grid__cell"
+                     style="position: absolute; left: @(left)px; top: @(top)px; width: @(ColumnWidth)px; height: @(RowHeight)px;">
+                    @ChildContent(cell.Item)
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const string JsModulePath = "./_content/Mythetech.Framework/mythetech.js";
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private IResizeObserverFactory ResizeObserverFactory { get; set; } = default!;
+
+    /// <summary>
+    /// The flat collection of items to display in the grid.
+    /// Items are laid out left-to-right, top-to-bottom based on ColumnCount.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public ICollection<TItem> Items { get; set; } = default!;
+
+    /// <summary>
+    /// The number of columns in the grid.
+    /// </summary>
+    [Parameter]
+    public int ColumnCount { get; set; } = 10;
+
+    /// <summary>
+    /// The template for rendering each item/cell.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> ChildContent { get; set; } = default!;
+
+    /// <summary>
+    /// The fixed height of each row in pixels.
+    /// </summary>
+    [Parameter]
+    public float RowHeight { get; set; } = 32;
+
+    /// <summary>
+    /// The fixed width of each column in pixels.
+    /// </summary>
+    [Parameter]
+    public float ColumnWidth { get; set; } = 120;
+
+    /// <summary>
+    /// The number of additional rows/columns to render outside the visible area.
+    /// </summary>
+    [Parameter]
+    public int OverscanCount { get; set; } = 2;
+
+    /// <summary>
+    /// Additional CSS class(es) to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>
+    /// Additional inline styles to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    private ElementReference _containerRef;
+    private IJSObjectReference? _jsModule;
+    private IResizeObserver? _resizeObserver;
+    private DotNetObjectReference<VirtualizeGrid<TItem>>? _dotNetRef;
+    private int _scrollSubscriptionId = -1;
+
+    private bool _isInitialized;
+    private double _containerWidth;
+    private double _containerHeight;
+    private double _scrollLeft;
+    private double _scrollTop;
+
+    // Calculated visible range
+    private int _firstVisibleRow;
+    private int _lastVisibleRow;
+    private int _firstVisibleCol;
+    private int _lastVisibleCol;
+
+    private int TotalRows => Items != null && ColumnCount > 0
+        ? (int)Math.Ceiling((double)Items.Count / ColumnCount)
+        : 0;
+
+    private record CellInfo(TItem Item, int Row, int Column);
+
+    private IEnumerable<CellInfo> VisibleCells
+    {
+        get
+        {
+            if (Items == null || Items.Count == 0 || ColumnCount <= 0)
+                yield break;
+
+            var itemList = Items.ToList();
+
+            for (var row = _firstVisibleRow; row <= _lastVisibleRow; row++)
+            {
+                for (var col = _firstVisibleCol; col <= _lastVisibleCol; col++)
+                {
+                    var index = row * ColumnCount + col;
+                    if (index >= 0 && index < itemList.Count)
+                    {
+                        yield return new CellInfo(itemList[index], row, col);
+                    }
+                }
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", JsModulePath);
+
+            // Set up resize observer
+            _resizeObserver = ResizeObserverFactory.Create();
+            _resizeObserver.OnResized += OnResized;
+            var rect = await _resizeObserver.Observe(_containerRef);
+            _containerWidth = rect?.Width ?? 0;
+            _containerHeight = rect?.Height ?? 0;
+
+            // Subscribe to 2D scroll events
+            _scrollSubscriptionId = await _jsModule.InvokeAsync<int>(
+                "subscribeToScroll2D", _containerRef, _dotNetRef);
+
+            // Calculate initial visible range
+            UpdateVisibleRange();
+            _isInitialized = true;
+            StateHasChanged();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void OnResized(IDictionary<ElementReference, BoundingClientRect> changes)
+    {
+        if (changes.TryGetValue(_containerRef, out var rect))
+        {
+            var widthChanged = Math.Abs(_containerWidth - rect.Width) > 1;
+            var heightChanged = Math.Abs(_containerHeight - rect.Height) > 1;
+
+            if (widthChanged || heightChanged)
+            {
+                _containerWidth = rect.Width;
+                _containerHeight = rect.Height;
+                UpdateVisibleRange();
+                StateHasChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called from JavaScript when scroll position changes (2D).
+    /// </summary>
+    [JSInvokable]
+    public void OnScrollPositionChanged2D(double scrollLeft, double scrollTop)
+    {
+        _scrollLeft = scrollLeft;
+        _scrollTop = scrollTop;
+
+        var oldFirstRow = _firstVisibleRow;
+        var oldFirstCol = _firstVisibleCol;
+
+        UpdateVisibleRange();
+
+        // Only re-render if visible range changed significantly
+        if (_firstVisibleRow != oldFirstRow || _firstVisibleCol != oldFirstCol)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void UpdateVisibleRange()
+    {
+        if (Items == null || Items.Count == 0 || ColumnCount <= 0 ||
+            RowHeight <= 0 || ColumnWidth <= 0 ||
+            _containerWidth <= 0 || _containerHeight <= 0)
+        {
+            _firstVisibleRow = 0;
+            _lastVisibleRow = 0;
+            _firstVisibleCol = 0;
+            _lastVisibleCol = 0;
+            return;
+        }
+
+        var totalRows = TotalRows;
+
+        // Calculate visible row range
+        _firstVisibleRow = Math.Max(0, (int)Math.Floor(_scrollTop / RowHeight) - OverscanCount);
+        var visibleRowCount = (int)Math.Ceiling(_containerHeight / RowHeight) + 1;
+        _lastVisibleRow = Math.Min(totalRows - 1, _firstVisibleRow + visibleRowCount + OverscanCount * 2);
+
+        // Calculate visible column range
+        _firstVisibleCol = Math.Max(0, (int)Math.Floor(_scrollLeft / ColumnWidth) - OverscanCount);
+        var visibleColCount = (int)Math.Ceiling(_containerWidth / ColumnWidth) + 1;
+        _lastVisibleCol = Math.Min(ColumnCount - 1, _firstVisibleCol + visibleColCount + OverscanCount * 2);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_resizeObserver != null)
+        {
+            _resizeObserver.OnResized -= OnResized;
+            await _resizeObserver.DisposeAsync();
+        }
+
+        if (_jsModule != null && _scrollSubscriptionId >= 0)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("unsubscribeFromScroll", _scrollSubscriptionId);
+            }
+            catch
+            {
+                // Component may be disposed during navigation
+            }
+        }
+
+        _dotNetRef?.Dispose();
+
+        if (_jsModule != null)
+        {
+            await _jsModule.DisposeAsync();
+        }
+    }
+}

@@ -1,5 +1,4 @@
 @using Microsoft.AspNetCore.Components.Web.Virtualization
-@using MudBlazor
 @using MudBlazor.Interop
 @using MudBlazor.Services
 @namespace Mythetech.Framework.Components.VirtualizeContainer
@@ -44,9 +43,11 @@
 
     /// <summary>
     /// Orientation of the virtualized list. Defaults to Vertical.
+    /// Note: Horizontal orientation is experimental - the underlying Blazor Virtualize component
+    /// only supports vertical virtualization, so horizontal mode renders all items without virtualization.
     /// </summary>
     [Parameter]
-    public Orientation Orientation { get; set; } = MudBlazor.Orientation.Portrait;
+    public Orientation Orientation { get; set; } = Orientation.Vertical;
 
     /// <summary>
     /// Additional CSS class(es) to apply to the container.
@@ -64,9 +65,11 @@
     private IResizeObserver? _resizeObserver;
     private double _containerSize;
 
-    private string ContainerClass => Orientation == Orientation.Landscape
+    private bool IsHorizontal => Orientation == Orientation.Horizontal;
+
+    private string ContainerClass => IsHorizontal
         ? $"mf-virtualize-container mf-virtualize-container--horizontal {Class}"
-        : $"mf-virtualize-container {Class}";
+        : $"mf-virtualize-container mf-virtualize-container--vertical {Class}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -76,7 +79,7 @@
             _resizeObserver.OnResized += OnResized;
             var rect = await _resizeObserver.Observe(_containerRef);
 
-            _containerSize = Orientation == Orientation.Portrait ? rect?.Height ?? 0 : rect?.Width ?? 0;
+            _containerSize = IsHorizontal ? rect?.Width ?? 0 : rect?.Height ?? 0;
             if (_containerSize > 0)
             {
                 StateHasChanged();
@@ -90,11 +93,11 @@
     {
         if (changes.TryGetValue(_containerRef, out var rect))
         {
-            var newSize = Orientation == Orientation.Landscape ? rect.Height : rect.Width;
+            var newSize = IsHorizontal ? rect.Width : rect.Height;
             if (Math.Abs(_containerSize - newSize) > 1)
             {
                 _containerSize = newSize;
-                InvokeAsync(StateHasChanged);
+                StateHasChanged();
             }
         }
     }

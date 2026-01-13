@@ -1,0 +1,199 @@
+@namespace Mythetech.Framework.Components.VirtualizeContainer
+@using Microsoft.JSInterop
+@using MudBlazor.Interop
+@using MudBlazor.Services
+@typeparam TItem
+@implements IAsyncDisposable
+
+@*
+    Experimental: Scroll-based horizontal virtualization.
+    Uses scroll position tracking to calculate visible items and renders only those.
+*@
+
+<div @ref="_containerRef" class="mf-horizontal-virtualizer @Class" style="@Style">
+    @if (_isInitialized && Items != null)
+    {
+        var totalWidth = Items.Count * ItemSize;
+        var offsetX = _firstVisibleIndex * ItemSize;
+
+        <div class="mf-horizontal-virtualizer__spacer" style="width: @(totalWidth)px; position: relative;">
+            <div class="mf-horizontal-virtualizer__viewport"
+                 style="position: absolute; left: @(offsetX)px; top: 0; bottom: 0; display: flex; flex-direction: row;">
+                @foreach (var item in VisibleItems)
+                {
+                    <div class="mf-horizontal-virtualizer__item" style="width: @(ItemSize)px; flex-shrink: 0;">
+                        @ChildContent(item)
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private const string JsModulePath = "./_content/Mythetech.Framework/mythetech.js";
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private IResizeObserverFactory ResizeObserverFactory { get; set; } = default!;
+
+    /// <summary>
+    /// The collection of items to virtualize horizontally.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public ICollection<TItem> Items { get; set; } = default!;
+
+    /// <summary>
+    /// The template for rendering each item.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> ChildContent { get; set; } = default!;
+
+    /// <summary>
+    /// The fixed width of each item in pixels.
+    /// </summary>
+    [Parameter]
+    public float ItemSize { get; set; } = 120;
+
+    /// <summary>
+    /// The number of additional items to render outside the visible area.
+    /// </summary>
+    [Parameter]
+    public int OverscanCount { get; set; } = 3;
+
+    /// <summary>
+    /// Additional CSS class(es) to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>
+    /// Additional inline styles to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    private ElementReference _containerRef;
+    private IJSObjectReference? _jsModule;
+    private IResizeObserver? _resizeObserver;
+    private DotNetObjectReference<HorizontalVirtualizer<TItem>>? _dotNetRef;
+    private int _scrollSubscriptionId = -1;
+
+    private bool _isInitialized;
+    private double _containerWidth;
+    private double _scrollPosition;
+    private int _firstVisibleIndex;
+    private int _visibleCount;
+
+    private IEnumerable<TItem> VisibleItems
+    {
+        get
+        {
+            if (Items == null || Items.Count == 0)
+                return Enumerable.Empty<TItem>();
+
+            var start = Math.Max(0, _firstVisibleIndex - OverscanCount);
+            var count = Math.Min(Items.Count - start, _visibleCount + OverscanCount * 2);
+            return Items.Skip(start).Take(count);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", JsModulePath);
+
+            // Set up resize observer
+            _resizeObserver = ResizeObserverFactory.Create();
+            _resizeObserver.OnResized += OnResized;
+            var rect = await _resizeObserver.Observe(_containerRef);
+            _containerWidth = rect?.Width ?? 0;
+
+            // Subscribe to scroll events
+            _scrollSubscriptionId = await _jsModule.InvokeAsync<int>(
+                "subscribeToScroll", _containerRef, _dotNetRef, true);
+
+            // Calculate initial visible range
+            UpdateVisibleRange();
+            _isInitialized = true;
+            StateHasChanged();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void OnResized(IDictionary<ElementReference, BoundingClientRect> changes)
+    {
+        if (changes.TryGetValue(_containerRef, out var rect))
+        {
+            if (Math.Abs(_containerWidth - rect.Width) > 1)
+            {
+                _containerWidth = rect.Width;
+                UpdateVisibleRange();
+                StateHasChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called from JavaScript when scroll position changes.
+    /// </summary>
+    [JSInvokable]
+    public void OnScrollPositionChanged(double scrollPosition)
+    {
+        _scrollPosition = scrollPosition;
+        var oldFirstVisible = _firstVisibleIndex;
+        UpdateVisibleRange();
+
+        // Only re-render if visible range changed
+        if (_firstVisibleIndex != oldFirstVisible)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void UpdateVisibleRange()
+    {
+        if (Items == null || Items.Count == 0 || ItemSize <= 0 || _containerWidth <= 0)
+        {
+            _firstVisibleIndex = 0;
+            _visibleCount = 0;
+            return;
+        }
+
+        _firstVisibleIndex = (int)Math.Floor(_scrollPosition / ItemSize);
+        _visibleCount = (int)Math.Ceiling(_containerWidth / ItemSize) + 1;
+
+        // Clamp to valid range
+        _firstVisibleIndex = Math.Max(0, Math.Min(_firstVisibleIndex, Items.Count - 1));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_resizeObserver != null)
+        {
+            _resizeObserver.OnResized -= OnResized;
+            await _resizeObserver.DisposeAsync();
+        }
+
+        if (_jsModule != null && _scrollSubscriptionId >= 0)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("unsubscribeFromScroll", _scrollSubscriptionId);
+            }
+            catch
+            {
+                // Component may be disposed during navigation
+            }
+        }
+
+        _dotNetRef?.Dispose();
+
+        if (_jsModule != null)
+        {
+            await _jsModule.DisposeAsync();
+        }
+    }
+}
