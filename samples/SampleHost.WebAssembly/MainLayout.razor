@@ -1,28 +1,32 @@
 @using MudBlazor
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.Plugins.Components
+@using Mythetech.Framework.Infrastructure.Settings
 @using SampleHost.Shared
+@using SampleHost.Shared.Settings
 @inherits LayoutComponentBase
 @inject PluginState PluginState
+@inject ISettingsProvider SettingsProvider
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudText Typo="Typo.h5" Class="ml-3">Plugin Host Sample (WebAssembly)</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">@_appSettings.AppTitle (WebAssembly)</MudText>
         <MudSpacer />
-        
+
         <!-- Standard Plugin Menu with nested plugin actions -->
         <!-- Note: Import won't work in WASM due to dynamic assembly loading limitations -->
         <StandardPluginMenu MenuText="Plugins"
                            ListClass="pa-1"
                            ItemClass="rounded"
                            ButtonClass="text-transform-none" />
-        
+
         <ToolsMenu />
-        
-        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" />
+
+        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
     </MudAppBar>
-    
+
     <MudDrawer @bind-Open="_drawerOpen" Elevation="2" Variant="DrawerVariant.Mini" OpenMiniOnHover="true">
         <MudDrawerHeader>
             <MudText Typo="Typo.h6">Plugins</MudText>
@@ -32,16 +36,16 @@
             <MudNavLink Href="/plugins" Icon="@Icons.Material.Filled.Extension">Manage Plugins</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
-    
+
     <MudMainContent Class="d-flex" Style="height: calc(100vh - 64px);">
         <div class="flex-grow-1 pa-4" style="overflow: auto;">
             @Body
         </div>
-        
+
         <!-- Plugin context panels rendered as a side bar -->
-        @if (PluginState.EnabledContextPanelComponentsMetadata.Any())
+        @if (_appSettings.ShowContextPanel && PluginState.EnabledContextPanelComponentsMetadata.Any())
         {
-            <MudPaper Width="320px" Elevation="0" Class="border-l" Style="overflow: auto;">
+            <MudPaper Width="@($"{_appSettings.ContextPanelWidth}px")" Elevation="0" Class="border-l" Style="overflow: auto;">
                 @foreach (var panel in PluginState.EnabledContextPanelComponentsMetadata.OrderBy(p => p.Order))
                 {
                     <DynamicComponent Type="@panel.ComponentType" />
@@ -54,15 +58,41 @@
 
 @code {
     private bool _drawerOpen = true;
+    private SampleAppSettings _appSettings = new();
 
     protected override void OnInitialized()
     {
         PluginState.StateChanged += OnPluginStateChanged;
+
+        // Get the registered settings instance
+        var settings = SettingsProvider.GetSettings<SampleAppSettings>();
+        if (settings != null)
+        {
+            _appSettings = settings;
+        }
+
+        _drawerOpen = _appSettings.DrawerExpandedOnStart;
     }
 
     private void OnPluginStateChanged(object? sender, EventArgs e)
     {
         InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenSettings()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<SampleSettingsDialog>("Settings", options);
+        await dialog.Result;
+
+        // Refresh UI after settings dialog closes
+        StateHasChanged();
     }
 
     public void Dispose()
