@@ -114,3 +114,135 @@ export function teardownScrollSpy() {
         scrollSpyState = null;
     }
 }
+
+// ============================================================================
+// Virtualization Support (Experimental)
+// ============================================================================
+
+// Track active scroll subscriptions
+const scrollSubscriptions = new Map();
+let scrollSubscriptionId = 0;
+
+/**
+ * Gets the current scroll position of an element.
+ *
+ * @param {HTMLElement} element - The scrollable element
+ * @param {boolean} isHorizontal - Whether to get horizontal (scrollLeft) or vertical (scrollTop) position
+ * @returns {number} The current scroll position in pixels
+ */
+export function getScrollPosition(element, isHorizontal) {
+    if (!element) return 0;
+    return isHorizontal ? element.scrollLeft : element.scrollTop;
+}
+
+/**
+ * Subscribes to scroll events on an element with requestAnimationFrame throttling.
+ * Returns a subscription ID that can be used to unsubscribe.
+ *
+ * @param {HTMLElement} element - The scrollable element to observe
+ * @param {DotNetObjectReference} dotNetRef - Reference to the Blazor component
+ * @param {boolean} isHorizontal - Whether to track horizontal or vertical scrolling
+ * @returns {number} Subscription ID for cleanup
+ */
+export function subscribeToScroll(element, dotNetRef, isHorizontal) {
+    if (!element || !dotNetRef) {
+        console.warn('subscribeToScroll: Missing required parameters');
+        return -1;
+    }
+
+    const id = ++scrollSubscriptionId;
+    let ticking = false;
+
+    const handler = () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                const pos = isHorizontal ? element.scrollLeft : element.scrollTop;
+                try {
+                    dotNetRef.invokeMethodAsync('OnScrollPositionChanged', pos);
+                } catch (error) {
+                    console.debug('Failed to invoke scroll callback:', error);
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    };
+
+    element.addEventListener('scroll', handler, { passive: true });
+
+    scrollSubscriptions.set(id, {
+        element,
+        handler,
+        dotNetRef
+    });
+
+    return id;
+}
+
+/**
+ * Unsubscribes from scroll events using the subscription ID.
+ *
+ * @param {number} subscriptionId - The ID returned from subscribeToScroll
+ */
+export function unsubscribeFromScroll(subscriptionId) {
+    const subscription = scrollSubscriptions.get(subscriptionId);
+    if (subscription) {
+        subscription.element.removeEventListener('scroll', subscription.handler);
+        scrollSubscriptions.delete(subscriptionId);
+    }
+}
+
+/**
+ * Gets the current scroll position for both axes (for 2D virtualization).
+ *
+ * @param {HTMLElement} element - The scrollable element
+ * @returns {{ scrollLeft: number, scrollTop: number }} Current scroll positions
+ */
+export function getScrollPosition2D(element) {
+    if (!element) return { scrollLeft: 0, scrollTop: 0 };
+    return {
+        scrollLeft: element.scrollLeft,
+        scrollTop: element.scrollTop
+    };
+}
+
+/**
+ * Subscribes to scroll events for 2D virtualization (both axes).
+ *
+ * @param {HTMLElement} element - The scrollable element to observe
+ * @param {DotNetObjectReference} dotNetRef - Reference to the Blazor component
+ * @returns {number} Subscription ID for cleanup
+ */
+export function subscribeToScroll2D(element, dotNetRef) {
+    if (!element || !dotNetRef) {
+        console.warn('subscribeToScroll2D: Missing required parameters');
+        return -1;
+    }
+
+    const id = ++scrollSubscriptionId;
+    let ticking = false;
+
+    const handler = () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                try {
+                    dotNetRef.invokeMethodAsync('OnScrollPositionChanged2D', element.scrollLeft, element.scrollTop);
+                } catch (error) {
+                    console.debug('Failed to invoke 2D scroll callback:', error);
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    };
+
+    element.addEventListener('scroll', handler, { passive: true });
+
+    scrollSubscriptions.set(id, {
+        element,
+        handler,
+        dotNetRef
+    });
+
+    return id;
+}

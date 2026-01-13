@@ -126,6 +126,17 @@ When subscribing to C# events (like `StateChanged`) from components:
 
 ### Cross-Platform Link Opening
 
+### Adding New Components
+
+When adding new components to the framework:
+
+1. **Create the component** in `Mythetech.Framework/Components/[ComponentName]/`
+2. **Add a storybook** in `Mythetech.Framework.Storybook/Stories/[ComponentName].stories.razor`
+   - Storybooks help visually test components in isolation
+   - Include multiple stories showing different states and configurations
+   - See existing stories (e.g., `Button.stories.razor`, `Badge.stories.razor`) for patterns
+3. **Add unit tests** if the component has logic that should be tested
+
 **Use `ILinkOpenService` for opening external URLs, never JS interop.**
 
 Since the framework supports desktop apps (Photino), `window.open()` via JS interop doesn't work.

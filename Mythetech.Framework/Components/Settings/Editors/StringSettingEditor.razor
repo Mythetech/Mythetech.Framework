@@ -1,0 +1,65 @@
+@using System.Reflection
+@using System.Text.RegularExpressions
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Settings
+
+@if (!string.IsNullOrEmpty(Attribute.Options))
+{
+    <MudSelect T="string"
+               Value="@GetValue()"
+               ValueChanged="@OnValueChangedAsync"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               Dense="true"
+               Class="mf-setting-select">
+        @foreach (var option in Attribute.Options.Split(','))
+        {
+            <MudSelectItem Value="@option.Trim()">@FormatOptionLabel(option.Trim())</MudSelectItem>
+        }
+    </MudSelect>
+}
+else
+{
+    <MudTextField T="string"
+                  Value="@GetValue()"
+                  ValueChanged="@OnValueChangedAsync"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Class="mf-setting-text" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public SettingsBase Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PropertyInfo Property { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public SettingAttribute Attribute { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnValueChanged { get; set; }
+
+    private string GetValue() => (string)(Property.GetValue(Settings) ?? "");
+
+    private async Task OnValueChangedAsync(string value)
+    {
+        Property.SetValue(Settings, value);
+        await OnValueChanged.InvokeAsync();
+    }
+
+    private static string FormatOptionLabel(string option)
+    {
+        if (string.IsNullOrEmpty(option)) return option;
+
+        // Add space before capital letters (camelCase)
+        var result = Regex.Replace(option, "([a-z])([A-Z])", "$1 $2");
+
+        // Replace underscores with spaces
+        result = result.Replace("_", " ");
+
+        // Capitalize first letter
+        return char.ToUpperInvariant(result[0]) + result[1..];
+    }
+}

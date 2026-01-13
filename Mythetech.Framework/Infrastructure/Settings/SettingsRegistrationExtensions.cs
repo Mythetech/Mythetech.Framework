@@ -1,5 +1,8 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Mythetech.Framework.Components.Settings.Editors;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Settings.Consumers;
 
@@ -20,6 +23,31 @@ public static class SettingsRegistrationExtensions
     {
         services.AddSingleton<ISettingsProvider, SettingsProvider>();
 
+        // Register the editor registry with default editors and custom overrides
+        services.AddSingleton<ISettingsEditorRegistry>(sp =>
+        {
+            var registry = new SettingsEditorRegistry();
+
+            // Register default editors for built-in types
+            registry.RegisterEditor(typeof(bool), typeof(BoolSettingEditor));
+            registry.RegisterEditor(typeof(int), typeof(IntSettingEditor));
+            registry.RegisterEditor(typeof(double), typeof(DoubleSettingEditor));
+            registry.RegisterEditor(typeof(string), typeof(StringSettingEditor));
+            registry.RegisterEditor(typeof(Enum), typeof(EnumSettingEditor));
+
+            // Apply custom editor overrides from options
+            var options = sp.GetService<IOptions<SettingsEditorOptions>>();
+            if (options?.Value.CustomEditors != null)
+            {
+                foreach (var (dataType, editorType) in options.Value.CustomEditors)
+                {
+                    registry.RegisterEditor(dataType, editorType);
+                }
+            }
+
+            return registry;
+        });
+
         // Register consumers - they'll be discovered by AddMessageBus
         services.AddTransient<GenericSettingsModelConverter>();
         services.AddTransient<SettingsPersister>();
@@ -28,6 +56,47 @@ public static class SettingsRegistrationExtensions
         var assembly = Assembly.GetExecutingAssembly();
         services.RegisterConsumers(assembly);
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a custom settings editor for a specific data type.
+    /// The custom editor will override any default editor for that type.
+    /// </summary>
+    /// <typeparam name="TDataType">The data type to provide an editor for.</typeparam>
+    /// <typeparam name="TEditor">The Blazor component type that renders the editor.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection RegisterCustomSettingsEditor<TDataType, TEditor>(this IServiceCollection services)
+        where TEditor : ComponentBase
+    {
+        services.Configure<SettingsEditorOptions>(options =>
+            options.CustomEditors[typeof(TDataType)] = typeof(TEditor));
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a custom settings editor for a specific data type.
+    /// The custom editor will override any default editor for that type.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="dataType">The data type to provide an editor for.</param>
+    /// <param name="editorType">The Blazor component type that renders the editor.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection RegisterCustomSettingsEditor(
+        this IServiceCollection services,
+        Type dataType,
+        Type editorType)
+    {
+        if (!typeof(ComponentBase).IsAssignableFrom(editorType))
+        {
+            throw new ArgumentException(
+                $"Editor type {editorType.Name} must inherit from ComponentBase.",
+                nameof(editorType));
+        }
+
+        services.Configure<SettingsEditorOptions>(options =>
+            options.CustomEditors[dataType] = editorType);
         return services;
     }
 
@@ -82,6 +151,48 @@ public static class SettingsRegistrationExtensions
     {
         var provider = serviceProvider.GetRequiredService<ISettingsProvider>();
         provider.RegisterSettings(settings);
+        return serviceProvider;
+    }
+
+    /// <summary>
+    /// Scans an assembly for SettingsBase implementations and registers them.
+    /// Only types with a parameterless constructor are registered.
+    /// </summary>
+    /// <param name="serviceProvider">The built service provider.</param>
+    /// <param name="assembly">The assembly to scan for settings types.</param>
+    /// <returns>The service provider for chaining.</returns>
+    public static IServiceProvider RegisterSettingsFromAssembly(this IServiceProvider serviceProvider, Assembly assembly)
+    {
+        var provider = serviceProvider.GetRequiredService<ISettingsProvider>();
+        var settingsTypes = assembly.GetTypes()
+            .Where(t => !t.IsAbstract && typeof(SettingsBase).IsAssignableFrom(t))
+            .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
+
+        foreach (var type in settingsTypes)
+        {
+            var instance = (SettingsBase)Activator.CreateInstance(type)!;
+            provider.RegisterSettings(instance);
+        }
+
+        return serviceProvider;
+    }
+
+    /// <summary>
+    /// Scans multiple assemblies for SettingsBase implementations and registers them.
+    /// Only types with a parameterless constructor are registered.
+    /// </summary>
+    /// <param name="serviceProvider">The built service provider.</param>
+    /// <param name="assemblies">The assemblies to scan for settings types.</param>
+    /// <returns>The service provider for chaining.</returns>
+    public static IServiceProvider RegisterSettingsFromAssemblies(
+        this IServiceProvider serviceProvider,
+        params Assembly[] assemblies)
+    {
+        foreach (var assembly in assemblies)
+        {
+            serviceProvider.RegisterSettingsFromAssembly(assembly);
+        }
+
         return serviceProvider;
     }
 

@@ -1,0 +1,54 @@
+@using System.Reflection
+@using System.Text.RegularExpressions
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.Settings
+
+<MudSelect T="string"
+           Value="@GetEnumStringValue()"
+           ValueChanged="@SetEnumValueAsync"
+           Variant="Variant.Outlined"
+           Margin="Margin.Dense"
+           Dense="true"
+           Class="mf-setting-select">
+    @foreach (var enumValue in Enum.GetNames(Property.PropertyType))
+    {
+        <MudSelectItem Value="@enumValue">@FormatOptionLabel(enumValue)</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter, EditorRequired]
+    public SettingsBase Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PropertyInfo Property { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public SettingAttribute Attribute { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnValueChanged { get; set; }
+
+    private string GetEnumStringValue() => Property.GetValue(Settings)?.ToString() ?? "";
+
+    private async Task SetEnumValueAsync(string value)
+    {
+        var enumValue = Enum.Parse(Property.PropertyType, value);
+        Property.SetValue(Settings, enumValue);
+        await OnValueChanged.InvokeAsync();
+    }
+
+    private static string FormatOptionLabel(string option)
+    {
+        if (string.IsNullOrEmpty(option)) return option;
+
+        // Add space before capital letters (camelCase)
+        var result = Regex.Replace(option, "([a-z])([A-Z])", "$1 $2");
+
+        // Replace underscores with spaces
+        result = result.Replace("_", " ");
+
+        // Capitalize first letter
+        return char.ToUpperInvariant(result[0]) + result[1..];
+    }
+}

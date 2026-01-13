@@ -1,7 +1,7 @@
 @using MudBlazor
 @using System.Reflection
-@using System.Text.RegularExpressions
 @using Mythetech.Framework.Infrastructure.Settings
+@inject ISettingsEditorRegistry EditorRegistry
 
 <div class="mf-dynamic-setting-control">
     <div class="mf-setting-label-row">
@@ -15,108 +15,15 @@
     </div>
 
     <div class="mf-setting-control">
-        @if (Property.PropertyType == typeof(bool))
+        @if (TryGetEditorType(out var editorType))
         {
-            <MudSwitch T="bool"
-                       Value="@GetBoolValue()"
-                       ValueChanged="@((bool v) => SetValue(v))"
-                       Color="Color.Primary" />
+            <DynamicComponent Type="@editorType" Parameters="@GetEditorParameters()" />
         }
-        else if (Property.PropertyType == typeof(int))
+        else
         {
-            @if (Attribute.HasRange)
-            {
-                <div class="mf-setting-slider-container">
-                    <MudSlider T="int"
-                               Value="@GetIntValue()"
-                               ValueChanged="@((int v) => SetValue(v))"
-                               Min="@((int)Attribute.Min)"
-                               Max="@((int)Attribute.Max)"
-                               Step="@((int)Attribute.Step)"
-                               Color="Color.Primary"
-                               Class="mf-setting-slider">
-                    </MudSlider>
-                    <MudText Typo="Typo.body2" Class="mf-setting-slider-value">@GetIntValue()</MudText>
-                </div>
-            }
-            else
-            {
-                <MudNumericField T="int"
-                                 Value="@GetIntValue()"
-                                 ValueChanged="@((int v) => SetValue(v))"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense"
-                                 Class="mf-setting-numeric" />
-            }
-        }
-        else if (Property.PropertyType == typeof(double))
-        {
-            @if (Attribute.HasRange)
-            {
-                <div class="mf-setting-slider-container">
-                    <MudSlider T="double"
-                               Value="@GetDoubleValue()"
-                               ValueChanged="@((double v) => SetValue(v))"
-                               Min="@Attribute.Min"
-                               Max="@Attribute.Max"
-                               Step="@Attribute.Step"
-                               Color="Color.Primary"
-                               Class="mf-setting-slider">
-                    </MudSlider>
-                    <MudText Typo="Typo.body2" Class="mf-setting-slider-value">@GetDoubleValue().ToString("F1")</MudText>
-                </div>
-            }
-            else
-            {
-                <MudNumericField T="double"
-                                 Value="@GetDoubleValue()"
-                                 ValueChanged="@((double v) => SetValue(v))"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense"
-                                 Class="mf-setting-numeric" />
-            }
-        }
-        else if (Property.PropertyType == typeof(string))
-        {
-            @if (!string.IsNullOrEmpty(Attribute.Options))
-            {
-                <MudSelect T="string"
-                           Value="@GetStringValue()"
-                           ValueChanged="@((string v) => SetValue(v))"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Dense="true"
-                           Class="mf-setting-select">
-                    @foreach (var option in Attribute.Options.Split(','))
-                    {
-                        <MudSelectItem Value="@option.Trim()">@FormatOptionLabel(option.Trim())</MudSelectItem>
-                    }
-                </MudSelect>
-            }
-            else
-            {
-                <MudTextField T="string"
-                              Value="@GetStringValue()"
-                              ValueChanged="@((string v) => SetValue(v))"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              Class="mf-setting-text" />
-            }
-        }
-        else if (Property.PropertyType.IsEnum)
-        {
-            <MudSelect T="string"
-                       Value="@GetEnumStringValue()"
-                       ValueChanged="@SetEnumValue"
-                       Variant="Variant.Outlined"
-                       Margin="Margin.Dense"
-                       Dense="true"
-                       Class="mf-setting-select">
-                @foreach (var enumValue in Enum.GetNames(Property.PropertyType))
-                {
-                    <MudSelectItem Value="@enumValue">@FormatOptionLabel(enumValue)</MudSelectItem>
-                }
-            </MudSelect>
+            <MudText Color="Color.Warning">
+                Unsupported setting type: @Property.PropertyType.Name
+            </MudText>
         }
     </div>
 </div>
@@ -137,37 +44,31 @@
     [Parameter]
     public EventCallback OnValueChanged { get; set; }
 
-    private bool GetBoolValue() => (bool)(Property.GetValue(Settings) ?? false);
-    private int GetIntValue() => (int)(Property.GetValue(Settings) ?? 0);
-    private double GetDoubleValue() => (double)(Property.GetValue(Settings) ?? 0.0);
-    private string GetStringValue() => (string)(Property.GetValue(Settings) ?? "");
-    private string GetEnumStringValue() => Property.GetValue(Settings)?.ToString() ?? "";
-
-    private async Task SetValue<T>(T value)
+    private bool TryGetEditorType(out Type? editorType)
     {
-        Property.SetValue(Settings, value);
-        await OnValueChanged.InvokeAsync();
+        // Check for exact type match first
+        if (EditorRegistry.HasEditorForType(Property.PropertyType))
+        {
+            editorType = EditorRegistry.GetEditorForType(Property.PropertyType);
+            return true;
+        }
+
+        // Check for enum (special case - base type)
+        if (Property.PropertyType.IsEnum && EditorRegistry.HasEditorForType(typeof(Enum)))
+        {
+            editorType = EditorRegistry.GetEditorForType(typeof(Enum));
+            return true;
+        }
+
+        editorType = null;
+        return false;
     }
 
-    private async Task SetEnumValue(string value)
+    private Dictionary<string, object> GetEditorParameters() => new()
     {
-        var enumValue = Enum.Parse(Property.PropertyType, value);
-        Property.SetValue(Settings, enumValue);
-        await OnValueChanged.InvokeAsync();
-    }
-
-    private static string FormatOptionLabel(string option)
-    {
-        // Convert camelCase or snake_case to Title Case
-        if (string.IsNullOrEmpty(option)) return option;
-
-        // Add space before capital letters (camelCase)
-        var result = Regex.Replace(option, "([a-z])([A-Z])", "$1 $2");
-
-        // Replace underscores with spaces
-        result = result.Replace("_", " ");
-
-        // Capitalize first letter
-        return char.ToUpperInvariant(result[0]) + result[1..];
-    }
+        ["Settings"] = Settings,
+        ["Property"] = Property,
+        ["Attribute"] = Attribute,
+        ["OnValueChanged"] = OnValueChanged
+    };
 }

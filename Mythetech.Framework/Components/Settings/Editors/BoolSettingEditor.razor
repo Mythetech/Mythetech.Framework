@@ -1,0 +1,31 @@
+@using System.Reflection
+@using MudBlazor
+@using Mythetech.Framework.Components.Switch
+@using Mythetech.Framework.Infrastructure.Settings
+
+<Switch T="bool"
+        Value="@GetValue()"
+        ValueChanged="@OnValueChangedAsync"
+        Color="Color.Primary" />
+
+@code {
+    [Parameter, EditorRequired]
+    public SettingsBase Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PropertyInfo Property { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public SettingAttribute Attribute { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnValueChanged { get; set; }
+
+    private bool GetValue() => (bool)(Property.GetValue(Settings) ?? false);
+
+    private async Task OnValueChangedAsync(bool value)
+    {
+        Property.SetValue(Settings, value);
+        await OnValueChanged.InvokeAsync();
+    }
+}

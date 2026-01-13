@@ -1,0 +1,22 @@
+.mf-horizontal-virtualizer {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.mf-horizontal-virtualizer__spacer {
+    height: 100%;
+}
+
+.mf-horizontal-virtualizer__viewport {
+    height: 100%;
+}
+
+.mf-horizontal-virtualizer__item {
+    height: 100%;
+    box-sizing: border-box;
+}
