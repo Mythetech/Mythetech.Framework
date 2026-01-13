@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Plugins.Consumers;
+using Mythetech.Framework.Infrastructure.Settings.Events;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -63,10 +65,32 @@ public static class PluginRegistrationExtensions
         });
         
         services.AddPluginConsumerFilter();
-        
+
+        // Settings consumer
+        services.AddTransient<PluginSettingsConsumer>();
+
         return services;
     }
     
+    /// <summary>
+    /// Initialize plugin framework services including message bus registrations.
+    /// Call this after UseMessageBus() to register plugin settings consumer.
+    /// </summary>
+    public static IServiceProvider UsePluginFramework(this IServiceProvider services)
+    {
+        var messageBus = services.GetRequiredService<IMessageBus>();
+
+        // Register settings consumer
+        messageBus.RegisterConsumerType<SettingsModelChanged<PluginSettings>, PluginSettingsConsumer>();
+
+        // Set state provider if available
+        var pluginState = services.GetRequiredService<PluginState>();
+        var stateProvider = services.GetService<IPluginStateProvider>();
+        pluginState.SetStateProvider(stateProvider);
+
+        return services;
+    }
+
     /// <summary>
     /// Load plugins from the default 'plugins' directory relative to the app base
     /// </summary>
@@ -74,10 +98,10 @@ public static class PluginRegistrationExtensions
     {
         var baseDir = AppContext.BaseDirectory;
         var pluginDir = Path.Combine(baseDir, DefaultPluginDirectory);
-        
+
         return services.UsePlugins(pluginDir);
     }
-    
+
     /// <summary>
     /// Load plugins from a specific directory
     /// </summary>
@@ -87,12 +111,12 @@ public static class PluginRegistrationExtensions
     {
         var loader = services.GetRequiredService<PluginLoader>();
         var state = services.GetRequiredService<PluginState>();
-        
+
         var fullPath = Path.GetFullPath(pluginDirectory);
         state.SetPluginDirectory(fullPath);
-        
+
         var plugins = loader.LoadPluginsFromDirectory(fullPath);
-        
+
         foreach (var plugin in plugins)
         {
             try
@@ -104,7 +128,7 @@ public static class PluginRegistrationExtensions
                 state.RegisterOrUpgradePlugin(plugin);
             }
         }
-        
+
         return services;
     }
     

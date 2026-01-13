@@ -1,0 +1,283 @@
+@using MudBlazor
+@namespace Mythetech.Framework.Components.Settings
+@using Mythetech.Framework.Infrastructure.Settings
+@using Microsoft.JSInterop
+@inject ISettingsProvider SettingsProvider
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="mf-settings-panel">
+    @* Left sidebar with settings sections *@
+    <div class="mf-settings-sidebar">
+        @if (ShowTitle)
+        {
+            <MudText Class="mf-settings-title" Typo="Typo.h5">@Title</MudText>
+        }
+
+        <div class="mf-settings-nav">
+            @* Slot for app-specific nav items BEFORE framework settings *@
+            @NavPrefix
+
+            @* Dynamic settings sections *@
+            @foreach (var settings in SettingsProvider.GetAllSettings())
+            {
+                <SettingsNavLink SettingsId="@settings.SettingsId"
+                                 DisplayName="@settings.DisplayName"
+                                 Icon="@settings.Icon"
+                                 IsActive="@(ActiveSection == settings.SettingsId)"
+                                 OnClick="@(() => ScrollToSection(settings.SettingsId))" />
+            }
+
+            @* Slot for app-specific nav items AFTER framework settings *@
+            @NavSuffix
+        </div>
+    </div>
+
+    @* Right content area *@
+    <div class="mf-settings-content" @ref="_contentRef">
+        @* Slot for app-specific content BEFORE framework settings (e.g., Appearance/Theme) *@
+        @ContentPrefix
+
+        @* Dynamic settings sections *@
+        @foreach (var settings in SettingsProvider.GetAllSettings())
+        {
+            <SettingsSectionDisplay Settings="@settings"
+                                    OnSettingChanged="@HandleSettingChanged" />
+        }
+
+        @* Slot for app-specific content AFTER framework settings *@
+        @ContentSuffix
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Title displayed at the top of the sidebar.
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Settings";
+
+    /// <summary>
+    /// Whether to show the title in the sidebar.
+    /// </summary>
+    [Parameter]
+    public bool ShowTitle { get; set; } = true;
+
+    /// <summary>
+    /// Initial section to scroll to when the panel loads.
+    /// </summary>
+    [Parameter]
+    public string? InitialSection { get; set; }
+
+    /// <summary>
+    /// Navigation items to display BEFORE the framework settings.
+    /// Use this for app-specific sections like Appearance/Theme.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? NavPrefix { get; set; }
+
+    /// <summary>
+    /// Navigation items to display AFTER the framework settings.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? NavSuffix { get; set; }
+
+    /// <summary>
+    /// Content sections to display BEFORE the framework settings.
+    /// Use this for app-specific sections like Appearance/Theme.
+    /// Make sure to include id="section-{sectionId}" for scroll-spy.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentPrefix { get; set; }
+
+    /// <summary>
+    /// Content sections to display AFTER the framework settings.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentSuffix { get; set; }
+
+    /// <summary>
+    /// Callback when any setting value changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSettingsChanged { get; set; }
+
+    /// <summary>
+    /// The currently active/visible section ID.
+    /// Can be used for two-way binding.
+    /// </summary>
+    [Parameter]
+    public string ActiveSection { get; set; } = "";
+
+    /// <summary>
+    /// Callback when the active section changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> ActiveSectionChanged { get; set; }
+
+    private ElementReference _contentRef;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<SettingsPanel>? _dotNetRef;
+    private bool _isScrolling;
+
+    // Snapshot of settings when panel was created (for revert capability)
+    private Dictionary<string, Dictionary<string, object?>> _snapshots = new();
+
+    protected override void OnInitialized()
+    {
+        // Create initial snapshots for revert capability
+        foreach (var settings in SettingsProvider.GetAllSettings())
+        {
+            _snapshots[settings.SettingsId] = settings.CreateSnapshot();
+        }
+
+        // Set initial active section
+        if (string.IsNullOrEmpty(ActiveSection))
+        {
+            ActiveSection = InitialSection ??
+                SettingsProvider.GetAllSettings().FirstOrDefault()?.SettingsId ?? "";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/Mythetech.Framework/mythetech.js");
+
+                _dotNetRef = DotNetObjectReference.Create(this);
+
+                // Get all section IDs for scroll-spy
+                var sectionIds = SettingsProvider.GetAllSettings()
+                    .Select(s => s.SettingsId)
+                    .ToArray();
+
+                await _jsModule.InvokeVoidAsync("setupScrollSpy",
+                    _contentRef, _dotNetRef, sectionIds);
+            }
+            catch
+            {
+                // JS interop may fail in certain contexts (e.g., prerendering)
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called from JavaScript when a section becomes visible during scrolling.
+    /// </summary>
+    [JSInvokable]
+    public async Task UpdateActiveSection(string sectionId)
+    {
+        if (!_isScrolling && ActiveSection != sectionId)
+        {
+            ActiveSection = sectionId;
+            await ActiveSectionChanged.InvokeAsync(sectionId);
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Scrolls to the specified section.
+    /// </summary>
+    public async Task ScrollToSection(string sectionId)
+    {
+        _isScrolling = true;
+        ActiveSection = sectionId;
+        await ActiveSectionChanged.InvokeAsync(sectionId);
+        StateHasChanged();
+
+        if (_jsModule != null)
+        {
+            await _jsModule.InvokeVoidAsync("scrollToSection", sectionId);
+        }
+
+        // Reset scrolling flag after animation
+        await Task.Delay(500);
+        _isScrolling = false;
+    }
+
+    private async Task HandleSettingChanged()
+    {
+        await OnSettingsChanged.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Commits all changed settings and publishes change events.
+    /// Call this from the wrapper dialog's "Done" button.
+    /// </summary>
+    public async Task CommitChangesAsync()
+    {
+        foreach (var settings in SettingsProvider.GetAllSettings())
+        {
+            if (HasChanges(settings))
+            {
+                await SettingsProvider.NotifySettingsChangedAsync(settings);
+            }
+        }
+        _snapshots.Clear();
+    }
+
+    /// <summary>
+    /// Reverts all settings to their initial values (when panel was created).
+    /// Call this from the wrapper dialog's "Cancel" button.
+    /// </summary>
+    public void RevertChanges()
+    {
+        foreach (var settings in SettingsProvider.GetAllSettings())
+        {
+            if (_snapshots.TryGetValue(settings.SettingsId, out var snapshot))
+            {
+                settings.RestoreFromSnapshot(snapshot);
+            }
+        }
+        _snapshots.Clear();
+    }
+
+    /// <summary>
+    /// Checks if any settings have changed since the panel was created.
+    /// </summary>
+    public bool HasAnyChanges()
+    {
+        return SettingsProvider.GetAllSettings().Any(HasChanges);
+    }
+
+    private bool HasChanges(SettingsBase settings)
+    {
+        if (!_snapshots.TryGetValue(settings.SettingsId, out var snapshot))
+            return false;
+
+        var currentSnapshot = settings.CreateSnapshot();
+
+        foreach (var (key, originalValue) in snapshot)
+        {
+            if (!currentSnapshot.TryGetValue(key, out var currentValue))
+                return true;
+
+            if (!Equals(originalValue, currentValue))
+                return true;
+        }
+
+        return false;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule != null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("teardownScrollSpy");
+                await _jsModule.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore disposal errors
+            }
+        }
+
+        _dotNetRef?.Dispose();
+    }
+}

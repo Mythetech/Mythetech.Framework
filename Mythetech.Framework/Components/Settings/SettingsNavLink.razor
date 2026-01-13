@@ -1,0 +1,48 @@
+@using MudBlazor
+@namespace Mythetech.Framework.Components.Settings
+
+<MudButton Variant="Variant.Text"
+           Color="@(IsActive ? Color.Primary : Color.Default)"
+           Class="@($"mf-settings-nav-item justify-start {(IsActive ? "active" : "")}")"
+           FullWidth="true"
+           OnClick="HandleClick">
+    <MudIcon Icon="@Icon" Size="Size.Small" Class="mr-3" />
+    <MudText>@DisplayName</MudText>
+</MudButton>
+
+@code {
+    /// <summary>
+    /// The unique identifier for this settings section.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string SettingsId { get; set; } = "";
+
+    /// <summary>
+    /// The display name shown in the navigation.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string DisplayName { get; set; } = "";
+
+    /// <summary>
+    /// The icon to display next to the name.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Icon { get; set; } = "";
+
+    /// <summary>
+    /// Whether this navigation item is currently active/selected.
+    /// </summary>
+    [Parameter]
+    public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Callback when this navigation item is clicked.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    private async Task HandleClick()
+    {
+        await OnClick.InvokeAsync();
+    }
+}

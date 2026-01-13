@@ -7,6 +7,7 @@ namespace Mythetech.Framework.Infrastructure.Plugins;
 public class PluginState : IDisposable
 {
     private readonly List<PluginInfo> _plugins = [];
+    private IPluginStateProvider? _stateProvider;
     private bool _disposed;
     private bool _pluginsActive = true;
     
@@ -135,19 +136,22 @@ public class PluginState : IDisposable
     {
         var plugin = GetPlugin(pluginId);
         if (plugin is null || plugin.IsEnabled) return false;
-        
+
         var args = new PluginLifecycleEventArgs { Plugin = plugin };
         PluginEnabling?.Invoke(this, args);
-        
+
         if (args.Cancel) return false;
-        
+
         plugin.IsEnabled = true;
         PluginEnabled?.Invoke(this, args);
         NotifyStateChanged();
-        
+
+        // Persist state asynchronously (fire and forget)
+        _ = PersistStateAsync();
+
         return true;
     }
-    
+
     /// <summary>
     /// Disable a plugin by its ID
     /// </summary>
@@ -156,16 +160,19 @@ public class PluginState : IDisposable
     {
         var plugin = GetPlugin(pluginId);
         if (plugin is null || !plugin.IsEnabled) return false;
-        
+
         var args = new PluginLifecycleEventArgs { Plugin = plugin };
         PluginDisabling?.Invoke(this, args);
-        
+
         if (args.Cancel) return false;
-        
+
         plugin.IsEnabled = false;
         PluginDisabled?.Invoke(this, args);
         NotifyStateChanged();
-        
+
+        // Persist state asynchronously (fire and forget)
+        _ = PersistStateAsync();
+
         return true;
     }
     
@@ -258,7 +265,64 @@ public class PluginState : IDisposable
     {
         PluginDirectory = pluginDirectory;
     }
-    
+
+    /// <summary>
+    /// Sets the state provider for persisting plugin enabled/disabled states.
+    /// </summary>
+    /// <param name="provider">The state provider to use.</param>
+    public void SetStateProvider(IPluginStateProvider? provider)
+    {
+        _stateProvider = provider;
+    }
+
+    /// <summary>
+    /// Loads persisted plugin states from the state provider.
+    /// Should be called after plugins are loaded.
+    /// </summary>
+    public async Task LoadStateAsync()
+    {
+        if (_stateProvider == null) return;
+
+        try
+        {
+            var disabledPlugins = await _stateProvider.LoadDisabledPluginsAsync();
+            foreach (var plugin in _plugins)
+            {
+                if (disabledPlugins.Contains(plugin.Manifest.Id))
+                {
+                    plugin.IsEnabled = false;
+                }
+            }
+            NotifyStateChanged();
+        }
+        catch
+        {
+            // Silently handle errors - state persistence is optional
+        }
+    }
+
+    /// <summary>
+    /// Persists current plugin states to the state provider.
+    /// </summary>
+    private async Task PersistStateAsync()
+    {
+        if (_stateProvider == null) return;
+
+        try
+        {
+            var disabledPlugins = _plugins
+                .Where(p => !p.IsEnabled)
+                .Select(p => p.Manifest.Id)
+                .ToHashSet();
+
+            await _stateProvider.SaveDisabledPluginsAsync(disabledPlugins);
+        }
+        catch
+        {
+            // Silently handle errors - state persistence is optional
+        }
+    }
+
     /// <summary>
     /// Notify listeners that state has changed
     /// </summary>
@@ -266,7 +330,7 @@ public class PluginState : IDisposable
     {
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
-    
+
     /// <inheritdoc />
     public void Dispose()
     {

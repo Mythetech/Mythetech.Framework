@@ -1,0 +1,59 @@
+@using MudBlazor
+@using System.Reflection
+@using Mythetech.Framework.Infrastructure.Settings
+
+<div id="section-@Settings.SettingsId" class="mf-settings-section">
+    <div class="mf-settings-section-header">
+        <MudIcon Icon="@Settings.Icon" Class="mr-2" />
+        <MudText Typo="Typo.h6">@Settings.DisplayName</MudText>
+    </div>
+
+    @foreach (var group in GetSettingsGroups())
+    {
+        <div class="mf-settings-group">
+            @if (!string.IsNullOrEmpty(group.Key))
+            {
+                <MudText Class="mf-settings-group-header mud-text-secondary">
+                    @group.Key
+                </MudText>
+            }
+
+            @foreach (var setting in group.Value)
+            {
+                <div class="mf-setting-item">
+                    <DynamicSettingControl Settings="@Settings"
+                                           Property="@setting.Property"
+                                           Attribute="@setting.Attribute"
+                                           OnValueChanged="@OnSettingChanged" />
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public SettingsBase Settings { get; set; } = default!;
+
+    /// <summary>
+    /// Callback when any setting in this section changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSettingChanged { get; set; }
+
+    private Dictionary<string, List<(PropertyInfo Property, SettingAttribute Attribute)>> GetSettingsGroups()
+    {
+        var props = Settings.GetType()
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => (Property: p, Attribute: p.GetCustomAttribute<SettingAttribute>()))
+            .Where(x => x.Attribute != null)
+            .OrderBy(x => x.Attribute!.Order)
+            .GroupBy(x => x.Attribute!.Group ?? "")
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => (x.Property, x.Attribute!)).ToList()
+            );
+
+        return props;
+    }
+}

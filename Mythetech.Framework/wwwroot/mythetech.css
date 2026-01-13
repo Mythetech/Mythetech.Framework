@@ -275,3 +275,198 @@
 .mud-snackbar-content-message {
     flex-grow: 1;
 }
+
+/* ========================================
+   Settings Panel Styles
+   ======================================== */
+
+.mf-settings-panel {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.mf-settings-sidebar {
+    width: 220px;
+    min-width: 220px;
+    border-right: 1px solid var(--mud-palette-lines-default);
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.mf-settings-title {
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+}
+
+.mf-settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mf-settings-nav-item {
+    text-transform: none !important;
+    justify-content: flex-start !important;
+}
+
+.mf-settings-nav-item.active {
+    background: rgba(var(--mud-palette-primary-rgb), 0.15);
+}
+
+.mf-settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+}
+
+.mf-settings-section {
+    margin-bottom: 2rem;
+    scroll-margin-top: 1rem;
+}
+
+.mf-settings-section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.mf-settings-group {
+    margin-bottom: 1.5rem;
+}
+
+.mf-settings-group-header {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(var(--mud-palette-lines-default-rgb), 0.5);
+}
+
+.mf-setting-item {
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+}
+
+.mf-dynamic-setting-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mf-setting-label-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mf-setting-label {
+    font-weight: 500;
+}
+
+.mf-setting-description {
+    opacity: 0.7;
+}
+
+.mf-setting-control {
+    margin-top: 0.5rem;
+}
+
+.mf-setting-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.mf-setting-slider {
+    flex: 1;
+}
+
+.mf-setting-slider-value {
+    min-width: 3rem;
+    text-align: right;
+}
+
+.mf-setting-select,
+.mf-setting-text,
+.mf-setting-numeric {
+    max-width: 300px;
+}
+
+/* Scrollbar styling for settings content */
+.mf-settings-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.mf-settings-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mf-settings-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.mf-settings-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Light theme adjustments */
+.mud-theme-light .mf-settings-sidebar {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.mud-theme-light .mf-settings-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.mud-theme-light .mf-settings-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .mf-settings-panel {
+        flex-direction: column;
+    }
+
+    .mf-settings-sidebar {
+        width: 100%;
+        min-width: unset;
+        border-right: none;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        max-height: 200px;
+    }
+
+    .mf-settings-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+/* Settings Dialog Styles */
+.mf-settings-dialog {
+    width: 70vw;
+    max-width: 900px;
+    height: 80vh;
+    max-height: 700px;
+}
+
+.mf-settings-dialog .mud-dialog-content {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.mf-settings-dialog-content {
+    height: 100%;
+    min-height: 400px;
+}

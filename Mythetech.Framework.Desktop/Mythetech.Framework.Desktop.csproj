@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.Desktop</PackageId>
-        <Version>0.4.0</Version>
+        <Version>0.5.0</Version>
         <Authors>Mythetech</Authors>
         <Description>Desktop-specific components for cross platform blazor applications</Description>
         <PackageTags>blazor;desktop;photino;components;ui</PackageTags>

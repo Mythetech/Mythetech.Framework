@@ -3,10 +3,12 @@ using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Desktop.Photino;
 using Mythetech.Framework.Desktop.Services;
+using Mythetech.Framework.Desktop.Settings;
 using Mythetech.Framework.Infrastructure;
 using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Settings;
 
 namespace Mythetech.Framework.Desktop;
 
@@ -19,6 +21,16 @@ public static class DesktopRegistrationExtensions
     /// Default database filename for plugin storage
     /// </summary>
     public const string DefaultDatabaseName = "plugins.db";
+
+    /// <summary>
+    /// Default database filename for settings storage
+    /// </summary>
+    public const string DefaultSettingsDatabaseName = "settings.db";
+
+    /// <summary>
+    /// Default database filename for plugin state storage
+    /// </summary>
+    public const string DefaultPluginStateDatabaseName = "plugin_state.db";
     
     /// <summary>
     /// Adds required desktop services for a given host
@@ -142,6 +154,128 @@ public static class DesktopRegistrationExtensions
     public static IServiceCollection AddRuntimeEnvironment(this IServiceCollection services, DesktopRuntimeEnvironment environment)
     {
         services.AddSingleton<IRuntimeEnvironment>(environment);
+        return services;
+    }
+
+    /// <summary>
+    /// Registers LiteDB-based settings storage for Desktop.
+    /// Uses a separate database from plugin storage (settings.db vs plugins.db).
+    /// Database is stored in the user's local application data directory under "Mythetech".
+    /// </summary>
+    public static IServiceCollection AddDesktopSettingsStorage(this IServiceCollection services)
+        => services.AddDesktopSettingsStorage("Mythetech");
+
+    /// <summary>
+    /// Registers LiteDB-based settings storage for Desktop with a custom application name.
+    /// Uses a separate database from plugin storage (settings.db vs plugins.db).
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="appName">Application name for the storage folder</param>
+    public static IServiceCollection AddDesktopSettingsStorage(this IServiceCollection services, string appName)
+    {
+        var settingsDbPath = Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
+            appName,
+            DefaultSettingsDatabaseName);
+
+        try { Directory.CreateDirectory(Path.GetDirectoryName(settingsDbPath)!); } catch { /* Let Lazy handle failures */ }
+
+        return services.AddDesktopSettingsStorageWithPath(settingsDbPath);
+    }
+
+    /// <summary>
+    /// Registers LiteDB-based settings storage for Desktop with a custom database path.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="databasePath">Full path to the LiteDB database file</param>
+    public static IServiceCollection AddDesktopSettingsStorageWithPath(this IServiceCollection services, string databasePath)
+    {
+        services.AddSingleton<ISettingsStorage>(sp =>
+        {
+            var logger = sp.GetService<ILogger<LiteDbSettingsStorage>>();
+            return new LiteDbSettingsStorage(databasePath, logger);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers LiteDB-based plugin state storage for Desktop.
+    /// This enables persisting plugin enabled/disabled states across sessions.
+    /// Database is stored in the user's local application data directory under "Mythetech".
+    /// </summary>
+    public static IServiceCollection AddPluginStateProvider(this IServiceCollection services)
+        => services.AddPluginStateProvider("Mythetech");
+
+    /// <summary>
+    /// Registers LiteDB-based plugin state storage for Desktop with a custom application name.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="appName">Application name for the storage folder</param>
+    public static IServiceCollection AddPluginStateProvider(this IServiceCollection services, string appName)
+    {
+        var stateDbPath = Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
+            appName,
+            DefaultPluginStateDatabaseName);
+
+        try { Directory.CreateDirectory(Path.GetDirectoryName(stateDbPath)!); } catch { /* Let Lazy handle failures */ }
+
+        return services.AddPluginStateProviderWithPath(stateDbPath);
+    }
+
+    /// <summary>
+    /// Registers LiteDB-based plugin state storage for Desktop with a custom database path.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="databasePath">Full path to the LiteDB database file</param>
+    public static IServiceCollection AddPluginStateProviderWithPath(this IServiceCollection services, string databasePath)
+    {
+        services.AddSingleton<IPluginStateProvider>(sp =>
+        {
+            var logger = sp.GetService<ILogger<LiteDbPluginStateProvider>>();
+            return new LiteDbPluginStateProvider(databasePath, logger);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers file operations services for Desktop using System.IO.
+    /// Provides cross-platform file system access for Windows, macOS, and Linux.
+    /// </summary>
+    public static IServiceCollection AddFileOperations(this IServiceCollection services)
+    {
+        services.AddSingleton<IFileOperations, SystemFileOperations>();
+
+        // Also register the granular interfaces pointing to the same instance
+        services.AddSingleton<IFileReader>(sp => sp.GetRequiredService<IFileOperations>());
+        services.AddSingleton<IFileWriter>(sp => sp.GetRequiredService<IFileOperations>());
+        services.AddSingleton<IFileManager>(sp => sp.GetRequiredService<IFileOperations>());
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers directory operations services for Desktop using System.IO.
+    /// Provides cross-platform directory access for Windows, macOS, and Linux.
+    /// </summary>
+    public static IServiceCollection AddDirectoryOperations(this IServiceCollection services)
+    {
+        services.AddSingleton<IDirectoryOperations, SystemDirectoryOperations>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers both file and directory operations for Desktop.
+    /// Convenience method that calls AddFileOperations() and AddDirectoryOperations().
+    /// </summary>
+    public static IServiceCollection AddFileSystemOperations(this IServiceCollection services)
+    {
+        services.AddFileOperations();
+        services.AddDirectoryOperations();
+
         return services;
     }
 }
