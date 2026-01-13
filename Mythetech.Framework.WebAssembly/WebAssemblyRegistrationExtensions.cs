@@ -4,7 +4,10 @@ using Mythetech.Framework.Infrastructure;
 using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.WebAssembly.Environment;
+using Mythetech.Framework.WebAssembly.Plugins;
+using Mythetech.Framework.WebAssembly.Settings;
 
 namespace Mythetech.Framework.WebAssembly;
 
@@ -94,6 +97,65 @@ public static class WebAssemblyRegistrationExtensions
             var navigationManager = sp.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
             return new WebAssemblyRuntimeEnvironment(hostEnvironment, navigationManager, version);
         });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers localStorage-based settings storage for WebAssembly.
+    /// Uses a different key prefix from plugin storage (settings: vs plugin:).
+    /// </summary>
+    public static IServiceCollection AddWebAssemblySettingsStorage(this IServiceCollection services)
+    {
+        services.AddScoped<ISettingsStorage, LocalStorageSettingsStorage>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers localStorage-based plugin state storage for WebAssembly.
+    /// This enables persisting plugin enabled/disabled states across sessions.
+    /// </summary>
+    public static IServiceCollection AddPluginStateProvider(this IServiceCollection services)
+    {
+        services.AddScoped<IPluginStateProvider, LocalStoragePluginStateProvider>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers file operations services for WebAssembly.
+    /// These throw PlatformNotSupportedException - use IFileOpenService/IFileSaveService
+    /// for dialog-based file access instead.
+    /// </summary>
+    public static IServiceCollection AddFileOperations(this IServiceCollection services)
+    {
+        services.AddSingleton<IFileOperations, UnsupportedFileOperations>();
+        services.AddSingleton<IFileReader>(sp => sp.GetRequiredService<IFileOperations>());
+        services.AddSingleton<IFileWriter>(sp => sp.GetRequiredService<IFileOperations>());
+        services.AddSingleton<IFileManager>(sp => sp.GetRequiredService<IFileOperations>());
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers directory operations services for WebAssembly.
+    /// These throw PlatformNotSupportedException as direct directory access
+    /// is not available in browser environments.
+    /// </summary>
+    public static IServiceCollection AddDirectoryOperations(this IServiceCollection services)
+    {
+        services.AddSingleton<IDirectoryOperations, UnsupportedDirectoryOperations>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers both file and directory operations for WebAssembly.
+    /// Note: These will throw PlatformNotSupportedException when used.
+    /// </summary>
+    public static IServiceCollection AddFileSystemOperations(this IServiceCollection services)
+    {
+        services.AddFileOperations();
+        services.AddDirectoryOperations();
 
         return services;
     }

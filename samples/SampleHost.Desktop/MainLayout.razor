@@ -3,16 +3,20 @@
 @using Mythetech.Framework.Infrastructure.Files
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.Plugins.Components
+@using Mythetech.Framework.Infrastructure.Settings
 @using SampleHost.Shared
+@using SampleHost.Shared.Settings
 @inherits LayoutComponentBase
 @inject PluginState PluginState
 @inject IPluginAssetLoader AssetLoader
 @inject IShowFileService ShowFileService
+@inject ISettingsProvider SettingsProvider
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudText Typo="Typo.h5" Class="ml-3">Plugin Host Sample</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">@_appSettings.AppTitle</MudText>
         <MudSpacer />
         
         <MudMenu Label="File" ListClass="pa-1" Class="rounded" ActivationEvent="MouseEvent.MouseOver" Dense="true">
@@ -29,7 +33,7 @@
         
         <ToolsMenu />
 
-        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" />
+        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
     </MudAppBar>
     
     <MudDrawer @bind-Open="_drawerOpen" Elevation="2" Variant="DrawerVariant.Mini" OpenMiniOnHover="true">
@@ -48,9 +52,9 @@
         </div>
         
         <!-- Plugin context panels rendered as a side bar (only after assets are loaded) -->
-        @if (_assetsLoaded && PluginState.EnabledContextPanelComponentsMetadata.Any())
+        @if (_appSettings.ShowContextPanel && _assetsLoaded && PluginState.EnabledContextPanelComponentsMetadata.Any())
         {
-            <MudPaper Width="320px" Elevation="0" Class="border-l" Style="overflow: auto;">
+            <MudPaper Width="@($"{_appSettings.ContextPanelWidth}px")" Elevation="0" Class="border-l" Style="overflow: auto;">
                 @foreach (var panel in PluginState.EnabledContextPanelComponentsMetadata.OrderBy(p => p.Order))
                 {
                     <DynamicComponent Type="@panel.ComponentType" />
@@ -64,10 +68,20 @@
 @code {
     private bool _drawerOpen = true;
     private bool _assetsLoaded = false;
+    private SampleAppSettings _appSettings = new();
 
     protected override void OnInitialized()
     {
         PluginState.StateChanged += OnPluginStateChanged;
+
+        // Get the registered settings instance
+        var settings = SettingsProvider.GetSettings<SampleAppSettings>();
+        if (settings != null)
+        {
+            _appSettings = settings;
+        }
+
+        _drawerOpen = _appSettings.DrawerExpandedOnStart;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -100,6 +114,22 @@
         {
             await ShowFileService.ShowFolderAsync(PluginState.PluginDirectory);
         }
+    }
+
+    private async Task OpenSettings()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<SampleSettingsDialog>("Settings", options);
+        await dialog.Result;
+
+        // Refresh UI after settings dialog closes
+        StateHasChanged();
     }
 
     public void Dispose()

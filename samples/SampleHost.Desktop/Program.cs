@@ -7,8 +7,10 @@ using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Mcp;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Secrets;
+using Mythetech.Framework.Infrastructure.Settings;
 using Photino.Blazor;
 using SampleHost.Desktop;
+using SampleHost.Shared.Settings;
 
 class Program
 {
@@ -50,6 +52,9 @@ class Program
             options.ServerVersion = "1.0.0";
         });
         builder.Services.AddMcpTools();
+        builder.Services.AddSettingsFramework();
+        builder.Services.AddDesktopSettingsStorage("SampleHost");
+        builder.Services.AddPluginStateProvider("SampleHost");
 
         builder.RootComponents.Add<App>("app");
 
@@ -58,6 +63,11 @@ class Program
         app.Services.UseMessageBus();
         app.Services.UseSecretManager();
         app.Services.UseMcp();
+        app.Services.UsePluginFramework();
+        app.Services.UseSettingsFramework();
+        app.Services.RegisterSettings<SampleAppSettings>();
+        app.Services.RegisterSettings<PluginSettings>();
+        app.Services.RegisterSettings<McpSettings>();
 
         var pluginDir = Path.Combine(AppContext.BaseDirectory, "plugins");
 
@@ -84,6 +94,7 @@ class Program
         app.MainWindow
             .SetTitle("Sample Host (Desktop)")
             .SetSize(1920, 1080)
+            .SetLogVerbosity(0)
             .SetUseOsDefaultSize(false);
 
         AppDomain.CurrentDomain.UnhandledException += (sender, args) =>

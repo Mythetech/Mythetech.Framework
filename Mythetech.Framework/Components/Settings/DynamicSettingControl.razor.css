@@ -1,0 +1,55 @@
+.mf-dynamic-setting-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.mf-setting-label-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mf-setting-label {
+    font-weight: 500;
+}
+
+.mf-setting-description {
+    opacity: 0.7;
+}
+
+.mf-setting-control {
+    display: flex;
+    align-items: center;
+}
+
+.mf-setting-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.mf-setting-slider {
+    flex-grow: 1;
+}
+
+.mf-setting-slider-value {
+    min-width: 3rem;
+    text-align: right;
+    font-family: monospace;
+}
+
+.mf-setting-numeric {
+    max-width: 120px;
+}
+
+.mf-setting-select {
+    min-width: 180px;
+}
+
+.mf-setting-text {
+    width: 100%;
+    max-width: 300px;
+}

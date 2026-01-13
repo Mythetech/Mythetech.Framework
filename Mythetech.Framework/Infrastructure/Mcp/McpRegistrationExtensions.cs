@@ -5,10 +5,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Mcp.Consumers;
 using Mythetech.Framework.Infrastructure.Mcp.Messages;
 using Mythetech.Framework.Infrastructure.Mcp.Server;
 using Mythetech.Framework.Infrastructure.Mcp.Tools;
 using Mythetech.Framework.Infrastructure.Mcp.Transport;
+using Mythetech.Framework.Infrastructure.Settings.Events;
 
 namespace Mythetech.Framework.Infrastructure.Mcp;
 
@@ -50,6 +52,9 @@ public static class McpRegistrationExtensions
         // Message consumers for enable/disable
         services.AddTransient<EnableMcpServerConsumer>();
         services.AddTransient<DisableMcpServerConsumer>();
+
+        // Settings consumer
+        services.AddTransient<McpSettingsConsumer>();
 
         // Built-in tools (automatically included)
         services.AddTransient<GetAppInfoTool>();
@@ -152,6 +157,9 @@ public static class McpRegistrationExtensions
         // Register enable/disable consumers
         messageBus.RegisterConsumerType<EnableMcpServerMessage, EnableMcpServerConsumer>();
         messageBus.RegisterConsumerType<DisableMcpServerMessage, DisableMcpServerConsumer>();
+
+        // Register settings consumer
+        messageBus.RegisterConsumerType<SettingsModelChanged<McpSettings>, McpSettingsConsumer>();
 
         // Register built-in tools from the framework
         foreach (var descriptor in loader.DiscoverTools(typeof(GetAppInfoTool).Assembly))

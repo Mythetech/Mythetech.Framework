@@ -1,0 +1,42 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Settings
+
+<MudDialog Class="mf-settings-dialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" Style="vertical-align: middle;" />
+            Settings
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="mf-settings-dialog-content">
+            <SettingsPanel @ref="_panel" ShowTitle="false" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Done">Done</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    private SettingsPanel? _panel;
+
+    private void Cancel()
+    {
+        _panel?.RevertChanges();
+        MudDialog?.Close(DialogResult.Cancel());
+    }
+
+    private async Task Done()
+    {
+        if (_panel != null)
+        {
+            await _panel.CommitChangesAsync();
+        }
+        MudDialog?.Close(DialogResult.Ok(true));
+    }
+}
