@@ -148,7 +148,12 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             (function() {
                 if (document.getElementById('{{safeId}}')) return;
                 try {
-                    var decoded = atob('{{base64Content}}');
+                    var binary = atob('{{base64Content}}');
+                    var bytes = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) {
+                        bytes[i] = binary.charCodeAt(i);
+                    }
+                    var decoded = new TextDecoder('utf-8').decode(bytes);
                     var style = document.createElement('style');
                     style.id = '{{safeId}}';
                     style.textContent = decoded;
@@ -179,7 +184,12 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             (function() {
                 if (document.getElementById('{{safeId}}')) return;
                 try {
-                    var decoded = atob('{{base64Content}}');
+                    var binary = atob('{{base64Content}}');
+                    var bytes = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) {
+                        bytes[i] = binary.charCodeAt(i);
+                    }
+                    var decoded = new TextDecoder('utf-8').decode(bytes);
                     var script = document.createElement('script');
                     script.id = '{{safeId}}';
                     script.textContent = decoded;
@@ -229,6 +239,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                 if (document.querySelector('script[src="{{src}}"]')) { resolve(); return; }
                 var script = document.createElement('script');
                 script.src = '{{src}}';
+                script.charset = 'utf-8';
                 {{(integrity != null ? $"script.integrity = '{integrity}';" : "")}}
                 {{(crossOrigin != null ? $"script.crossOrigin = '{crossOrigin}';" : "")}}
                 script.onload = resolve;

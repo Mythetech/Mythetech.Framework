@@ -7,7 +7,7 @@
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <PackageId>Mythetech.Framework</PackageId>
-        <Version>0.5.6</Version>
+        <Version>0.5.7</Version>
         <Authors>Mythetech</Authors>
         <Description>Base component library for Mythetech applications</Description>
         <PackageTags>blazor;components;ui</PackageTags>
