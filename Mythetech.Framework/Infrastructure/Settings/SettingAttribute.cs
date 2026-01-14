@@ -56,4 +56,16 @@ public class SettingAttribute : Attribute
     /// Whether this setting has valid min/max range (for slider rendering).
     /// </summary>
     public bool HasRange => !double.IsNaN(Min) && !double.IsNaN(Max);
+
+    /// <summary>
+    /// Custom Blazor component type to use for rendering this setting.
+    /// When set, overrides the default type-based editor selection from ISettingsEditorRegistry.
+    /// The component must accept parameters: Settings (SettingsBase), Property (PropertyInfo),
+    /// Attribute (SettingAttribute), and OnValueChanged (EventCallback).
+    /// </summary>
+    /// <example>
+    /// [Setting(Label = "Environment", CustomEditor = typeof(EnvironmentDropdownEditor))]
+    /// public string DefaultEnvironment { get; set; }
+    /// </example>
+    public Type? CustomEditor { get; set; }
 }
