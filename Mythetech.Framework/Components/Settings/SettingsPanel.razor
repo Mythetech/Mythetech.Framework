@@ -103,6 +103,13 @@
     public EventCallback OnSettingsChanged { get; set; }
 
     /// <summary>
+    /// Additional section IDs to include in scroll-spy tracking.
+    /// Use this for custom sections added via ContentPrefix/ContentSuffix.
+    /// </summary>
+    [Parameter]
+    public string[] AdditionalSectionIds { get; set; } = [];
+
+    /// <summary>
     /// The currently active/visible section ID.
     /// Can be used for two-way binding.
     /// </summary>
@@ -150,9 +157,10 @@
 
                 _dotNetRef = DotNetObjectReference.Create(this);
 
-                // Get all section IDs for scroll-spy
+                // Get all section IDs for scroll-spy (framework + custom)
                 var sectionIds = SettingsProvider.GetAllSettings()
                     .Select(s => s.SettingsId)
+                    .Concat(AdditionalSectionIds)
                     .ToArray();
 
                 await _jsModule.InvokeVoidAsync("setupScrollSpy",
