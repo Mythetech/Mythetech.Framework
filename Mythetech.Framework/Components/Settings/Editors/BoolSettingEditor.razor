@@ -5,7 +5,7 @@
 
 <Switch T="bool"
         Value="@GetValue()"
-        ValueChanged="@OnValueChangedAsync"
+        ValueChanged="@((bool v) => OnValueChangedAsync(v))"
         Color="Color.Primary" />
 
 @code {
