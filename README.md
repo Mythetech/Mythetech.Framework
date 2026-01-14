@@ -1,7 +1,7 @@
 ```markdown
     ______                                             __
 
-/ \_**\_/**\_\_**** **\_** **\_ \_** \_ **\_\_** **\_**/ /**
+/ \_**\_/**\_\_\***\* **\_\*\* **\_ \_** \_ **\_\_** **\_**/ /**
 / /_ / _**/ ** `/ ** `** \/ \_ \ | /| / / ** \/ **_/ //_/
 / **/ / / / /_/ / / / / / / \_\_/ |/ |/ / /_/ / / / ,<  
 /_/ /_/ \__,_/_/ /_/ /\_/\_**/|**/|**/\_\_**/_/ /_/|\_|
@@ -125,6 +125,12 @@ dotnet run
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
+## Credits
+
+1. MudBlazor
+2. CodeBeams MudExtensions
+3. Photino Blazor
 
 ## License
 
