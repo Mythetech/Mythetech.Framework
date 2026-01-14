@@ -109,4 +109,18 @@ public abstract class SettingsBase
             }
         }
     }
+
+    /// <summary>
+    /// Optional Blazor component type rendered at the beginning of this settings section, before any settings.
+    /// Use for introductory text, warnings, or custom controls that should appear first.
+    /// The component will be instantiated via DynamicComponent and can inject services.
+    /// </summary>
+    public virtual Type? BeginningContent => null;
+
+    /// <summary>
+    /// Optional Blazor component type rendered at the end of this settings section, after all settings.
+    /// Use for action buttons (delete, reset), additional info, or custom controls.
+    /// The component will be instantiated via DynamicComponent and can inject services.
+    /// </summary>
+    public virtual Type? EndingContent => null;
 }

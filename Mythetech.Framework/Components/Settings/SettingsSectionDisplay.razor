@@ -8,6 +8,11 @@
         <MudText Typo="Typo.h6">@Settings.DisplayName</MudText>
     </div>
 
+    @if (Settings.BeginningContent != null)
+    {
+        <DynamicComponent Type="@Settings.BeginningContent" />
+    }
+
     @foreach (var group in GetSettingsGroups())
     {
         <div class="mf-settings-group">
@@ -28,6 +33,11 @@
                 </div>
             }
         </div>
+    }
+
+    @if (Settings.EndingContent != null)
+    {
+        <DynamicComponent Type="@Settings.EndingContent" />
     }
 </div>
 

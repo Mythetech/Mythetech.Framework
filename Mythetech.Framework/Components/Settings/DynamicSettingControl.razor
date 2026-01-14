@@ -46,7 +46,14 @@
 
     private bool TryGetEditorType(out Type? editorType)
     {
-        // Check for exact type match first
+        // Check for per-property custom editor first (highest priority)
+        if (Attribute.CustomEditor != null)
+        {
+            editorType = Attribute.CustomEditor;
+            return true;
+        }
+
+        // Check for exact type match
         if (EditorRegistry.HasEditorForType(Property.PropertyType))
         {
             editorType = EditorRegistry.GetEditorForType(Property.PropertyType);
