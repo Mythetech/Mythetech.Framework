@@ -52,6 +52,7 @@ public class JsPluginAssetLoader : IPluginAssetLoader
                 if (document.querySelector('script[src="{{src}}"]')) { resolve(); return; }
                 var script = document.createElement('script');
                 script.src = '{{src}}';
+                script.charset = 'utf-8';
                 {{(integrity != null ? $"script.integrity = '{integrity}';" : "")}}
                 {{(crossOrigin != null ? $"script.crossOrigin = '{crossOrigin}';" : "")}}
                 script.onload = resolve;
