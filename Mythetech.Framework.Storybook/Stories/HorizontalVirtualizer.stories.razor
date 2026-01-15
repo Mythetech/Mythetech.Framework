@@ -1,0 +1,81 @@
+@using Mythetech.Framework.Components.VirtualizeContainer
+@using MudBlazor
+@attribute [Stories("Components/HorizontalVirtualizer")]
+
+<Stories TComponent="HorizontalVirtualizer<string>">
+
+    <DefaultStory Name="Default" TComponent="HorizontalVirtualizer<string>">
+        <Arguments>
+            <Arg For="_ => _.ItemSize" Value="120f" />
+            <Arg For="_ => _.OverscanCount" Value="3" />
+        </Arguments>
+
+        <Template>
+            @{
+                var items = Enumerable.Range(1, 100).Select(i => $"Item {i}").ToList();
+            }
+            <div style="width: 100%; height: 80px; border: 1px solid #ccc; overflow: hidden;">
+                <HorizontalVirtualizer TItem="string"
+                                       Items="@items"
+                                       ItemSize="120"
+                                       OverscanCount="3"
+                                       Style="height: 100%; overflow-x: auto;"
+                                       Context="item">
+                    <div style="padding: 8px; border-right: 1px solid #eee; height: 100%; display: flex; align-items: center; justify-content: center;">
+                        <MudText>@item</MudText>
+                    </div>
+                </HorizontalVirtualizer>
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="With Cards" TComponent="HorizontalVirtualizer<int>">
+        <Arguments>
+            <Arg For="_ => _.ItemSize" Value="200f" />
+        </Arguments>
+
+        <Template>
+            @{
+                var items = Enumerable.Range(1, 50).ToList();
+            }
+            <div style="width: 100%; height: 150px; border: 1px solid #ccc; overflow: hidden;">
+                <HorizontalVirtualizer TItem="int"
+                                       Items="@items"
+                                       ItemSize="200"
+                                       Style="height: 100%; overflow-x: auto;"
+                                       Context="item">
+                    <MudCard Style="margin: 8px; height: calc(100% - 16px);">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">Card @item</MudText>
+                            <MudText Typo="Typo.body2">Horizontally virtualized content</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </HorizontalVirtualizer>
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="Narrow Items" TComponent="HorizontalVirtualizer<string>">
+        <Arguments>
+            <Arg For="_ => _.ItemSize" Value="60f" />
+        </Arguments>
+
+        <Template>
+            @{
+                var items = Enumerable.Range(1, 200).Select(i => $"{i}").ToList();
+            }
+            <div style="width: 100%; height: 60px; border: 1px solid #ccc; overflow: hidden;">
+                <HorizontalVirtualizer TItem="string"
+                                       Items="@items"
+                                       ItemSize="60"
+                                       Style="height: 100%; overflow-x: auto;"
+                                       Context="item">
+                    <MudChip T="string" Color="Color.Primary" Style="margin: 8px;">
+                        @item
+                    </MudChip>
+                </HorizontalVirtualizer>
+            </div>
+        </Template>
+    </DefaultStory>
+
+</Stories>

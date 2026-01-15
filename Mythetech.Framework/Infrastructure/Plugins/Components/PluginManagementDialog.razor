@@ -1,6 +1,7 @@
 @using MudBlazor
 @using Mythetech.Framework.Components.SimpleTabs
 @using Mythetech.Framework.Components.Badge
+@using Mythetech.Framework.Components.Buttons
 @using Mythetech.Framework.Infrastructure.Environment
 @using System.IO.Compression
 @using System.Net.Http
@@ -109,36 +110,33 @@
                                     else if (!supportsPlatform)
                                     {
                                         <MudTooltip Text="@GetPlatformNotSupportedMessage(context)">
-                                            <MudButton Size="Size.Small"
-                                                       Variant="Variant.Filled"
-                                                       Color="Color.Default"
-                                                       StartIcon="@Icons.Material.Filled.Block"
-                                                       Disabled="true">
-                                                @(isUpgrade ? "Upgrade" : "Install")
-                                            </MudButton>
+                                            <Button Size="Size.Small"
+                                                    Variant="Variant.Filled"
+                                                    Color="Color.Default"
+                                                    StartIcon="@Icons.Material.Filled.Block"
+                                                    Disabled="true"
+                                                    Text="@(isUpgrade ? "Upgrade" : "Install")" />
                                         </MudTooltip>
                                     }
                                     else if (isUpgrade)
                                     {
-                                        <MudButton Size="Size.Small"
-                                                   Variant="Variant.Filled"
-                                                   Color="Color.Warning"
-                                                   StartIcon="@Icons.Material.Filled.Upgrade"
-                                                   OnClick="@(() => HandleInstallPlugin(context))"
-                                                   Disabled="@_isInstalling">
-                                            Upgrade
-                                        </MudButton>
+                                        <Button Size="Size.Small"
+                                                Variant="Variant.Filled"
+                                                Color="Color.Warning"
+                                                StartIcon="@Icons.Material.Filled.Upgrade"
+                                                OnClick="@(() => HandleInstallPlugin(context))"
+                                                Disabled="@_isInstalling"
+                                                Text="Upgrade" />
                                     }
                                     else
                                     {
-                                        <MudButton Size="Size.Small"
-                                                   Variant="Variant.Filled"
-                                                   Color="Color.Primary"
-                                                   StartIcon="@Icons.Material.Filled.Download"
-                                                   OnClick="@(() => HandleInstallPlugin(context))"
-                                                   Disabled="@_isInstalling">
-                                            Install
-                                        </MudButton>
+                                        <Button Size="Size.Small"
+                                                Variant="Variant.Filled"
+                                                Color="Color.Primary"
+                                                StartIcon="@Icons.Material.Filled.Download"
+                                                OnClick="@(() => HandleInstallPlugin(context))"
+                                                Disabled="@_isInstalling"
+                                                Text="Install" />
                                     }
                                 </MudTd>
                             </RowTemplate>
@@ -149,7 +147,7 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close">Close</MudButton>
+        <Button Text="Close" OnClick="Close" Variant="Variant.Text" />
     </DialogActions>
 </MudDialog>
 

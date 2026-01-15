@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components
 @using Mythetech.Framework.Infrastructure.Files
 @using Mythetech.Framework.Infrastructure.Guards
+@using Mythetech.Framework.Components.Buttons
 @inject PluginState PluginState
 @inject PluginLoader PluginLoader
 @inject IFileOpenService FileOpenService
@@ -16,9 +17,7 @@
          Dense="@Dense" 
          ListClass="@ListClass">
     <ActivatorContent>
-        <MudButton Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass">
-            @MenuText
-        </MudButton>
+        <Button Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass" Text="@MenuText" />
     </ActivatorContent>
     <ChildContent>
         @{

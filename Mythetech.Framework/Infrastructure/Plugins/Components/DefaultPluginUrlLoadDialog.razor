@@ -2,6 +2,7 @@
 @using System.IO.Compression
 @using System.Net.Http
 @using Microsoft.Extensions.DependencyInjection
+@using Mythetech.Framework.Components.Buttons
 @inject IServiceProvider ServiceProvider
 @inject PluginLoader PluginLoader
 @inject PluginState PluginState
@@ -43,17 +44,19 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Disabled="_isLoading">Cancel</MudButton>
-        <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
-                   OnClick="DownloadAndLoadPlugin" 
-                   Disabled="@(!IsValid || _isLoading)">
-            @if (_isLoading)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-            }
-            Import
-        </MudButton>
+        <Button Text="Cancel" OnClick="Cancel" Disabled="_isLoading" Variant="Variant.Text" />
+        <Button Color="Color.Primary"
+                Variant="Variant.Filled"
+                OnClick="DownloadAndLoadPlugin"
+                Disabled="@(!IsValid || _isLoading)">
+            <ChildContent>
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Import
+            </ChildContent>
+        </Button>
     </DialogActions>
 </MudDialog>
 

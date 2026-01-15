@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Consumers;
+using Mythetech.Framework.Infrastructure.Plugins.Events;
+using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Settings.Events;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
@@ -83,10 +85,11 @@ public static class PluginRegistrationExtensions
         // Register settings consumer
         messageBus.RegisterConsumerType<SettingsModelChanged<PluginSettings>, PluginSettingsConsumer>();
 
-        // Set state provider if available
+        // Set state provider and message bus if available
         var pluginState = services.GetRequiredService<PluginState>();
         var stateProvider = services.GetService<IPluginStateProvider>();
         pluginState.SetStateProvider(stateProvider);
+        pluginState.SetMessageBus(messageBus);
 
         return services;
     }
@@ -129,6 +132,7 @@ public static class PluginRegistrationExtensions
             }
         }
 
+        state.PluginsLoaded = true;
         return services;
     }
     
@@ -139,7 +143,7 @@ public static class PluginRegistrationExtensions
     {
         var loader = services.GetRequiredService<PluginLoader>();
         var state = services.GetRequiredService<PluginState>();
-        
+
         var plugin = loader.LoadPlugin(assembly);
         if (plugin is not null)
         {
@@ -152,7 +156,65 @@ public static class PluginRegistrationExtensions
                 state.RegisterOrUpgradePlugin(plugin);
             }
         }
-        
+
+        return services;
+    }
+
+    /// <summary>
+    /// Load plugins using the CustomPluginDirectory setting if set,
+    /// otherwise falls back to the default directory.
+    /// Publishes lifecycle events via MessageBus.
+    /// Call this after settings are loaded (e.g., in OnAfterRenderAsync).
+    /// </summary>
+    /// <param name="services">Service provider</param>
+    /// <returns>The service provider for chaining</returns>
+    public static async Task<IServiceProvider> UsePluginsFromSettingsAsync(this IServiceProvider services)
+    {
+        var state = services.GetRequiredService<PluginState>();
+
+        if (state.PluginsLoaded)
+        {
+            Console.WriteLine("[PluginLoader] Plugins already loaded, skipping");
+            return services;
+        }
+
+        var messageBus = services.GetService<IMessageBus>();
+        var settingsProvider = services.GetService<ISettingsProvider>();
+        var pluginSettings = settingsProvider?.GetSettings<PluginSettings>();
+
+        Console.WriteLine($"[PluginLoader] CustomPluginDirectory setting: '{pluginSettings?.CustomPluginDirectory ?? "(null)"}'");
+
+        string pluginDirectory;
+        if (!string.IsNullOrWhiteSpace(pluginSettings?.CustomPluginDirectory)
+            && Directory.Exists(pluginSettings.CustomPluginDirectory))
+        {
+            pluginDirectory = pluginSettings.CustomPluginDirectory;
+            Console.WriteLine($"[PluginLoader] Using custom directory: {pluginDirectory}");
+        }
+        else
+        {
+            pluginDirectory = Path.Combine(AppContext.BaseDirectory, DefaultPluginDirectory);
+            Console.WriteLine($"[PluginLoader] Using default directory: {pluginDirectory}");
+        }
+
+        if (messageBus != null)
+        {
+            await messageBus.PublishAsync(new PluginsLoadingStarted(pluginDirectory));
+        }
+
+        services.UsePlugins(pluginDirectory);
+
+        Console.WriteLine($"[PluginLoader] Loaded {state.Plugins.Count} plugins from {pluginDirectory}");
+        foreach (var plugin in state.Plugins)
+        {
+            Console.WriteLine($"[PluginLoader]   - {plugin.Manifest.Name} v{plugin.Manifest.Version} from {plugin.SourcePath}");
+        }
+
+        if (messageBus != null)
+        {
+            await messageBus.PublishAsync(new PluginsLoadingCompleted(pluginDirectory, state.Plugins.Count));
+        }
+
         return services;
     }
 }

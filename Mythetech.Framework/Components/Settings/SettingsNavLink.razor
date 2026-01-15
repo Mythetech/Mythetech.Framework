@@ -1,14 +1,17 @@
 @using MudBlazor
+@using Mythetech.Framework.Components.Buttons
 @namespace Mythetech.Framework.Components.Settings
 
-<MudButton Variant="Variant.Text"
-           Color="@(IsActive ? Color.Primary : Color.Default)"
-           Class="@($"mf-settings-nav-item justify-start {(IsActive ? "active" : "")}")"
-           FullWidth="true"
-           OnClick="HandleClick">
-    <MudIcon Icon="@Icon" Size="Size.Small" Class="mr-3" />
-    <MudText>@DisplayName</MudText>
-</MudButton>
+<Button Variant="Variant.Text"
+        Color="@(IsActive ? Color.Primary : Color.Default)"
+        Class="@($"mf-settings-nav-item justify-start {(IsActive ? "active" : "")}")"
+        FullWidth="true"
+        OnClick="HandleClick">
+    <ChildContent>
+        <MudIcon Icon="@Icon" Size="Size.Small" Class="mr-3" />
+        <MudText>@DisplayName</MudText>
+    </ChildContent>
+</Button>
 
 @code {
     /// <summary>

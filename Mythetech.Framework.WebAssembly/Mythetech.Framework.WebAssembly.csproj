@@ -5,10 +5,12 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.WebAssembly</PackageId>
-        <Version>0.5.0</Version>
+        <Version>0.6.0</Version>
         <Authors>Mythetech</Authors>
         <Description>WebAssembly-specific components for building blazor applications</Description>
-        <PackageTags>blazor;wasm;components;ui</PackageTags>
+        <PackageTags>blazor;wasm;webassembly;components;ui;framework</PackageTags>
+        <Copyright>Copyright (c) 2026 Mythetech</Copyright>
+        <PackageReleaseNotes>See CHANGELOG.md for release notes</PackageReleaseNotes>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/mythetech/Mythetech.Framework</RepositoryUrl>
         <PackageProjectUrl>https://github.com/mythetech/Mythetech.Framework</PackageProjectUrl>

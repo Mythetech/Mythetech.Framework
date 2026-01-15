@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure.Plugins;
@@ -131,7 +132,14 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     public async Task UnloadStylesheetAsync(string href)
     {
         var id = GetAssetId(href);
-        var js = $"document.getElementById('{id}')?.remove();";
+        var safeId = JsonSerializer.Serialize(id);
+        var js = $$"""
+            (function() {
+                var id = {{safeId}};
+                var el = document.getElementById(id);
+                if (el) el.remove();
+            })();
+            """;
         await _jsRuntime.InvokeVoidAsync("eval", js);
         _loadedAssets.TryRemove(href, out _);
     }
@@ -139,14 +147,17 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     private async Task InjectInlineStyleAsync(string id, string content)
     {
         var safeId = GetAssetId(id);
-        
+        var safeLogId = JsonSerializer.Serialize(id);
+
         // Use Base64 encoding to safely transfer the CSS content.
         // This avoids all escaping issues with template literals.
         var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
-        
+
         var js = $$"""
             (function() {
-                if (document.getElementById('{{safeId}}')) return;
+                var elementId = '{{safeId}}';
+                var logId = {{safeLogId}};
+                if (document.getElementById(elementId)) return;
                 try {
                     var binary = atob('{{base64Content}}');
                     var bytes = new Uint8Array(binary.length);
@@ -155,12 +166,12 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                     }
                     var decoded = new TextDecoder('utf-8').decode(bytes);
                     var style = document.createElement('style');
-                    style.id = '{{safeId}}';
+                    style.id = elementId;
                     style.textContent = decoded;
                     document.head.appendChild(style);
-                    console.log('Plugin CSS loaded: {{id}}');
+                    console.log('Plugin CSS loaded:', logId);
                 } catch (e) {
-                    console.error('Failed to load plugin CSS {{id}}:', e);
+                    console.error('Failed to load plugin CSS:', logId, e);
                 }
             })();
             """;
@@ -173,16 +184,19 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     private async Task InjectInlineScriptAsync(string id, string content)
     {
         var safeId = GetAssetId(id);
-        
+        var safeLogId = JsonSerializer.Serialize(id);
+
         // Use Base64 encoding to safely transfer the script content.
         // This avoids all escaping issues with template literals and complex JS.
         var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
-                
+
         // The script decodes the Base64 and creates a script element with the decoded content.
         // Using a script element (not eval) ensures proper global scope execution.
         var js = $$"""
             (function() {
-                if (document.getElementById('{{safeId}}')) return;
+                var elementId = '{{safeId}}';
+                var logId = {{safeLogId}};
+                if (document.getElementById(elementId)) return;
                 try {
                     var binary = atob('{{base64Content}}');
                     var bytes = new Uint8Array(binary.length);
@@ -191,12 +205,12 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                     }
                     var decoded = new TextDecoder('utf-8').decode(bytes);
                     var script = document.createElement('script');
-                    script.id = '{{safeId}}';
+                    script.id = elementId;
                     script.textContent = decoded;
                     document.head.appendChild(script);
-                    console.log('Plugin asset loaded: {{id}}');
+                    console.log('Plugin asset loaded:', logId);
                 } catch (e) {
-                    console.error('Failed to load plugin asset {{id}}:', e);
+                    console.error('Failed to load plugin asset:', logId, e);
                 }
             })();
             """;
@@ -216,14 +230,22 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
 
     private async Task LoadStylesheetViaLinkAsync(string href, string? integrity, string? crossOrigin)
     {
+        // Use JSON serialization to safely escape values for JavaScript
+        var safeHref = JsonSerializer.Serialize(href);
+        var safeIntegrity = integrity != null ? JsonSerializer.Serialize(integrity) : "null";
+        var safeCrossOrigin = crossOrigin != null ? JsonSerializer.Serialize(crossOrigin) : "null";
+
         var js = $$"""
             (function() {
-                if (document.querySelector('link[href="{{href}}"]')) return;
+                var href = {{safeHref}};
+                if (document.querySelector('link[href="' + href + '"]')) return;
                 var link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = '{{href}}';
-                {{(integrity != null ? $"link.integrity = '{integrity}';" : "")}}
-                {{(crossOrigin != null ? $"link.crossOrigin = '{crossOrigin}';" : "")}}
+                link.href = href;
+                var integrity = {{safeIntegrity}};
+                var crossOrigin = {{safeCrossOrigin}};
+                if (integrity) link.integrity = integrity;
+                if (crossOrigin) link.crossOrigin = crossOrigin;
                 document.head.appendChild(link);
             })();
             """;
@@ -234,14 +256,22 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
 
     private async Task LoadScriptViaSrcAsync(string src, string? integrity, string? crossOrigin)
     {
+        // Use JSON serialization to safely escape values for JavaScript
+        var safeSrc = JsonSerializer.Serialize(src);
+        var safeIntegrity = integrity != null ? JsonSerializer.Serialize(integrity) : "null";
+        var safeCrossOrigin = crossOrigin != null ? JsonSerializer.Serialize(crossOrigin) : "null";
+
         var js = $$"""
             new Promise((resolve, reject) => {
-                if (document.querySelector('script[src="{{src}}"]')) { resolve(); return; }
+                var src = {{safeSrc}};
+                if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
                 var script = document.createElement('script');
-                script.src = '{{src}}';
+                script.src = src;
                 script.charset = 'utf-8';
-                {{(integrity != null ? $"script.integrity = '{integrity}';" : "")}}
-                {{(crossOrigin != null ? $"script.crossOrigin = '{crossOrigin}';" : "")}}
+                var integrity = {{safeIntegrity}};
+                var crossOrigin = {{safeCrossOrigin}};
+                if (integrity) script.integrity = integrity;
+                if (crossOrigin) script.crossOrigin = crossOrigin;
                 script.onload = resolve;
                 script.onerror = reject;
                 document.head.appendChild(script);
