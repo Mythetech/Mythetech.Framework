@@ -1,0 +1,195 @@
+@using System.Reflection
+@using Mythetech.Framework.Components.Settings.Editors
+@using Mythetech.Framework.Infrastructure.Settings
+@using MudBlazor
+@attribute [Stories("Components/Settings/Editors")]
+
+<Stories TComponent="BoolSettingEditor">
+
+    <DefaultStory Name="Bool Editor" TComponent="BoolSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+                var property = typeof(DemoSettings).GetProperty(nameof(DemoSettings.EnableFeature))!;
+                var attr = property.GetCustomAttribute<SettingAttribute>()!;
+            }
+            <div style="padding: 16px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@attr.Label</MudText>
+                <MudText Typo="Typo.caption" Class="mb-4">@attr.Description</MudText>
+                <BoolSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="Int Editor (Numeric)" TComponent="IntSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+                var property = typeof(DemoSettings).GetProperty(nameof(DemoSettings.MaxItems))!;
+                var attr = property.GetCustomAttribute<SettingAttribute>()!;
+            }
+            <div style="padding: 16px; max-width: 300px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@attr.Label</MudText>
+                <MudText Typo="Typo.caption" Class="mb-4">@attr.Description</MudText>
+                <IntSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="Int Editor (Slider)" TComponent="IntSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+                var property = typeof(DemoSettings).GetProperty(nameof(DemoSettings.Volume))!;
+                var attr = property.GetCustomAttribute<SettingAttribute>()!;
+            }
+            <div style="padding: 16px; max-width: 400px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@attr.Label</MudText>
+                <IntSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="Double Editor (Slider)" TComponent="DoubleSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+                var property = typeof(DemoSettings).GetProperty(nameof(DemoSettings.Opacity))!;
+                var attr = property.GetCustomAttribute<SettingAttribute>()!;
+            }
+            <div style="padding: 16px; max-width: 400px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@attr.Label</MudText>
+                <DoubleSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="String Editor (Text)" TComponent="StringSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+                var property = typeof(DemoSettings).GetProperty(nameof(DemoSettings.Username))!;
+                var attr = property.GetCustomAttribute<SettingAttribute>()!;
+            }
+            <div style="padding: 16px; max-width: 300px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@attr.Label</MudText>
+                <MudText Typo="Typo.caption" Class="mb-4">@attr.Description</MudText>
+                <StringSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="String Editor (Select)" TComponent="StringSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+                var property = typeof(DemoSettings).GetProperty(nameof(DemoSettings.Theme))!;
+                var attr = property.GetCustomAttribute<SettingAttribute>()!;
+            }
+            <div style="padding: 16px; max-width: 300px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@attr.Label</MudText>
+                <StringSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="Enum Editor" TComponent="EnumSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+                var property = typeof(DemoSettings).GetProperty(nameof(DemoSettings.LogLevel))!;
+                var attr = property.GetCustomAttribute<SettingAttribute>()!;
+            }
+            <div style="padding: 16px; max-width: 300px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@attr.Label</MudText>
+                <EnumSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="All Editors Combined" TComponent="BoolSettingEditor">
+        <Template>
+            @{
+                var settings = new DemoSettings();
+            }
+            <MudPaper Class="pa-4" Style="max-width: 500px;">
+                <MudText Typo="Typo.h6" Class="mb-4">Demo Settings</MudText>
+
+                @foreach (var property in typeof(DemoSettings).GetProperties()
+                    .Where(p => p.GetCustomAttribute<SettingAttribute>() != null))
+                {
+                    var attr = property.GetCustomAttribute<SettingAttribute>()!;
+                    <div class="mb-4">
+                        <MudText Typo="Typo.subtitle2">@attr.Label</MudText>
+                        @if (!string.IsNullOrEmpty(attr.Description))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@attr.Description</MudText>
+                        }
+                        <div class="mt-2">
+                            @if (property.PropertyType == typeof(bool))
+                            {
+                                <BoolSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+                            }
+                            else if (property.PropertyType == typeof(int))
+                            {
+                                <IntSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+                            }
+                            else if (property.PropertyType == typeof(double))
+                            {
+                                <DoubleSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+                            }
+                            else if (property.PropertyType == typeof(string))
+                            {
+                                <StringSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+                            }
+                            else if (property.PropertyType.IsEnum)
+                            {
+                                <EnumSettingEditor Settings="@settings" Property="@property" Attribute="@attr" />
+                            }
+                        </div>
+                    </div>
+                    <MudDivider Class="my-3" />
+                }
+            </MudPaper>
+        </Template>
+    </DefaultStory>
+
+</Stories>
+
+@code {
+    private class DemoSettings : SettingsBase
+    {
+        public override string SettingsId => "demo";
+        public override string DisplayName => "Demo Settings";
+        public override string Icon => Icons.Material.Filled.Settings;
+
+        [Setting(Label = "Enable Feature", Description = "Toggle this feature on or off")]
+        public bool EnableFeature { get; set; } = true;
+
+        [Setting(Label = "Max Items", Description = "Maximum number of items to display")]
+        public int MaxItems { get; set; } = 100;
+
+        [Setting(Label = "Volume", Min = 0, Max = 100, Step = 5)]
+        public int Volume { get; set; } = 50;
+
+        [Setting(Label = "Opacity", Min = 0.0, Max = 1.0, Step = 0.1)]
+        public double Opacity { get; set; } = 0.8;
+
+        [Setting(Label = "Username", Description = "Your display name")]
+        public string Username { get; set; } = "User";
+
+        [Setting(Label = "Theme", Options = "Light,Dark,System")]
+        public string Theme { get; set; } = "System";
+
+        [Setting(Label = "Log Level")]
+        public DemoLogLevel LogLevel { get; set; } = DemoLogLevel.Information;
+    }
+
+    private enum DemoLogLevel
+    {
+        Debug,
+        Information,
+        Warning,
+        Error
+    }
+}

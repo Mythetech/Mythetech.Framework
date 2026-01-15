@@ -7,6 +7,7 @@
 @using SampleHost.Shared
 @using SampleHost.Shared.Settings
 @inherits LayoutComponentBase
+@inject IServiceProvider ServiceProvider
 @inject PluginState PluginState
 @inject IPluginAssetLoader AssetLoader
 @inject IShowFileService ShowFileService
@@ -18,24 +19,24 @@
     <MudAppBar Elevation="1">
         <MudText Typo="Typo.h5" Class="ml-3">@_appSettings.AppTitle</MudText>
         <MudSpacer />
-        
+
         <MudMenu Label="File" ListClass="pa-1" Class="rounded" ActivationEvent="MouseEvent.MouseOver" Dense="true">
             <MudMenuItem OnClick="@OpenPluginDirectory" Disabled="@(string.IsNullOrEmpty(PluginState.PluginDirectory))">
                 Open Plugin Directory
             </MudMenuItem>
         </MudMenu>
-        
+
         <!-- Standard Plugin Menu with nested plugin actions -->
         <StandardPluginMenu MenuText="Plugins"
                            ListClass="pa-1"
                            ItemClass="rounded"
                            ButtonClass="text-transform-none" />
-        
+
         <ToolsMenu />
 
         <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
     </MudAppBar>
-    
+
     <MudDrawer @bind-Open="_drawerOpen" Elevation="2" Variant="DrawerVariant.Mini" OpenMiniOnHover="true">
         <MudDrawerHeader>
             <MudText Typo="Typo.h6">Plugins</MudText>
@@ -45,17 +46,17 @@
             <MudNavLink Href="/plugins" Icon="@Icons.Material.Filled.Extension">Manage Plugins</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
-    
+
     <MudMainContent Class="d-flex" Style="height: calc(100vh - 64px);">
         <div class="flex-grow-1 pa-4" style="overflow: auto;">
             @Body
         </div>
-        
-        <!-- Plugin context panels rendered as a side bar (only after assets are loaded) -->
-        @if (_appSettings.ShowContextPanel && _assetsLoaded && PluginState.EnabledContextPanelComponentsMetadata.Any())
+
+        <!-- Plugin context panels rendered as a side bar -->
+        @if (_appSettings.ShowContextPanel && PluginState.PluginsLoaded && PluginState.EnabledContextPanelComponentsMetadata.Any())
         {
             <MudPaper Width="@($"{_appSettings.ContextPanelWidth}px")" Elevation="0" Class="border-l" Style="overflow: auto;">
-                @foreach (var panel in PluginState.EnabledContextPanelComponentsMetadata.OrderBy(p => p.Order))
+                @foreach (var panel in PluginState.EnabledContextPanelComponentsMetadata.ToList().OrderBy(p => p.Order))
                 {
                     <DynamicComponent Type="@panel.ComponentType" />
                     <MudDivider />
@@ -67,7 +68,7 @@
 
 @code {
     private bool _drawerOpen = true;
-    private bool _assetsLoaded = false;
+    private bool _pluginLoadingStarted;
     private SampleAppSettings _appSettings = new();
 
     protected override void OnInitialized()
@@ -86,26 +87,56 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender || !_assetsLoaded)
+        if (firstRender && !_pluginLoadingStarted && !PluginState.PluginsLoaded)
         {
+            _pluginLoadingStarted = true;
+            await InitializePluginsAsync();
+        }
+    }
+
+    private async Task InitializePluginsAsync()
+    {
+        try
+        {
+            await ServiceProvider.UsePluginsFromSettingsAsync();
+            await PluginState.LoadStateAsync();
             await LoadAllPluginAssetsAsync();
-            _assetsLoaded = true;
-            StateHasChanged();
+        }
+        catch
+        {
+            // Silently handle errors - plugin loading is optional
         }
     }
 
     private async Task LoadAllPluginAssetsAsync()
     {
-        foreach (var plugin in PluginState.EnabledPlugins)
+        // Take a snapshot to avoid collection modification during enumeration
+        var plugins = PluginState.EnabledPlugins.ToList();
+        foreach (var plugin in plugins)
         {
-            await AssetLoader.LoadPluginAssetsAsync(plugin);
+            try
+            {
+                await AssetLoader.LoadPluginAssetsAsync(plugin);
+            }
+            catch
+            {
+                // Continue loading other plugins even if one fails
+            }
         }
     }
 
-    private void OnPluginStateChanged(object? sender, EventArgs e)
+    private async void OnPluginStateChanged(object? sender, EventArgs e)
     {
-        _assetsLoaded = false;
-        InvokeAsync(StateHasChanged);
+        // Reload assets when plugin state changes (e.g., plugin enabled/disabled)
+        try
+        {
+            await LoadAllPluginAssetsAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+            // Silently handle errors
+        }
     }
 
     private async Task OpenPluginDirectory()

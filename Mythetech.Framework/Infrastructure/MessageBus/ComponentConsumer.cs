@@ -24,8 +24,8 @@ public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMe
     /// <inheritdoc />
     public async Task Consume(TMessage message)
     {
-        var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token)); 
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
     }
     
     /// <summary>
