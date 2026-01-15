@@ -1,5 +1,6 @@
 using Bunit;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using MudBlazor.Services;
 using Mythetech.Framework.Components.Buttons;
@@ -34,7 +35,7 @@ public class ButtonTests : TestContext
         var clicked = false;
         var cut = RenderComponent<Button>(parameters => parameters
             .Add(p => p.Text, "Click Me")
-            .Add(p => p.OnClick, EventCallback.Factory.Create(this, () => clicked = true)));
+            .Add(p => p.OnClick, EventCallback.Factory.Create<MouseEventArgs>(this, _ => clicked = true)));
 
         // Act
         cut.Find("button").Click();

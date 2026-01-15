@@ -33,7 +33,7 @@ public class HttpMcpTransport : IMcpTransport
     // Session management per MCP spec
     private string? _sessionId;
     private bool _initialized;
-    private readonly object _sessionLock = new();
+    private readonly Lock _sessionLock = new();
 
     private Task? _listenerTask;
     private bool _disposed;
@@ -169,10 +169,18 @@ public class HttpMcpTransport : IMcpTransport
             // Session validation for non-POST methods
             // POST requests handle session validation after parsing the body
             // to allow initialize requests to create new sessions
-            if (request.HttpMethod != "POST" && _initialized && _sessionId != null)
+            string? currentSessionId;
+            bool isInitialized;
+            lock (_sessionLock)
+            {
+                currentSessionId = _sessionId;
+                isInitialized = _initialized;
+            }
+
+            if (request.HttpMethod != "POST" && isInitialized && currentSessionId != null)
             {
                 var clientSessionId = request.Headers["Mcp-Session-Id"];
-                if (clientSessionId != _sessionId)
+                if (clientSessionId != currentSessionId)
                 {
                     _logger?.LogWarning("Invalid or missing session ID");
                     response.StatusCode = 400;
@@ -203,8 +211,11 @@ public class HttpMcpTransport : IMcpTransport
             else if (request.HttpMethod == "DELETE")
             {
                 // Session termination
-                _sessionId = null;
-                _initialized = false;
+                lock (_sessionLock)
+                {
+                    _sessionId = null;
+                    _initialized = false;
+                }
                 response.StatusCode = 204;
                 response.Close();
             }
@@ -231,7 +242,10 @@ public class HttpMcpTransport : IMcpTransport
                 response.StatusCode = 500;
                 response.Close();
             }
-            catch { /* ignore close errors */ }
+            catch (Exception closeEx)
+            {
+                _logger?.LogDebug(closeEx, "Failed to close response after error");
+            }
         }
     }
 
@@ -273,12 +287,20 @@ public class HttpMcpTransport : IMcpTransport
 
             // Session validation for POST requests
             // Allow initialize requests to create a new session even if one exists
-            if (_initialized && _sessionId != null)
+            string? currentSessionId;
+            bool isCurrentlyInitialized;
+            lock (_sessionLock)
+            {
+                currentSessionId = _sessionId;
+                isCurrentlyInitialized = _initialized;
+            }
+
+            if (isCurrentlyInitialized && currentSessionId != null)
             {
                 var clientSessionId = request.Headers["Mcp-Session-Id"];
                 var isInitializeRequest = jsonRpcRequest.Method == "initialize";
 
-                if (clientSessionId != _sessionId)
+                if (clientSessionId != currentSessionId)
                 {
                     if (isInitializeRequest && string.IsNullOrEmpty(clientSessionId))
                     {
@@ -473,7 +495,10 @@ public class HttpMcpTransport : IMcpTransport
             _listener.Close();
             _listener = null;
         }
-        catch { /* ignore close errors */ }
+        catch (Exception ex)
+        {
+            _logger?.LogDebug(ex, "Error closing HTTP listener during stop");
+        }
 
         if (_listenerTask != null)
         {
@@ -481,15 +506,21 @@ public class HttpMcpTransport : IMcpTransport
             {
                 await _listenerTask.WaitAsync(TimeSpan.FromSeconds(2));
             }
-            catch { /* ignore timeout */ }
+            catch (Exception ex)
+            {
+                _logger?.LogDebug(ex, "Timeout waiting for listener task during stop");
+            }
             _listenerTask = null;
         }
 
         // Reset state for restart
         Endpoint = null;
         ActualPort = null;
-        _sessionId = null;
-        _initialized = false;
+        lock (_sessionLock)
+        {
+            _sessionId = null;
+            _initialized = false;
+        }
 
         _logger?.LogInformation("MCP HTTP transport stopped");
     }
@@ -515,7 +546,10 @@ public class HttpMcpTransport : IMcpTransport
             _listener?.Stop();
             _listener?.Close();
         }
-        catch { /* ignore close errors */ }
+        catch (Exception ex)
+        {
+            _logger?.LogDebug(ex, "Error closing HTTP listener during dispose");
+        }
 
         if (_listenerTask != null)
         {
@@ -523,7 +557,10 @@ public class HttpMcpTransport : IMcpTransport
             {
                 await _listenerTask.WaitAsync(TimeSpan.FromSeconds(2));
             }
-            catch { /* ignore timeout */ }
+            catch (Exception ex)
+            {
+                _logger?.LogDebug(ex, "Timeout waiting for listener task during dispose");
+            }
         }
 
         _cts.Dispose();

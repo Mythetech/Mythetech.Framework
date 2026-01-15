@@ -134,7 +134,11 @@ public class SettingsProvider : ISettingsProvider
     private static void SetPropertyWithoutNotification(SettingsBase settings, PropertyInfo property, object? value)
     {
         // Try to find and set the backing field directly
-        var backingFieldName = $"_{char.ToLowerInvariant(property.Name[0])}{property.Name[1..]}";
+        // Guard against single-character property names (edge case but possible)
+        var backingFieldName = property.Name.Length > 1
+            ? $"_{char.ToLowerInvariant(property.Name[0])}{property.Name[1..]}"
+            : $"_{char.ToLowerInvariant(property.Name[0])}";
+
         var backingField = settings.GetType().GetField(backingFieldName,
             BindingFlags.NonPublic | BindingFlags.Instance);
 

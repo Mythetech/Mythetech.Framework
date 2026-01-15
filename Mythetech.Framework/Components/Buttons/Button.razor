@@ -1,36 +1,30 @@
 @using MudBlazor
 @using Mythetech.Framework.Enums
+@namespace Mythetech.Framework.Components.Buttons
 @inherits MudComponentBase
 
-<MudButton Class="@($"{Roundedness.Class()} {Class}")" Style="@Style" Variant="@Variant" Color="@Color" Ripple="false" OnClick="@OnClick">
-    @Text
+<MudButton Class="@CombinedClass"
+           Style="@Style"
+           Variant="@Variant"
+           Color="@Color"
+           Ripple="false"
+           StartIcon="@StartIcon"
+           EndIcon="@EndIcon"
+           IconSize="@IconSize"
+           IconColor="@IconColor"
+           Size="@Size"
+           Disabled="@Disabled"
+           FullWidth="@FullWidth"
+           ButtonType="@ButtonType"
+           Href="@Href"
+           Target="@Target"
+           OnClick="@OnClick">
+    @if (ChildContent != null)
+    {
+        @ChildContent
+    }
+    else
+    {
+        @Text
+    }
 </MudButton>
-
-
-@code {
-    /// <summary>
-    /// Text to display
-    /// </summary>
-    [Parameter]
-    public string? Text { get; set; }
-
-    /// <summary>
-    /// Variant of the Button with default
-    /// </summary>
-    [Parameter] public Variant Variant { get; set; } = Variant.Filled;
-
-    /// <summary>
-    /// Color theme of the Button with default
-    /// </summary>
-    [Parameter] public Color Color { get; set; } = Color.Primary;
-
-    /// <summary>
-    /// Roundedness of the Button with default
-    /// </summary>
-    [Parameter] public Roundedness Roundedness { get; set; } = Roundedness.Large;
-
-    /// <summary>
-    /// Callback invoked when the button is clicked
-    /// </summary>
-    [Parameter] public EventCallback OnClick { get; set; } = default!;
-}

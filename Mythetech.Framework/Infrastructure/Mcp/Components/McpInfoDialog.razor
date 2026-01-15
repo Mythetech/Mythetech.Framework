@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Options
 @using Mythetech.Framework.Infrastructure.Mcp.Server
+@using Mythetech.Framework.Components.Switch
+@using Mythetech.Framework.Components.Buttons
 @inject McpServerState McpState
 @inject IOptions<McpServerOptions> Options
 @implements IDisposable
@@ -80,7 +82,7 @@
                                     </MudText>
                                 }
                             </MudStack>
-                            <MudSwitch T="bool"
+                            <Switch T="bool"
                                        Value="@McpState.IsToolEnabled(tool.Name)"
                                        ValueChanged="@(async v => await McpState.SetToolEnabledAsync(tool.Name, v))"
                                        Color="Color.Primary"
@@ -92,7 +94,7 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+        <Button Text="Close" OnClick="Close" Variant="Variant.Text" />
     </DialogActions>
 </MudDialog>
 
