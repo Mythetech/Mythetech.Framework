@@ -69,27 +69,8 @@ class Program
         app.Services.RegisterSettings<PluginSettings>();
         app.Services.RegisterSettings<McpSettings>();
 
-        var pluginDir = Path.Combine(AppContext.BaseDirectory, "plugins");
-
-        if (Directory.Exists(pluginDir))
-        {
-            var rootDlls = Directory.GetFiles(pluginDir, "*.dll");
-            Console.WriteLine($"Root DLLs: {rootDlls.Length}");
-            foreach (var dll in rootDlls)
-            {
-                Console.WriteLine($"  - {Path.GetFileName(dll)}");
-            }
-
-            var subdirs = Directory.GetDirectories(pluginDir);
-            Console.WriteLine($"Plugin folders: {subdirs.Length}");
-            foreach (var subdir in subdirs)
-            {
-                var subDlls = Directory.GetFiles(subdir, "*.dll");
-                Console.WriteLine($"  [{Path.GetFileName(subdir)}] - {subDlls.Length} DLLs");
-            }
-        }
-
-        app.Services.UsePlugins(pluginDir);
+        // Plugin loading is deferred to MainLayout.OnAfterRenderAsync
+        // This allows custom plugin directory setting to take effect
 
         app.MainWindow
             .SetTitle("Sample Host (Desktop)")

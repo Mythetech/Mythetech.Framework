@@ -1,5 +1,6 @@
 @using MudBlazor
 @using Mythetech.Framework.Components.Badge
+@using Mythetech.Framework.Components.Buttons
 @inject ILinkOpenService? LinkOpenService
 
 <MudDialog>
@@ -101,7 +102,7 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close">Close</MudButton>
+        <Button Text="Close" OnClick="Close" Variant="Variant.Text" />
     </DialogActions>
 </MudDialog>
 

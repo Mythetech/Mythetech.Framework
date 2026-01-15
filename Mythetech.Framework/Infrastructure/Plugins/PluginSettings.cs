@@ -41,4 +41,15 @@ public class PluginSettings : SettingsBase
         Group = "Behavior",
         Order = 20)]
     public bool AutoEnablePlugins { get; set; } = true;
+
+    /// <summary>
+    /// Custom directory to load plugins from.
+    /// When empty, uses the default location relative to app base directory.
+    /// </summary>
+    [Setting(
+        Label = "Custom Plugin Directory",
+        Description = "Override the default plugin directory. Leave empty to use the default location. Requires app restart to take effect.",
+        Group = "Advanced",
+        Order = 100)]
+    public string CustomPluginDirectory { get; set; } = string.Empty;
 }

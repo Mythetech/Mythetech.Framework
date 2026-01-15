@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Infrastructure.Mcp.Messages
+@using Mythetech.Framework.Components.Buttons
 @inject McpServerState McpState
 @inject IMessageBus MessageBus
 @inject IDialogService DialogService
@@ -13,13 +14,15 @@
          Dense="@Dense"
          ListClass="@ListClass">
     <ActivatorContent>
-        <MudButton Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass">
-            @MenuText
-            @if (McpState.IsRunning)
-            {
-                <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="font-size: 10px;" />
-            }
-        </MudButton>
+        <Button Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass">
+            <ChildContent>
+                @MenuText
+                @if (McpState.IsRunning)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="font-size: 10px;" />
+                }
+            </ChildContent>
+        </Button>
     </ActivatorContent>
     <ChildContent>
         <MudMenuItem Class="@ItemClass"

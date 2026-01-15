@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using Microsoft.JSInterop;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
@@ -25,14 +26,22 @@ public class JsPluginAssetLoader : IPluginAssetLoader
         if (_loadedAssets.ContainsKey(href))
             return;
 
+        // Use JSON serialization to safely escape values for JavaScript
+        var safeHref = JsonSerializer.Serialize(href);
+        var safeIntegrity = integrity != null ? JsonSerializer.Serialize(integrity) : "null";
+        var safeCrossOrigin = crossOrigin != null ? JsonSerializer.Serialize(crossOrigin) : "null";
+
         var js = $$"""
             (function() {
-                if (document.querySelector('link[href="{{href}}"]')) return;
+                var href = {{safeHref}};
+                if (document.querySelector('link[href="' + href + '"]')) return;
                 var link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = '{{href}}';
-                {{(integrity != null ? $"link.integrity = '{integrity}';" : "")}}
-                {{(crossOrigin != null ? $"link.crossOrigin = '{crossOrigin}';" : "")}}
+                link.href = href;
+                var integrity = {{safeIntegrity}};
+                var crossOrigin = {{safeCrossOrigin}};
+                if (integrity) link.integrity = integrity;
+                if (crossOrigin) link.crossOrigin = crossOrigin;
                 document.head.appendChild(link);
             })();
             """;
@@ -47,14 +56,22 @@ public class JsPluginAssetLoader : IPluginAssetLoader
         if (_loadedAssets.ContainsKey(src))
             return;
 
+        // Use JSON serialization to safely escape values for JavaScript
+        var safeSrc = JsonSerializer.Serialize(src);
+        var safeIntegrity = integrity != null ? JsonSerializer.Serialize(integrity) : "null";
+        var safeCrossOrigin = crossOrigin != null ? JsonSerializer.Serialize(crossOrigin) : "null";
+
         var js = $$"""
             new Promise((resolve, reject) => {
-                if (document.querySelector('script[src="{{src}}"]')) { resolve(); return; }
+                var src = {{safeSrc}};
+                if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
                 var script = document.createElement('script');
-                script.src = '{{src}}';
+                script.src = src;
                 script.charset = 'utf-8';
-                {{(integrity != null ? $"script.integrity = '{integrity}';" : "")}}
-                {{(crossOrigin != null ? $"script.crossOrigin = '{crossOrigin}';" : "")}}
+                var integrity = {{safeIntegrity}};
+                var crossOrigin = {{safeCrossOrigin}};
+                if (integrity) script.integrity = integrity;
+                if (crossOrigin) script.crossOrigin = crossOrigin;
                 script.onload = resolve;
                 script.onerror = reject;
                 document.head.appendChild(script);
@@ -95,9 +112,13 @@ public class JsPluginAssetLoader : IPluginAssetLoader
     /// <inheritdoc />
     public async Task UnloadStylesheetAsync(string href)
     {
-        var js = $"""
-            var link = document.querySelector('link[href="{href}"]');
-            if (link) link.remove();
+        var safeHref = JsonSerializer.Serialize(href);
+        var js = $$"""
+            (function() {
+                var href = {{safeHref}};
+                var link = document.querySelector('link[href="' + href + '"]');
+                if (link) link.remove();
+            })();
             """;
 
         await _jsRuntime.InvokeVoidAsync("eval", js);

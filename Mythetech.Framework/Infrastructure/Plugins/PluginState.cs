@@ -1,3 +1,7 @@
+using Microsoft.Extensions.Logging;
+using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Plugins.Events;
+
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
 /// <summary>
@@ -8,8 +12,11 @@ public class PluginState : IDisposable
 {
     private readonly List<PluginInfo> _plugins = [];
     private IPluginStateProvider? _stateProvider;
+    private IMessageBus? _messageBus;
+    private ILogger<PluginState>? _logger;
     private bool _disposed;
     private bool _pluginsActive = true;
+    private bool _pluginsLoaded;
     
     /// <summary>
     /// Raised before a plugin is enabled. Handlers can set Cancel = true to prevent enabling.
@@ -92,6 +99,16 @@ public class PluginState : IDisposable
     /// Set when plugins are loaded via UsePlugins().
     /// </summary>
     public string? PluginDirectory { get; private set; }
+
+    /// <summary>
+    /// Whether plugins have been loaded. Used to prevent double-loading
+    /// when using deferred plugin loading.
+    /// </summary>
+    public bool PluginsLoaded
+    {
+        get => _pluginsLoaded;
+        internal set => _pluginsLoaded = value;
+    }
     
     /// <summary>
     /// Register a newly loaded plugin
@@ -100,7 +117,7 @@ public class PluginState : IDisposable
     public void RegisterPlugin(PluginInfo plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
-        
+
         var existing = GetPlugin(plugin.Manifest.Id);
         if (existing is not null)
         {
@@ -109,7 +126,7 @@ public class PluginState : IDisposable
                 throw new InvalidOperationException(
                     $"Plugin with ID '{plugin.Manifest.Id}' version {plugin.Manifest.Version} is already registered");
             }
-            
+
             if (plugin.IsNewerThan(existing.Manifest.Version))
             {
                 var wasEnabled = existing.IsEnabled;
@@ -117,15 +134,17 @@ public class PluginState : IDisposable
                 plugin.IsEnabled = wasEnabled;
                 _plugins.Add(plugin);
                 NotifyStateChanged();
+                _ = PublishPluginLoadedAsync(plugin);
                 return;
             }
-            
+
             throw new InvalidOperationException(
                 $"Cannot downgrade plugin '{plugin.Manifest.Id}' from version {existing.Manifest.Version} to {plugin.Manifest.Version}");
         }
-        
+
         _plugins.Add(plugin);
         NotifyStateChanged();
+        _ = PublishPluginLoadedAsync(plugin);
     }
     
     /// <summary>
@@ -145,6 +164,9 @@ public class PluginState : IDisposable
         plugin.IsEnabled = true;
         PluginEnabled?.Invoke(this, args);
         NotifyStateChanged();
+
+        // Publish MessageBus event
+        _ = PublishPluginEnabledAsync(plugin);
 
         // Persist state asynchronously (fire and forget)
         _ = PersistStateAsync();
@@ -169,6 +191,9 @@ public class PluginState : IDisposable
         plugin.IsEnabled = false;
         PluginDisabled?.Invoke(this, args);
         NotifyStateChanged();
+
+        // Publish MessageBus event
+        _ = PublishPluginDisabledAsync(plugin);
 
         // Persist state asynchronously (fire and forget)
         _ = PersistStateAsync();
@@ -216,15 +241,16 @@ public class PluginState : IDisposable
     public bool RegisterOrUpgradePlugin(PluginInfo plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
-        
+
         var existing = GetPlugin(plugin.Manifest.Id);
         if (existing is null)
         {
             _plugins.Add(plugin);
             NotifyStateChanged();
+            _ = PublishPluginLoadedAsync(plugin);
             return true;
         }
-        
+
         if (plugin.IsNewerThan(existing.Manifest.Version))
         {
             var wasEnabled = existing.IsEnabled;
@@ -232,9 +258,10 @@ public class PluginState : IDisposable
             plugin.IsEnabled = wasEnabled;
             _plugins.Add(plugin);
             NotifyStateChanged();
+            _ = PublishPluginLoadedAsync(plugin);
             return true;
         }
-        
+
         return false;
     }
     
@@ -276,6 +303,24 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Sets the message bus for publishing plugin lifecycle events.
+    /// </summary>
+    /// <param name="messageBus">The message bus to use.</param>
+    public void SetMessageBus(IMessageBus? messageBus)
+    {
+        _messageBus = messageBus;
+    }
+
+    /// <summary>
+    /// Sets the logger for diagnostic output.
+    /// </summary>
+    /// <param name="logger">The logger to use.</param>
+    public void SetLogger(ILogger<PluginState>? logger)
+    {
+        _logger = logger;
+    }
+
+    /// <summary>
     /// Loads persisted plugin states from the state provider.
     /// Should be called after plugins are loaded.
     /// </summary>
@@ -295,9 +340,9 @@ public class PluginState : IDisposable
             }
             NotifyStateChanged();
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently handle errors - state persistence is optional
+            _logger?.LogDebug(ex, "Failed to load plugin state - state persistence is optional");
         }
     }
 
@@ -317,9 +362,9 @@ public class PluginState : IDisposable
 
             await _stateProvider.SaveDisabledPluginsAsync(disabledPlugins);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently handle errors - state persistence is optional
+            _logger?.LogDebug(ex, "Failed to persist plugin state - state persistence is optional");
         }
     }
 
@@ -329,6 +374,45 @@ public class PluginState : IDisposable
     public void NotifyStateChanged()
     {
         StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task PublishPluginLoadedAsync(PluginInfo plugin)
+    {
+        if (_messageBus == null) return;
+        try
+        {
+            await _messageBus.PublishAsync(new PluginLoaded(plugin));
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogDebug(ex, "Failed to publish PluginLoaded event for {PluginId}", plugin.Manifest.Id);
+        }
+    }
+
+    private async Task PublishPluginEnabledAsync(PluginInfo plugin)
+    {
+        if (_messageBus == null) return;
+        try
+        {
+            await _messageBus.PublishAsync(new Events.PluginEnabled(plugin));
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogDebug(ex, "Failed to publish PluginEnabled event for {PluginId}", plugin.Manifest.Id);
+        }
+    }
+
+    private async Task PublishPluginDisabledAsync(PluginInfo plugin)
+    {
+        if (_messageBus == null) return;
+        try
+        {
+            await _messageBus.PublishAsync(new Events.PluginDisabled(plugin));
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogDebug(ex, "Failed to publish PluginDisabled event for {PluginId}", plugin.Manifest.Id);
+        }
     }
 
     /// <inheritdoc />

@@ -5,10 +5,12 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.Desktop</PackageId>
-        <Version>0.5.7</Version>
+        <Version>0.6.0</Version>
         <Authors>Mythetech</Authors>
         <Description>Desktop-specific components for cross platform blazor applications</Description>
-        <PackageTags>blazor;desktop;photino;components;ui</PackageTags>
+        <PackageTags>blazor;desktop;photino;components;ui;framework;cross-platform</PackageTags>
+        <Copyright>Copyright (c) 2026 Mythetech</Copyright>
+        <PackageReleaseNotes>See CHANGELOG.md for release notes</PackageReleaseNotes>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/mythetech/Mythetech.Framework</RepositoryUrl>
         <PackageProjectUrl>https://github.com/mythetech/Mythetech.Framework</PackageProjectUrl>
