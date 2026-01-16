@@ -1,6 +1,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
+@using Mythetech.Framework.Components.Buttons
 @inject PluginState PluginState
 @implements IDisposable
 
@@ -61,7 +62,13 @@
                         <strong>Component:</strong> @Metadata.Title
                     </MudText>
                 </MudStack>
-                
+
+                <Button Text="Reload"
+                        Variant="Variant.Text"
+                        StartIcon="@Icons.Material.Filled.Refresh"
+                        OnClick="RetryRendering"
+                        Class="mt-3" />
+
                 @if (ShowErrorDetails)
                 {
                     <MudDivider Class="my-3" />
@@ -155,7 +162,12 @@
             }
         }, TaskScheduler.Default);
     }
-    
+
+    private void RetryRendering()
+    {
+        _errorBoundary?.Recover();
+    }
+
     public void Dispose()
     {
         PluginState.StateChanged -= OnStateChanged;

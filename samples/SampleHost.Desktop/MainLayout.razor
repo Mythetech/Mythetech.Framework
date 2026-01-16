@@ -58,7 +58,9 @@
             <MudPaper Width="@($"{_appSettings.ContextPanelWidth}px")" Elevation="0" Class="border-l" Style="overflow: auto;">
                 @foreach (var panel in PluginState.EnabledContextPanelComponentsMetadata.ToList().OrderBy(p => p.Order))
                 {
-                    <DynamicComponent Type="@panel.ComponentType" />
+                    <PluginGuard PluginInfo="(PluginState.EnabledPlugins.FirstOrDefault(p => p.ContextPanelComponentsMetadata.Any(m => m.Title.Equals(panel.Title))))" Metadata="panel" ShowErrorDetails="true">
+                        <DynamicComponent Type="@panel.ComponentType" />
+                    </PluginGuard>
                     <MudDivider />
                 }
             </MudPaper>
