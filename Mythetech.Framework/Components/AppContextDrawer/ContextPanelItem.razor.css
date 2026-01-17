@@ -1,0 +1,49 @@
+.context-panel-item-wrapper {
+    position: relative;
+    display: inline-flex;
+}
+
+.context-item-active {
+    background-color: var(--mud-palette-secondary);
+    border-radius: 20%;
+}
+
+.context-panel-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.context-panel-badge--success {
+    background-color: var(--mud-palette-success);
+    box-shadow: 0 0 4px 2px var(--mud-palette-success);
+}
+
+.context-panel-badge--warning {
+    background-color: var(--mud-palette-warning);
+    box-shadow: 0 0 4px 2px var(--mud-palette-warning);
+}
+
+.context-panel-badge--error {
+    background-color: var(--mud-palette-error);
+    box-shadow: 0 0 4px 2px var(--mud-palette-error);
+}
+
+.context-panel-badge--info {
+    background-color: var(--mud-palette-info);
+    box-shadow: 0 0 4px 2px var(--mud-palette-info);
+}
+
+.context-panel-badge--primary {
+    background-color: var(--mud-palette-primary);
+    box-shadow: 0 0 4px 2px var(--mud-palette-primary);
+}
+
+.context-panel-badge--secondary {
+    background-color: var(--mud-palette-secondary);
+    box-shadow: 0 0 4px 2px var(--mud-palette-secondary);
+}
