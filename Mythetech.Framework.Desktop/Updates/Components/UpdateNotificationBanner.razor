@@ -1,0 +1,131 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Desktop.Updates.Events
+@using Mythetech.Framework.Infrastructure.MessageBus
+@namespace Mythetech.Framework.Desktop.Updates.Components
+@implements IConsumer<UpdateAvailable>
+@implements IConsumer<UpdateDownloadProgress>
+@implements IConsumer<UpdateDownloadCompleted>
+@implements IDisposable
+@inject IMessageBus MessageBus
+@inject IUpdateService UpdateService
+
+@if (_update is not null && !_dismissed)
+{
+    <MudAlert Severity="Severity.Info"
+              Dense="true"
+              Class="update-notification-banner"
+              ShowCloseIcon="true"
+              CloseIconClicked="Dismiss">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" Size="Size.Small" />
+            <MudText Typo="Typo.body2">
+                Version @_update.TargetVersion is available!
+            </MudText>
+            <MudSpacer />
+            @if (_isDownloading)
+            {
+                <MudProgressLinear Value="@_progress"
+                                   Style="width: 100px;"
+                                   Color="Color.Primary" />
+            }
+            else if (_update.IsDownloaded)
+            {
+                <Button Size="Size.Small"
+                        Color="Color.Primary"
+                        OnClick="RestartAndUpdate"
+                        Text="Restart to Update" />
+            }
+            else
+            {
+                <Button Size="Size.Small"
+                        Variant="Variant.Outlined"
+                        OnClick="DownloadUpdate"
+                        Text="Download" />
+            }
+        </MudStack>
+    </MudAlert>
+}
+
+@code {
+    private UpdateInfo? _update;
+    private bool _dismissed;
+    private bool _isDownloading;
+    private int _progress;
+
+    protected override void OnInitialized()
+    {
+        MessageBus.Subscribe<UpdateAvailable>(this);
+        MessageBus.Subscribe<UpdateDownloadProgress>(this);
+        MessageBus.Subscribe<UpdateDownloadCompleted>(this);
+
+        // Check if there's already an available update
+        if (UpdateService.AvailableUpdate is not null)
+        {
+            _update = UpdateService.AvailableUpdate;
+        }
+    }
+
+    Task IConsumer<UpdateAvailable>.Consume(UpdateAvailable message)
+    {
+        return InvokeAsync(() =>
+        {
+            _update = message.Update;
+            _dismissed = false;
+            StateHasChanged();
+        });
+    }
+
+    Task IConsumer<UpdateDownloadProgress>.Consume(UpdateDownloadProgress message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isDownloading = true;
+            _progress = message.Progress;
+            StateHasChanged();
+        });
+    }
+
+    Task IConsumer<UpdateDownloadCompleted>.Consume(UpdateDownloadCompleted message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isDownloading = false;
+            _update = message.Update;
+            StateHasChanged();
+        });
+    }
+
+    private async Task DownloadUpdate()
+    {
+        _isDownloading = true;
+        StateHasChanged();
+
+        try
+        {
+            await UpdateService.DownloadUpdateAsync();
+        }
+        catch
+        {
+            _isDownloading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RestartAndUpdate()
+    {
+        UpdateService.ApplyUpdateAndRestart();
+    }
+
+    private void Dismiss()
+    {
+        _dismissed = true;
+    }
+
+    public void Dispose()
+    {
+        MessageBus.Unsubscribe<UpdateAvailable>(this);
+        MessageBus.Unsubscribe<UpdateDownloadProgress>(this);
+        MessageBus.Unsubscribe<UpdateDownloadCompleted>(this);
+    }
+}

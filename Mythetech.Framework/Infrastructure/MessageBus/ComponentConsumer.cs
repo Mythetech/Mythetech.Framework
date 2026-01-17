@@ -42,3 +42,267 @@ public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMe
         GC.SuppressFinalize(this);
     }
 }
+
+/// <summary>
+/// Base class to simplify registering components directly to the bus for two message types
+/// </summary>
+public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable
+    where T1 : class
+    where T2 : class
+{
+    private sealed class Consumer1(ComponentConsumer<T1, T2> parent) : IConsumer<T1>
+    {
+        public Task Consume(T1 message) => parent.HandleMessage1(message);
+    }
+
+    private sealed class Consumer2(ComponentConsumer<T1, T2> parent) : IConsumer<T2>
+    {
+        public Task Consume(T2 message) => parent.HandleMessage2(message);
+    }
+
+    private IConsumer<T1>? _consumer1;
+    private IConsumer<T2>? _consumer2;
+
+    /// <summary>
+    /// Message bus abstraction
+    /// </summary>
+    [Inject]
+    protected IMessageBus MessageBus { get; set; } = default!;
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _consumer1 = new Consumer1(this);
+        _consumer2 = new Consumer2(this);
+        MessageBus.Subscribe(_consumer1);
+        MessageBus.Subscribe(_consumer2);
+    }
+
+    private async Task HandleMessage1(T1 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    private async Task HandleMessage2(T2 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    /// <summary>
+    /// Consume the first message type
+    /// </summary>
+    protected abstract Task Consume(T1 message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Consume the second message type
+    /// </summary>
+    protected abstract Task Consume(T2 message, CancellationToken cancellationToken);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+        if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+        GC.SuppressFinalize(this);
+    }
+}
+
+/// <summary>
+/// Base class to simplify registering components directly to the bus for three message types
+/// </summary>
+public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
+    where T1 : class
+    where T2 : class
+    where T3 : class
+{
+    private sealed class Consumer1(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T1>
+    {
+        public Task Consume(T1 message) => parent.HandleMessage1(message);
+    }
+
+    private sealed class Consumer2(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T2>
+    {
+        public Task Consume(T2 message) => parent.HandleMessage2(message);
+    }
+
+    private sealed class Consumer3(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T3>
+    {
+        public Task Consume(T3 message) => parent.HandleMessage3(message);
+    }
+
+    private IConsumer<T1>? _consumer1;
+    private IConsumer<T2>? _consumer2;
+    private IConsumer<T3>? _consumer3;
+
+    /// <summary>
+    /// Message bus abstraction
+    /// </summary>
+    [Inject]
+    protected IMessageBus MessageBus { get; set; } = default!;
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _consumer1 = new Consumer1(this);
+        _consumer2 = new Consumer2(this);
+        _consumer3 = new Consumer3(this);
+        MessageBus.Subscribe(_consumer1);
+        MessageBus.Subscribe(_consumer2);
+        MessageBus.Subscribe(_consumer3);
+    }
+
+    private async Task HandleMessage1(T1 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    private async Task HandleMessage2(T2 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    private async Task HandleMessage3(T3 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    /// <summary>
+    /// Consume the first message type
+    /// </summary>
+    protected abstract Task Consume(T1 message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Consume the second message type
+    /// </summary>
+    protected abstract Task Consume(T2 message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Consume the third message type
+    /// </summary>
+    protected abstract Task Consume(T3 message, CancellationToken cancellationToken);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+        if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+        if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
+        GC.SuppressFinalize(this);
+    }
+}
+
+/// <summary>
+/// Base class to simplify registering components directly to the bus for four message types
+/// </summary>
+public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDisposable
+    where T1 : class
+    where T2 : class
+    where T3 : class
+    where T4 : class
+{
+    private sealed class Consumer1(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T1>
+    {
+        public Task Consume(T1 message) => parent.HandleMessage1(message);
+    }
+
+    private sealed class Consumer2(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T2>
+    {
+        public Task Consume(T2 message) => parent.HandleMessage2(message);
+    }
+
+    private sealed class Consumer3(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T3>
+    {
+        public Task Consume(T3 message) => parent.HandleMessage3(message);
+    }
+
+    private sealed class Consumer4(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T4>
+    {
+        public Task Consume(T4 message) => parent.HandleMessage4(message);
+    }
+
+    private IConsumer<T1>? _consumer1;
+    private IConsumer<T2>? _consumer2;
+    private IConsumer<T3>? _consumer3;
+    private IConsumer<T4>? _consumer4;
+
+    /// <summary>
+    /// Message bus abstraction
+    /// </summary>
+    [Inject]
+    protected IMessageBus MessageBus { get; set; } = default!;
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _consumer1 = new Consumer1(this);
+        _consumer2 = new Consumer2(this);
+        _consumer3 = new Consumer3(this);
+        _consumer4 = new Consumer4(this);
+        MessageBus.Subscribe(_consumer1);
+        MessageBus.Subscribe(_consumer2);
+        MessageBus.Subscribe(_consumer3);
+        MessageBus.Subscribe(_consumer4);
+    }
+
+    private async Task HandleMessage1(T1 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    private async Task HandleMessage2(T2 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    private async Task HandleMessage3(T3 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    private async Task HandleMessage4(T4 message)
+    {
+        using var cts = new CancellationTokenSource();
+        await InvokeAsync(async () => await Consume(message, cts.Token));
+    }
+
+    /// <summary>
+    /// Consume the first message type
+    /// </summary>
+    protected abstract Task Consume(T1 message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Consume the second message type
+    /// </summary>
+    protected abstract Task Consume(T2 message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Consume the third message type
+    /// </summary>
+    protected abstract Task Consume(T3 message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Consume the fourth message type
+    /// </summary>
+    protected abstract Task Consume(T4 message, CancellationToken cancellationToken);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+        if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+        if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
+        if (_consumer4 is not null) MessageBus.Unsubscribe(_consumer4);
+        GC.SuppressFinalize(this);
+    }
+}

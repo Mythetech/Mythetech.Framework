@@ -1,0 +1,104 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Desktop.Updates.Events
+@using Mythetech.Framework.Infrastructure.Commands
+@using Mythetech.Framework.Infrastructure.MessageBus
+@namespace Mythetech.Framework.Desktop.Updates.Components
+@implements IConsumer<UpdateCheckStarted>
+@implements IConsumer<UpdateCheckCompleted>
+@implements IDisposable
+@inject IUpdateService UpdateService
+@inject IMessageBus MessageBus
+
+<MudStack Spacing="2" Class="mt-4">
+    <MudDivider />
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Current version: @(UpdateService.CurrentVersion?.ToString() ?? "Unknown")
+        </MudText>
+        <MudSpacer />
+        @if (_lastChecked.HasValue)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Last checked: @_lastChecked.Value.ToLocalTime().ToString("g")
+            </MudText>
+        }
+    </MudStack>
+
+    <Button Text="Check for Updates"
+            StartIcon="@Icons.Material.Filled.Refresh"
+            Variant="Variant.Outlined"
+            Disabled="@(_isChecking || !UpdateService.IsInstalled)"
+            OnClick="CheckForUpdates" />
+
+    @if (!UpdateService.IsInstalled)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Warning">
+            Updates are only available in installed (non-development) builds.
+        </MudText>
+    }
+</MudStack>
+
+@code {
+    private bool _isChecking;
+    private DateTime? _lastChecked;
+
+    protected override void OnInitialized()
+    {
+        MessageBus.Subscribe<UpdateCheckStarted>(this);
+        MessageBus.Subscribe<UpdateCheckCompleted>(this);
+    }
+
+    Task IConsumer<UpdateCheckStarted>.Consume(UpdateCheckStarted message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isChecking = true;
+            StateHasChanged();
+        });
+    }
+
+    Task IConsumer<UpdateCheckCompleted>.Consume(UpdateCheckCompleted message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isChecking = false;
+            _lastChecked = DateTime.UtcNow;
+            StateHasChanged();
+        });
+    }
+
+    private async Task CheckForUpdates()
+    {
+        try
+        {
+            await UpdateService.CheckForUpdatesAsync();
+
+            if (UpdateService.AvailableUpdate is not null)
+            {
+                await MessageBus.PublishAsync(new AddNotification(
+                    $"Update available: v{UpdateService.AvailableUpdate.TargetVersion}",
+                    Severity.Success));
+            }
+            else
+            {
+                await MessageBus.PublishAsync(new AddNotification(
+                    "You're running the latest version!",
+                    Severity.Info));
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageBus.PublishAsync(new AddNotification(
+                $"Failed to check for updates: {ex.Message}",
+                Severity.Error));
+        }
+    }
+
+    public void Dispose()
+    {
+        MessageBus.Unsubscribe<UpdateCheckStarted>(this);
+        MessageBus.Unsubscribe<UpdateCheckCompleted>(this);
+    }
+}

@@ -151,21 +151,178 @@ public class MessageBusTests : TestContext
         var slowConsumer = new SlowConsumer(TimeSpan.FromSeconds(10));
         _bus.Subscribe(fastConsumer);
         _bus.Subscribe(slowConsumer);
-        
+
         var config = new PublishConfiguration { Timeout = TimeSpan.FromMilliseconds(100) };
-        
+
         // Act
         await _bus.PublishAsync(new TestCommand("Test"), config);
-        
+
         // Assert
         fastConsumer.ReceivedMessage.ShouldBeTrue();
         fastConsumer.CompletedWithoutCancellation.ShouldBeTrue();
         slowConsumer.ReceivedMessage.ShouldBeTrue();
         slowConsumer.CompletedWithoutCancellation.ShouldBeFalse();
     }
+
+    #region ComponentConsumer<T1, T2> Tests
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2> receives first message type")]
+    public async Task DualConsumer_ReceivesFirstMessageType()
+    {
+        // Arrange
+        var cut = RenderComponent<TestDualConsumer>();
+
+        // Act
+        await _bus.PublishAsync(new TestCommand("Hello"));
+
+        // Assert
+        cut.Instance.ReceivedText.ShouldBe("Hello");
+        cut.Instance.ReceivedValue.ShouldBeNull();
+    }
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2> receives second message type")]
+    public async Task DualConsumer_ReceivesSecondMessageType()
+    {
+        // Arrange
+        var cut = RenderComponent<TestDualConsumer>();
+
+        // Act
+        await _bus.PublishAsync(new TestCommand2(42));
+
+        // Assert
+        cut.Instance.ReceivedText.ShouldBeNull();
+        cut.Instance.ReceivedValue.ShouldBe(42);
+    }
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2> receives both message types")]
+    public async Task DualConsumer_ReceivesBothMessageTypes()
+    {
+        // Arrange
+        var cut = RenderComponent<TestDualConsumer>();
+
+        // Act
+        await _bus.PublishAsync(new TestCommand("Hello"));
+        await _bus.PublishAsync(new TestCommand2(42));
+
+        // Assert
+        cut.Instance.ReceivedText.ShouldBe("Hello");
+        cut.Instance.ReceivedValue.ShouldBe(42);
+    }
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2> unsubscribes on dispose")]
+    public async Task DualConsumer_UnsubscribesOnDispose()
+    {
+        // Arrange
+        var cut = RenderComponent<TestDualConsumer>();
+        var instance = cut.Instance;
+
+        // Act - dispose the component explicitly
+        ((IDisposable)instance).Dispose();
+
+        // Publish messages after dispose
+        await _bus.PublishAsync(new TestCommand("After"));
+        await _bus.PublishAsync(new TestCommand2(99));
+
+        // Assert - values should not have changed
+        instance.ReceivedText.ShouldBeNull();
+        instance.ReceivedValue.ShouldBeNull();
+    }
+
+    #endregion
+
+    #region ComponentConsumer<T1, T2, T3> Tests
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2, T3> receives all three message types")]
+    public async Task TripleConsumer_ReceivesAllMessageTypes()
+    {
+        // Arrange
+        var cut = RenderComponent<TestTripleConsumer>();
+
+        // Act
+        await _bus.PublishAsync(new TestCommand("Hello"));
+        await _bus.PublishAsync(new TestCommand2(42));
+        await _bus.PublishAsync(new TestCommand3(true));
+
+        // Assert
+        cut.Instance.ReceivedText.ShouldBe("Hello");
+        cut.Instance.ReceivedValue.ShouldBe(42);
+        cut.Instance.ReceivedFlag.ShouldBe(true);
+    }
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2, T3> unsubscribes on dispose")]
+    public async Task TripleConsumer_UnsubscribesOnDispose()
+    {
+        // Arrange
+        var cut = RenderComponent<TestTripleConsumer>();
+        var instance = cut.Instance;
+
+        // Act - dispose the component explicitly
+        ((IDisposable)instance).Dispose();
+
+        // Publish messages after dispose
+        await _bus.PublishAsync(new TestCommand("After"));
+        await _bus.PublishAsync(new TestCommand2(99));
+        await _bus.PublishAsync(new TestCommand3(true));
+
+        // Assert - values should not have changed
+        instance.ReceivedText.ShouldBeNull();
+        instance.ReceivedValue.ShouldBeNull();
+        instance.ReceivedFlag.ShouldBeNull();
+    }
+
+    #endregion
+
+    #region ComponentConsumer<T1, T2, T3, T4> Tests
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2, T3, T4> receives all four message types")]
+    public async Task QuadConsumer_ReceivesAllMessageTypes()
+    {
+        // Arrange
+        var cut = RenderComponent<TestQuadConsumer>();
+
+        // Act
+        await _bus.PublishAsync(new TestCommand("Hello"));
+        await _bus.PublishAsync(new TestCommand2(42));
+        await _bus.PublishAsync(new TestCommand3(true));
+        await _bus.PublishAsync(new TestCommand4(3.14));
+
+        // Assert
+        cut.Instance.ReceivedText.ShouldBe("Hello");
+        cut.Instance.ReceivedValue.ShouldBe(42);
+        cut.Instance.ReceivedFlag.ShouldBe(true);
+        cut.Instance.ReceivedAmount.ShouldBe(3.14);
+    }
+
+    [Fact(DisplayName = "ComponentConsumer<T1, T2, T3, T4> unsubscribes on dispose")]
+    public async Task QuadConsumer_UnsubscribesOnDispose()
+    {
+        // Arrange
+        var cut = RenderComponent<TestQuadConsumer>();
+        var instance = cut.Instance;
+
+        // Act - dispose the component explicitly
+        ((IDisposable)instance).Dispose();
+
+        // Publish messages after dispose
+        await _bus.PublishAsync(new TestCommand("After"));
+        await _bus.PublishAsync(new TestCommand2(99));
+        await _bus.PublishAsync(new TestCommand3(true));
+        await _bus.PublishAsync(new TestCommand4(9.99));
+
+        // Assert - values should not have changed
+        instance.ReceivedText.ShouldBeNull();
+        instance.ReceivedValue.ShouldBeNull();
+        instance.ReceivedFlag.ShouldBeNull();
+        instance.ReceivedAmount.ShouldBeNull();
+    }
+
+    #endregion
 }
 
 public record TestCommand(string Text);
+public record TestCommand2(int Value);
+public record TestCommand3(bool Flag);
+public record TestCommand4(double Amount);
 
 public class TestConsumer : IConsumer<TestCommand>
 {

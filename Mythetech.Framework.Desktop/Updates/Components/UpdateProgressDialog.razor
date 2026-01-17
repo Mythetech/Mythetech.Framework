@@ -1,0 +1,141 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Desktop.Updates.Events
+@using Mythetech.Framework.Infrastructure.MessageBus
+@namespace Mythetech.Framework.Desktop.Updates.Components
+@implements IConsumer<UpdateDownloadProgress>
+@implements IConsumer<UpdateDownloadCompleted>
+@implements IDisposable
+@inject IMessageBus MessageBus
+@inject IUpdateService UpdateService
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" />
+            <MudText Typo="Typo.h6">Update Available</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @if (_update is not null)
+            {
+                <MudText>
+                    A new version (@_update.TargetVersion) is available.
+                </MudText>
+
+                @if (!string.IsNullOrEmpty(_update.ReleaseNotes))
+                {
+                    <MudText Typo="Typo.subtitle2">What's New</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @_update.ReleaseNotes
+                    </MudText>
+                }
+
+                @if (_isDownloading)
+                {
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body2">Downloading update...</MudText>
+                        <MudProgressLinear Value="@_progress"
+                                           Color="Color.Primary"
+                                           Rounded="true" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @_progress% complete
+                        </MudText>
+                    </MudStack>
+                }
+                else if (_update.IsDownloaded)
+                {
+                    <MudAlert Severity="Severity.Success" Dense="true">
+                        Update downloaded and ready to install!
+                    </MudAlert>
+                }
+            }
+            else
+            {
+                <MudText>No update information available.</MudText>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <Button Text="Later" Variant="Variant.Text" OnClick="Close" />
+        @if (_update?.IsDownloaded == true)
+        {
+            <Button Text="Restart Now"
+                    Color="Color.Primary"
+                    OnClick="RestartAndUpdate" />
+        }
+        else if (!_isDownloading && _update is not null)
+        {
+            <Button Text="Download"
+                    Color="Color.Primary"
+                    OnClick="Download" />
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    private UpdateInfo? _update;
+    private bool _isDownloading;
+    private int _progress;
+
+    protected override void OnInitialized()
+    {
+        _update = UpdateService.AvailableUpdate;
+
+        MessageBus.Subscribe<UpdateDownloadProgress>(this);
+        MessageBus.Subscribe<UpdateDownloadCompleted>(this);
+    }
+
+    Task IConsumer<UpdateDownloadProgress>.Consume(UpdateDownloadProgress message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isDownloading = true;
+            _progress = message.Progress;
+            StateHasChanged();
+        });
+    }
+
+    Task IConsumer<UpdateDownloadCompleted>.Consume(UpdateDownloadCompleted message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isDownloading = false;
+            _update = message.Update;
+            StateHasChanged();
+        });
+    }
+
+    private async Task Download()
+    {
+        _isDownloading = true;
+        StateHasChanged();
+
+        try
+        {
+            await UpdateService.DownloadUpdateAsync();
+        }
+        catch
+        {
+            _isDownloading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RestartAndUpdate()
+    {
+        UpdateService.ApplyUpdateAndRestart();
+    }
+
+    private void Close() => MudDialog?.Close();
+
+    public void Dispose()
+    {
+        MessageBus.Unsubscribe<UpdateDownloadProgress>(this);
+        MessageBus.Unsubscribe<UpdateDownloadCompleted>(this);
+    }
+}
