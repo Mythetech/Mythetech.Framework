@@ -24,8 +24,15 @@ public interface IUpdateService
     /// <summary>
     /// Checks for available updates.
     /// Publishes UpdateCheckStarted, UpdateCheckCompleted, and UpdateAvailable events.
+    /// On failure, publishes UpdateCheckFailed.
     /// </summary>
     Task CheckForUpdatesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks for updates if the app is installed and AutoCheckOnStartup is enabled.
+    /// Call from your layout's OnAfterRenderAsync for non-blocking startup checks.
+    /// </summary>
+    Task CheckForUpdatesOnStartupAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Downloads the available update.

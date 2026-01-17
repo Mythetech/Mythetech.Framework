@@ -41,3 +41,16 @@ public record UpdateDownloadCompleted(UpdateInfo Update);
 /// </summary>
 /// <param name="Update">The update ready to install.</param>
 public record UpdateReadyToInstall(UpdateInfo Update);
+
+/// <summary>
+/// Published when an update check fails due to network or server errors.
+/// </summary>
+/// <param name="Error">The exception that occurred.</param>
+public record UpdateCheckFailed(Exception Error);
+
+/// <summary>
+/// Published when an update download fails.
+/// </summary>
+/// <param name="Update">The update that was being downloaded.</param>
+/// <param name="Error">The exception that occurred.</param>
+public record UpdateDownloadFailed(UpdateInfo Update, Exception Error);
