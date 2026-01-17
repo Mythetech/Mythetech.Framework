@@ -1,0 +1,351 @@
+@using MudBlazor
+@using Microsoft.JSInterop
+@using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Infrastructure.MessageBus
+@using Mythetech.Framework.Components.AppContextDrawer.Commands
+@implements IDisposable
+@implements IConsumer<ActivatePanel>
+
+<CascadingValue Name="ActivePanelId" Value="@ActivePanelId">
+<CascadingValue Name="OnPanelItemClicked" Value="@_onPanelItemClicked">
+<CascadingValue Name="RegisterPanelItem" Value="@RegisterPanelItem">
+<MudStack Spacing="0" Row="true" Class="@GetRootClass()" Style="@Style">
+    @* Icon Bar *@
+    <MudStack Spacing="1" Class="app-context-icon-bar" AlignItems="AlignItems.Center">
+        @* Header slot (logo, create button, etc.) *@
+        @if (IconBarHeader != null)
+        {
+            @IconBarHeader
+        }
+
+        @* App panels from PanelNavContent *@
+        @PanelNavContent
+
+        @* Plugin panels with separator *@
+        @if (ShowPluginPanels && PluginState != null && PluginState.EnabledContextPanelComponentsMetadata.Any())
+        {
+            <MudDivider DividerType="DividerType.Middle" Class="my-2" Style="width:75%" />
+
+            @foreach (var panelMeta in PluginState.EnabledContextPanelComponentsMetadata.OrderBy(p => p.Order))
+            {
+                var pluginPanelId = $"plugin-{panelMeta.ComponentType.FullName}";
+                <ContextPanelItem Id="@pluginPanelId"
+                                  Icon="@panelMeta.Icon"
+                                  Title="@panelMeta.Title"
+                                  Order="@panelMeta.Order">
+                    <PanelContent>
+                        <DynamicComponent Type="@panelMeta.ComponentType" />
+                    </PanelContent>
+                </ContextPanelItem>
+            }
+        }
+
+        <MudSpacer />
+
+        @* Footer slot (settings, theme toggle, etc.) *@
+        @if (PanelFooterContent != null)
+        {
+            @PanelFooterContent
+        }
+    </MudStack>
+
+    @* Content Panel *@
+    <MudStack Class="@GetContentClass()" Style="@GetContentStyle()">
+        <MudPaper Class="h-100 w-100 bg-drawer"
+                  Style="max-width:calc(var(--mud-drawer-width-left) - var(--mud-drawer-width-mini-left));max-height:100dvh"
+                  Square="true">
+            <MudStack Spacing="3" Class="pa-4 w-100 h-100">
+                @if (_activeItem != null)
+                {
+                    <MudStack Row="true" Class="w-100" Spacing="0" AlignItems="AlignItems.Center">
+                        <MudIcon Class="mr-2" Icon="@_activeItem.Icon" Color="Color.Primary" />
+                        <MudText Class="text-truncate" Typo="Typo.h6">@_activeItem.Title</MudText>
+                        <MudSpacer />
+                        <MudTooltip Text="Close" Color="Color.Primary">
+                            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                           Variant="Variant.Text"
+                                           OnClick="ClosePanel" />
+                        </MudTooltip>
+                    </MudStack>
+                    @_activeItem.PanelContent
+                }
+                else
+                {
+                    <MudStack Row="true" Class="w-100">
+                        <MudText Typo="Typo.subtitle1">No Item Selected</MudText>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Variant="Variant.Text"
+                                       OnClick="ClosePanel" />
+                    </MudStack>
+                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Select an item from the side menu</MudText>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudStack>
+</MudStack>
+
+@* Resizer - rendered as sibling inside MudDrawer for proper positioning *@
+@if (EnableResizer)
+{
+    <div class="@GetResizerClass()"></div>
+}
+</CascadingValue>
+</CascadingValue>
+</CascadingValue>
+
+@code {
+    /// <summary>
+    /// Content for the top of the icon bar (logo, create button, etc.)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? IconBarHeader { get; set; }
+
+    /// <summary>
+    /// Content for the main navigation panels (app-specific panels).
+    /// Expects ContextPanelItem components.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? PanelNavContent { get; set; }
+
+    /// <summary>
+    /// Footer content (settings, theme toggle, profile button, etc.)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? PanelFooterContent { get; set; }
+
+    /// <summary>
+    /// Whether the drawer content is expanded (showing panel content).
+    /// </summary>
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    /// <summary>
+    /// Callback when drawer open state changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>
+    /// The ID of the currently active panel.
+    /// </summary>
+    [Parameter]
+    public string? ActivePanelId { get; set; }
+
+    /// <summary>
+    /// Callback when active panel changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> ActivePanelIdChanged { get; set; }
+
+    /// <summary>
+    /// Whether to show plugin panels. Default true.
+    /// </summary>
+    [Parameter]
+    public bool ShowPluginPanels { get; set; } = true;
+
+    /// <summary>
+    /// Whether the resizer is enabled. Default true.
+    /// </summary>
+    [Parameter]
+    public bool EnableResizer { get; set; } = true;
+
+    /// <summary>
+    /// Minimum drawer width when resizing (pixels). Default 200.
+    /// </summary>
+    [Parameter]
+    public int MinWidth { get; set; } = 200;
+
+    /// <summary>
+    /// Maximum drawer width when resizing (pixels). Default 600.
+    /// </summary>
+    [Parameter]
+    public int MaxWidth { get; set; } = 600;
+
+    /// <summary>
+    /// CSS class applied to the drawer root.
+    /// </summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>
+    /// Additional CSS style applied to the drawer root.
+    /// </summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    [Inject]
+    private PluginState? PluginState { get; set; }
+
+    [Inject]
+    private IMessageBus? MessageBus { get; set; }
+
+    private IJSObjectReference? _jsModule;
+    private ContextPanelItem? _activeItem;
+    private Dictionary<string, ContextPanelItem> _registeredPanels = new();
+    private EventCallback<ContextPanelItem> _onPanelItemClicked;
+
+    protected override void OnInitialized()
+    {
+        _onPanelItemClicked = EventCallback.Factory.Create<ContextPanelItem>(this, HandlePanelItemClicked);
+
+        if (PluginState != null)
+        {
+            PluginState.StateChanged += OnPluginStateChanged;
+        }
+
+        MessageBus?.Subscribe(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && EnableResizer)
+        {
+            await InitializeResizer();
+        }
+    }
+
+    private async Task InitializeResizer()
+    {
+        try
+        {
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Mythetech.Framework/mythetech.js");
+
+            await _jsModule.InvokeVoidAsync(
+                "initializeDrawerResizer",
+                ".app-context-resizer",
+                ".mud-drawer",
+                MinWidth,
+                MaxWidth);
+        }
+        catch
+        {
+            // JS interop may fail during prerendering
+        }
+    }
+
+    private void RegisterPanelItem(ContextPanelItem item)
+    {
+        _registeredPanels[item.Id] = item;
+    }
+
+    private async Task HandlePanelItemClicked(ContextPanelItem item)
+    {
+        if (!IsOpen)
+        {
+            // Open the drawer and set this as active
+            _activeItem = item;
+            await SetIsOpen(true);
+            await SetActivePanelId(item.Id);
+        }
+        else if (_activeItem?.Id == item.Id)
+        {
+            // Clicking same item closes the drawer
+            _activeItem = null;
+            await SetIsOpen(false);
+            await SetActivePanelId(null);
+        }
+        else
+        {
+            // Switch to different panel
+            _activeItem = item;
+            await SetActivePanelId(item.Id);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ClosePanel()
+    {
+        _activeItem = null;
+        await SetIsOpen(false);
+        await SetActivePanelId(null);
+        StateHasChanged();
+    }
+
+    private async Task SetIsOpen(bool value)
+    {
+        if (IsOpen != value)
+        {
+            IsOpen = value;
+            await IsOpenChanged.InvokeAsync(value);
+        }
+    }
+
+    private async Task SetActivePanelId(string? value)
+    {
+        if (ActivePanelId != value)
+        {
+            ActivePanelId = value;
+            await ActivePanelIdChanged.InvokeAsync(value);
+        }
+    }
+
+    private void OnPluginStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async Task Consume(ActivatePanel message)
+    {
+        if (_registeredPanels.TryGetValue(message.PanelId, out var panel))
+        {
+            if (!panel.IsActive)
+            {
+                await HandlePanelItemClicked(panel);
+            }
+        }
+    }
+
+    private string GetRootClass()
+    {
+        var classes = new List<string> { "app-context-drawer", "mud-width-full", "mud-height-full" };
+        if (!string.IsNullOrWhiteSpace(Class))
+        {
+            classes.Add(Class);
+        }
+        return string.Join(" ", classes);
+    }
+
+    private string GetContentClass()
+    {
+        return IsOpen ? "app-context-content" : "app-context-content app-context-content-hidden";
+    }
+
+    private string GetContentStyle()
+    {
+        return IsOpen ? "" : "width:0px;";
+    }
+
+    private string GetResizerClass()
+    {
+        return IsOpen ? "app-context-resizer" : "app-context-resizer app-context-resizer-hidden";
+    }
+
+    public void Dispose()
+    {
+        if (PluginState != null)
+        {
+            PluginState.StateChanged -= OnPluginStateChanged;
+        }
+
+        MessageBus?.Unsubscribe(this);
+
+        if (_jsModule != null)
+        {
+            try
+            {
+                _ = _jsModule.InvokeVoidAsync("teardownDrawerResizer");
+                _ = _jsModule.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore disposal errors
+            }
+        }
+    }
+}

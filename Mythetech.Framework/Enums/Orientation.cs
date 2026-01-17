@@ -1,4 +1,4 @@
-namespace Mythetech.Framework.Components;
+namespace Mythetech.Framework.Components.Enums;
 
 /// <summary>
 /// Specifies the orientation for scrollable or layout components.
