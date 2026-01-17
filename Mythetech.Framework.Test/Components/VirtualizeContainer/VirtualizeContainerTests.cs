@@ -2,6 +2,7 @@ using Bunit;
 using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using Mythetech.Framework.Components;
+using Mythetech.Framework.Components.Enums;
 using Mythetech.Framework.Components.VirtualizeContainer;
 using Shouldly;
 

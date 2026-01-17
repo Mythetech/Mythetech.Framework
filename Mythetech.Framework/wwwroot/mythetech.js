@@ -246,3 +246,95 @@ export function subscribeToScroll2D(element, dotNetRef) {
 
     return id;
 }
+
+// ============================================================================
+// Drawer Resizer Support
+// ============================================================================
+
+// Track active resizer state
+let drawerResizerState = null;
+
+/**
+ * Initializes the drawer resizer functionality.
+ * Allows users to drag the resizer handle to adjust drawer width.
+ *
+ * @param {string} resizerSelector - CSS selector for the resizer element
+ * @param {string} drawerSelector - CSS selector for the drawer element
+ * @param {number} minWidth - Minimum width in pixels
+ * @param {number} maxWidth - Maximum width in pixels
+ */
+export function initializeDrawerResizer(resizerSelector, drawerSelector, minWidth, maxWidth) {
+    teardownDrawerResizer();
+
+    const resizer = document.querySelector(resizerSelector);
+    const drawer = document.querySelector(drawerSelector);
+    const root = document.documentElement;
+
+    if (!resizer || !drawer) {
+        console.debug('initializeDrawerResizer: Could not find resizer or drawer elements');
+        return;
+    }
+
+    const onMouseDown = (e) => {
+        e.preventDefault();
+
+        const onMouseMove = (e) => {
+            const drawerRect = drawer.getBoundingClientRect();
+            let newWidth = e.clientX - drawerRect.left;
+
+            // Clamp to min/max bounds
+            newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+
+            root.style.setProperty('--mud-drawer-width-left', `${newWidth}px`);
+        };
+
+        const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    };
+
+    resizer.addEventListener('mousedown', onMouseDown);
+
+    drawerResizerState = {
+        resizer,
+        handler: onMouseDown
+    };
+}
+
+/**
+ * Cleans up drawer resizer event listeners.
+ */
+export function teardownDrawerResizer() {
+    if (drawerResizerState) {
+        drawerResizerState.resizer.removeEventListener('mousedown', drawerResizerState.handler);
+        drawerResizerState = null;
+    }
+}
+
+/**
+ * Sets the drawer width programmatically.
+ *
+ * @param {number} width - Width in pixels
+ */
+export function setDrawerWidth(width) {
+    document.documentElement.style.setProperty('--mud-drawer-width-left', `${width}px`);
+}
+
+/**
+ * Gets the current drawer width.
+ *
+ * @returns {number} Current width in pixels
+ */
+export function getDrawerWidth() {
+    const value = getComputedStyle(document.documentElement).getPropertyValue('--mud-drawer-width-left');
+    return parseInt(value, 10) || 300;
+}

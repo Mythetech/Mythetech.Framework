@@ -1,0 +1,122 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using MudBlazor
+@attribute [Stories("Components/AppContextDrawer")]
+
+<Stories TComponent="AppContextDrawer">
+
+    <Story Name="Basic Usage" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudLayout Style="height: 500px; position: relative;">
+                <MudDrawer @bind-Open="@_drawerOpen" Variant="DrawerVariant.Mini" Style="overflow: hidden;">
+                    <AppContextDrawer @bind-IsOpen="@_drawerOpen"
+                                      @bind-ActivePanelId="@_activePanelId"
+                                      ShowPluginPanels="false">
+                        <IconBarHeader>
+                            <MudIconButton Icon="@Icons.Material.Filled.Home" Color="Color.Primary" Class="my-2" />
+                        </IconBarHeader>
+
+                        <PanelNavContent>
+                            <ContextPanelItem Id="files" Icon="@Icons.Material.Filled.Folder" Title="Files">
+                                <PanelContent>
+                                    <MudStack Spacing="2">
+                                        <MudText Typo="Typo.body1">File Explorer</MudText>
+                                        <MudTreeView T="string" Hover="true">
+                                            <MudTreeViewItem Value="@("src")" Icon="@Icons.Material.Filled.Folder">
+                                                <MudTreeViewItem Value="@("components")" Icon="@Icons.Material.Filled.Folder" />
+                                                <MudTreeViewItem Value="@("pages")" Icon="@Icons.Material.Filled.Folder" />
+                                            </MudTreeViewItem>
+                                            <MudTreeViewItem Value="@("tests")" Icon="@Icons.Material.Filled.Folder" />
+                                        </MudTreeView>
+                                    </MudStack>
+                                </PanelContent>
+                            </ContextPanelItem>
+
+                            <ContextPanelItem Id="search" Icon="@Icons.Material.Filled.Search" Title="Search">
+                                <PanelContent>
+                                    <MudStack Spacing="2">
+                                        <MudTextField T="string" Label="Search" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Enter a search term to find files</MudText>
+                                    </MudStack>
+                                </PanelContent>
+                            </ContextPanelItem>
+
+                            <ContextPanelItem Id="git" Icon="@Icons.Custom.Brands.GitHub" Title="Source Control" BadgeColor="Color.Warning">
+                                <PanelContent>
+                                    <MudStack Spacing="2">
+                                        <MudText Typo="Typo.body1">Source Control</MudText>
+                                        <MudAlert Severity="Severity.Warning" Dense="true">3 uncommitted changes</MudAlert>
+                                        <MudList T="string" Dense="true">
+                                            <MudListItem Icon="@Icons.Material.Filled.Add" IconColor="Color.Success">new-file.cs</MudListItem>
+                                            <MudListItem Icon="@Icons.Material.Filled.Edit" IconColor="Color.Warning">modified.cs</MudListItem>
+                                            <MudListItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error">deleted.cs</MudListItem>
+                                        </MudList>
+                                    </MudStack>
+                                </PanelContent>
+                            </ContextPanelItem>
+                        </PanelNavContent>
+
+                        <PanelFooterContent>
+                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" Class="mb-2" />
+                        </PanelFooterContent>
+                    </AppContextDrawer>
+                </MudDrawer>
+
+                <MudMainContent Style="padding: 16px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h5">Main Content Area</MudText>
+                        <MudText Typo="Typo.body1">Click the icons in the side panel to expand different sections.</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            Active Panel: @(_activePanelId ?? "None") | Drawer Open: @_drawerOpen
+                        </MudText>
+                    </MudStack>
+                </MudMainContent>
+            </MudLayout>
+        </Template>
+    </Story>
+
+    <Story Name="With Badges" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudLayout Style="height: 400px; position: relative;">
+                <MudDrawer Open="true" Variant="DrawerVariant.Mini" Style="overflow: hidden;">
+                    <AppContextDrawer IsOpen="true"
+                                      ActivePanelId="notifications"
+                                      ShowPluginPanels="false">
+                        <PanelNavContent>
+                            <ContextPanelItem Id="notifications" Icon="@Icons.Material.Filled.Notifications" Title="Notifications" BadgeColor="Color.Error">
+                                <PanelContent>
+                                    <MudStack Spacing="2">
+                                        <MudText Typo="Typo.body1">Notifications</MudText>
+                                        <MudAlert Severity="Severity.Error" Dense="true">5 new alerts</MudAlert>
+                                    </MudStack>
+                                </PanelContent>
+                            </ContextPanelItem>
+
+                            <ContextPanelItem Id="status" Icon="@Icons.Material.Filled.Circle" Title="Status" BadgeColor="Color.Success">
+                                <PanelContent>
+                                    <MudText Typo="Typo.body1">All systems operational</MudText>
+                                </PanelContent>
+                            </ContextPanelItem>
+
+                            <ContextPanelItem Id="sync" Icon="@Icons.Material.Filled.Sync" Title="Sync" BadgeColor="Color.Warning">
+                                <PanelContent>
+                                    <MudText Typo="Typo.body1">Syncing...</MudText>
+                                    <MudProgressLinear Indeterminate="true" Color="Color.Warning" />
+                                </PanelContent>
+                            </ContextPanelItem>
+                        </PanelNavContent>
+                    </AppContextDrawer>
+                </MudDrawer>
+
+                <MudMainContent Style="padding: 16px;">
+                    <MudText>Badge colors indicate status: Success (green), Warning (yellow), Error (red)</MudText>
+                </MudMainContent>
+            </MudLayout>
+        </Template>
+    </Story>
+
+</Stories>
+
+@code {
+    private bool _drawerOpen = true;
+    private string? _activePanelId = "files";
+}

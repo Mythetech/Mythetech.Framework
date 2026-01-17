@@ -1,0 +1,109 @@
+@using MudBlazor
+
+<div class="context-panel-item-wrapper">
+    @if (IsActive)
+    {
+        <MudIconButton Class="context-item-active"
+                       Color="Color.Primary"
+                       Icon="@Icon"
+                       OnClick="HandleClick" />
+    }
+    else
+    {
+        <MudTooltip Text="@Title" Color="Color.Primary">
+            <MudIconButton Color="Color.Surface"
+                           Icon="@Icon"
+                           OnClick="HandleClick" />
+        </MudTooltip>
+    }
+    @if (BadgeColor.HasValue)
+    {
+        <span class="@GetBadgeClass()"></span>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Unique identifier for this panel.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>
+    /// MudBlazor icon to display in the icon bar.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Icon { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Title shown in tooltip and panel header.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Content to render when this panel is active.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? PanelContent { get; set; }
+
+    /// <summary>
+    /// Optional badge color for status indication (e.g., git changes, connection status).
+    /// </summary>
+    [Parameter]
+    public Color? BadgeColor { get; set; }
+
+    /// <summary>
+    /// Display order (lower values appear first). Default 100.
+    /// </summary>
+    [Parameter]
+    public int Order { get; set; } = 100;
+
+    /// <summary>
+    /// The ID of the currently active panel (cascaded from parent).
+    /// </summary>
+    [CascadingParameter(Name = "ActivePanelId")]
+    public string? ActivePanelId { get; set; }
+
+    /// <summary>
+    /// Callback to register this item with the parent drawer (cascaded from parent).
+    /// </summary>
+    [CascadingParameter(Name = "OnPanelItemClicked")]
+    public EventCallback<ContextPanelItem> OnPanelItemClicked { get; set; }
+
+    /// <summary>
+    /// Callback to register this item with the parent drawer.
+    /// </summary>
+    [CascadingParameter(Name = "RegisterPanelItem")]
+    public Action<ContextPanelItem>? RegisterPanelItem { get; set; }
+
+    /// <summary>
+    /// Whether this panel is currently active.
+    /// </summary>
+    public bool IsActive => !string.IsNullOrEmpty(ActivePanelId) && ActivePanelId == Id;
+
+    protected override void OnInitialized()
+    {
+        RegisterPanelItem?.Invoke(this);
+    }
+
+    private async Task HandleClick()
+    {
+        await OnPanelItemClicked.InvokeAsync(this);
+    }
+
+    private string GetBadgeClass()
+    {
+        var baseClass = "context-panel-badge";
+        return BadgeColor switch
+        {
+            Color.Success => $"{baseClass} context-panel-badge--success",
+            Color.Warning => $"{baseClass} context-panel-badge--warning",
+            Color.Error => $"{baseClass} context-panel-badge--error",
+            Color.Info => $"{baseClass} context-panel-badge--info",
+            Color.Primary => $"{baseClass} context-panel-badge--primary",
+            Color.Secondary => $"{baseClass} context-panel-badge--secondary",
+            _ => baseClass
+        };
+    }
+}
