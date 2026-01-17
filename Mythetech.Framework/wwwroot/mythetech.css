@@ -491,3 +491,63 @@
     height: 100%;
     min-height: 400px;
 }
+
+/* ============================================================================
+   AppContextDrawer Resizer Styles
+   ============================================================================ */
+
+.app-context-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 10;
+    background: transparent;
+}
+
+.app-context-resizer:hover {
+    background: rgba(var(--mud-palette-primary-rgb), 0.15);
+}
+
+.app-context-resizer-hidden {
+    display: none;
+}
+
+/* AppContextDrawer icon bar */
+.app-context-icon-bar {
+    height: 100%;
+    min-width: var(--mud-drawer-width-mini-left);
+    max-width: var(--mud-drawer-width-mini-left);
+    overflow: hidden;
+    background: var(--mud-palette-drawer-background);
+    border-right: solid 1px var(--mud-palette-divider);
+    padding: 0.5rem 0;
+}
+
+/* AppContextDrawer content panel */
+.app-context-content {
+    flex: 1;
+    background: var(--mud-palette-drawer-background);
+    max-width: calc(var(--mud-drawer-width-left) - var(--mud-drawer-width-mini-left));
+    overflow: hidden;
+    transition: width 0.15s ease;
+}
+
+.app-context-content-hidden {
+    width: 0;
+    max-width: 0;
+    overflow: hidden;
+}
+
+/* Background helper for drawer panels */
+.bg-drawer {
+    background: var(--mud-palette-drawer-background);
+}
+
+/* Active context panel item indicator */
+.context-item-active {
+    background-color: var(--mud-palette-secondary);
+    border-radius: 20%;
+}
