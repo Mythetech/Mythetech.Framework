@@ -1,0 +1,38 @@
+@inherits Mythetech.Framework.Infrastructure.MessageBus.ComponentConsumer<TestCommand, TestCommand2, TestCommand3, TestCommand4>
+
+<p>Text: @ReceivedText, Value: @ReceivedValue, Flag: @ReceivedFlag, Amount: @ReceivedAmount</p>
+
+@code {
+    public string? ReceivedText { get; private set; }
+    public int? ReceivedValue { get; private set; }
+    public bool? ReceivedFlag { get; private set; }
+    public double? ReceivedAmount { get; private set; }
+
+    protected override Task Consume(TestCommand message, CancellationToken cancellationToken)
+    {
+        ReceivedText = message.Text;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    protected override Task Consume(TestCommand2 message, CancellationToken cancellationToken)
+    {
+        ReceivedValue = message.Value;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    protected override Task Consume(TestCommand3 message, CancellationToken cancellationToken)
+    {
+        ReceivedFlag = message.Flag;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    protected override Task Consume(TestCommand4 message, CancellationToken cancellationToken)
+    {
+        ReceivedAmount = message.Amount;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+}

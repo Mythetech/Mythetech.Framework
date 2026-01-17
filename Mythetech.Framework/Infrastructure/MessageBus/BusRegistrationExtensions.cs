@@ -81,7 +81,8 @@ public static class BusRegistrationExtensions
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
                 .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))
-            .Where(c => !typeof(ComponentBase).IsAssignableFrom(c.ConsumerType));
+            .Where(c => !typeof(ComponentBase).IsAssignableFrom(c.ConsumerType))
+            .Where(c => !c.MessageType.ContainsGenericParameters);
 
         foreach (var consumer in consumerTypes)
         {
@@ -133,7 +134,8 @@ public static class BusRegistrationExtensions
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
                 .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))
-            .Where(c => !typeof(ComponentBase).IsAssignableFrom(c.ConsumerType));
+            .Where(c => !typeof(ComponentBase).IsAssignableFrom(c.ConsumerType))
+            .Where(c => !c.MessageType.ContainsGenericParameters);
 
         foreach (var consumer in consumerTypes)
         {
