@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using MudBlazor.Interop
 @using MudBlazor.Services
+@using Mythetech.Framework.Components.Enums
 @namespace Mythetech.Framework.Components.VirtualizeContainer
 @typeparam TItem
 @implements IAsyncDisposable
@@ -102,6 +103,7 @@
         }
     }
 
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (_resizeObserver != null)
