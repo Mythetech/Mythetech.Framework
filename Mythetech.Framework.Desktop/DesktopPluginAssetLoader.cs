@@ -192,6 +192,8 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
 
         // The script decodes the Base64 and creates a script element with the decoded content.
         // Using a script element (not eval) ensures proper global scope execution.
+        // AMD suppression: temporarily hide define.amd so UMD scripts use global fallback
+        // instead of trying to register with Monaco's AMD loader.
         var js = $$"""
             (function() {
                 var elementId = '{{safeId}}';
@@ -204,10 +206,28 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                         bytes[i] = binary.charCodeAt(i);
                     }
                     var decoded = new TextDecoder('utf-8').decode(bytes);
+
+                    // AMD suppression: hide define.amd so UMD scripts use global fallback
+                    var savedAmd = null;
+                    if (window.define && window.define.amd) {
+                        savedAmd = window.define.amd;
+                        delete window.define.amd;
+                    }
+
                     var script = document.createElement('script');
                     script.id = elementId;
                     script.textContent = decoded;
                     document.head.appendChild(script);
+
+                    // Restore define.amd after microtask (lets script execute first)
+                    if (savedAmd !== null) {
+                        Promise.resolve().then(function() {
+                            if (window.define && !window.define.amd) {
+                                window.define.amd = savedAmd;
+                            }
+                        });
+                    }
+
                     console.log('Plugin asset loaded:', logId);
                 } catch (e) {
                     console.error('Failed to load plugin asset:', logId, e);
