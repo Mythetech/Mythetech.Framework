@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mythetech.Framework.Desktop.Updates.Events;
 using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Settings;
 using Velopack;
 
 namespace Mythetech.Framework.Desktop.Updates;
@@ -14,17 +15,20 @@ public class VelopackUpdateService : IUpdateService
 {
     private readonly UpdateServiceOptions _options;
     private readonly IMessageBus _messageBus;
+    private readonly ISettingsProvider? _settingsProvider;
     private readonly ILogger<VelopackUpdateService> _logger;
     private UpdateManager? _updateManager;
 
     public VelopackUpdateService(
         IOptions<UpdateServiceOptions> options,
         IMessageBus messageBus,
-        ILogger<VelopackUpdateService> logger)
+        ILogger<VelopackUpdateService> logger,
+        ISettingsProvider? settingsProvider = null)
     {
         _options = options.Value;
         _messageBus = messageBus;
         _logger = logger;
+        _settingsProvider = settingsProvider;
     }
 
     /// <inheritdoc />
@@ -118,9 +122,28 @@ public class VelopackUpdateService : IUpdateService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to check for updates");
+            await _messageBus.PublishAsync(new UpdateCheckFailed(ex));
             await _messageBus.PublishAsync(new UpdateCheckCompleted(null));
-            throw;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task CheckForUpdatesOnStartupAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsInstalled)
+        {
+            _logger.LogDebug("Startup update check skipped - app is not installed via Velopack");
+            return;
+        }
+
+        var settings = _settingsProvider?.GetSettings<UpdateSettings>();
+        if (settings?.AutoCheckOnStartup != true)
+        {
+            _logger.LogDebug("Startup update check skipped - disabled in settings");
+            return;
+        }
+
+        await CheckForUpdatesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -153,7 +176,7 @@ public class VelopackUpdateService : IUpdateService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download update");
-            throw;
+            await _messageBus.PublishAsync(new UpdateDownloadFailed(AvailableUpdate, ex));
         }
     }
 

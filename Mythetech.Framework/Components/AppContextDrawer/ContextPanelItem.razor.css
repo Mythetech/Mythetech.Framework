@@ -5,7 +5,6 @@
 
 .context-item-active {
     background-color: var(--mud-palette-secondary);
-    border-radius: 20%;
 }
 
 .context-panel-badge {

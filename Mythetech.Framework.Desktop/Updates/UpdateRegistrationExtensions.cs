@@ -34,30 +34,14 @@ public static class UpdateRegistrationExtensions
     }
 
     /// <summary>
-    /// Activates the update system by checking for updates on startup if enabled.
-    /// Call after UseMessageBus() and UseSettingsFramework().
+    /// Activates the update system. Call after UseMessageBus() and UseSettingsFramework().
+    /// To check for updates on startup, call <see cref="IUpdateService.CheckForUpdatesAsync"/>
+    /// from your layout's OnAfterRenderAsync method.
     /// </summary>
-    public static async Task<IServiceProvider> UseUpdateServiceAsync(this IServiceProvider serviceProvider)
+    public static IServiceProvider UseUpdateService(this IServiceProvider serviceProvider)
     {
-        var settingsProvider = serviceProvider.GetService<ISettingsProvider>();
-        var settings = settingsProvider?.GetSettings<UpdateSettings>();
-
-        if (settings?.AutoCheckOnStartup == true)
-        {
-            var updateService = serviceProvider.GetRequiredService<IUpdateService>();
-            if (updateService.IsInstalled)
-            {
-                try
-                {
-                    await updateService.CheckForUpdatesAsync();
-                }
-                catch
-                {
-                    // Silently ignore startup check failures
-                }
-            }
-        }
-
+        // Currently a no-op, but provides a consistent activation pattern
+        // and a place to add future initialization logic
         return serviceProvider;
     }
 }
