@@ -9,6 +9,17 @@ using Mythetech.Framework.Infrastructure.Settings.Consumers;
 namespace Mythetech.Framework.Infrastructure.Settings;
 
 /// <summary>
+/// Options for tracking settings types discovered during service configuration.
+/// </summary>
+public class SettingsRegistrationOptions
+{
+    /// <summary>
+    /// Types discovered via RegisterSettingsFromAssembly on IServiceCollection.
+    /// </summary>
+    public List<Type> DiscoveredSettingsTypes { get; } = new();
+}
+
+/// <summary>
 /// Extension methods for registering settings framework services.
 /// </summary>
 public static class SettingsRegistrationExtensions
@@ -126,12 +137,65 @@ public static class SettingsRegistrationExtensions
     }
 
     /// <summary>
+    /// Scans an assembly for SettingsBase implementations, registers them as singletons,
+    /// and configures the SettingsProvider to auto-discover them.
+    /// This allows consumers to inject settings models directly.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="assembly">The assembly to scan for settings types.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection RegisterSettingsFromAssembly(
+        this IServiceCollection services,
+        Assembly assembly)
+    {
+        var settingsTypes = assembly.GetTypes()
+            .Where(t => !t.IsAbstract && typeof(SettingsBase).IsAssignableFrom(t))
+            .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
+
+        foreach (var type in settingsTypes)
+        {
+            services.AddSingleton(type);
+        }
+
+        services.Configure<SettingsRegistrationOptions>(options =>
+        {
+            foreach (var type in settingsTypes)
+            {
+                if (!options.DiscoveredSettingsTypes.Contains(type))
+                    options.DiscoveredSettingsTypes.Add(type);
+            }
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Scans multiple assemblies for SettingsBase implementations, registers them as singletons,
+    /// and configures the SettingsProvider to auto-discover them.
+    /// This allows consumers to inject settings models directly.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="assemblies">The assemblies to scan for settings types.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection RegisterSettingsFromAssemblies(
+        this IServiceCollection services,
+        params Assembly[] assemblies)
+    {
+        foreach (var assembly in assemblies)
+        {
+            services.RegisterSettingsFromAssembly(assembly);
+        }
+        return services;
+    }
+
+    /// <summary>
     /// Registers a settings model with the provider.
     /// Call after building the service provider.
     /// </summary>
     /// <typeparam name="T">The settings type to register.</typeparam>
     /// <param name="serviceProvider">The built service provider.</param>
     /// <returns>The service provider for chaining.</returns>
+    [Obsolete("Use IServiceCollection.RegisterSettingsFromAssembly() instead for DI-injectable settings.")]
     public static IServiceProvider RegisterSettings<T>(this IServiceProvider serviceProvider)
         where T : SettingsBase, new()
     {
@@ -147,6 +211,7 @@ public static class SettingsRegistrationExtensions
     /// <param name="serviceProvider">The built service provider.</param>
     /// <param name="settings">The settings instance to register.</param>
     /// <returns>The service provider for chaining.</returns>
+    [Obsolete("Use IServiceCollection.RegisterSettingsFromAssembly() instead for DI-injectable settings.")]
     public static IServiceProvider RegisterSettings(this IServiceProvider serviceProvider, SettingsBase settings)
     {
         var provider = serviceProvider.GetRequiredService<ISettingsProvider>();
@@ -161,6 +226,7 @@ public static class SettingsRegistrationExtensions
     /// <param name="serviceProvider">The built service provider.</param>
     /// <param name="assembly">The assembly to scan for settings types.</param>
     /// <returns>The service provider for chaining.</returns>
+    [Obsolete("Use IServiceCollection.RegisterSettingsFromAssembly() instead for DI-injectable settings.")]
     public static IServiceProvider RegisterSettingsFromAssembly(this IServiceProvider serviceProvider, Assembly assembly)
     {
         var provider = serviceProvider.GetRequiredService<ISettingsProvider>();
@@ -184,6 +250,7 @@ public static class SettingsRegistrationExtensions
     /// <param name="serviceProvider">The built service provider.</param>
     /// <param name="assemblies">The assemblies to scan for settings types.</param>
     /// <returns>The service provider for chaining.</returns>
+    [Obsolete("Use IServiceCollection.RegisterSettingsFromAssemblies() instead for DI-injectable settings.")]
     public static IServiceProvider RegisterSettingsFromAssemblies(
         this IServiceProvider serviceProvider,
         params Assembly[] assemblies)

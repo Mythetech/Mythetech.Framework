@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Settings.Events;
 
@@ -21,10 +23,23 @@ public class SettingsProvider : ISettingsProvider
     /// </summary>
     /// <param name="bus">The message bus for publishing change events.</param>
     /// <param name="logger">Logger for diagnostics.</param>
-    public SettingsProvider(IMessageBus bus, ILogger<SettingsProvider> logger)
+    /// <param name="serviceProvider">Service provider for resolving settings instances.</param>
+    /// <param name="options">Options containing discovered settings types.</param>
+    public SettingsProvider(
+        IMessageBus bus,
+        ILogger<SettingsProvider> logger,
+        IServiceProvider serviceProvider,
+        IOptions<SettingsRegistrationOptions> options)
     {
         _bus = bus;
         _logger = logger;
+
+        // Auto-register settings that were discovered during service configuration
+        foreach (var type in options.Value.DiscoveredSettingsTypes)
+        {
+            var instance = (SettingsBase)serviceProvider.GetRequiredService(type);
+            RegisterSettings(instance);
+        }
     }
 
     /// <inheritdoc />
