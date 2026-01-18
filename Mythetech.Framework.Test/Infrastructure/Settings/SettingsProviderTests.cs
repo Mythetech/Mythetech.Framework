@@ -1,6 +1,7 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Settings.Events;
@@ -23,7 +24,12 @@ public class SettingsProviderTests : TestContext
             Array.Empty<IConsumerFilter>());
         Services.AddSingleton(_bus);
 
-        _provider = new SettingsProvider(_bus, Substitute.For<ILogger<SettingsProvider>>());
+        var options = Options.Create(new SettingsRegistrationOptions());
+        _provider = new SettingsProvider(
+            _bus,
+            Substitute.For<ILogger<SettingsProvider>>(),
+            Services.BuildServiceProvider(),
+            options);
     }
 
     [Fact(DisplayName = "Can register and retrieve settings by type")]

@@ -118,6 +118,13 @@ public class VelopackUpdateService : IUpdateService
 
             await _messageBus.PublishAsync(new UpdateCheckCompleted(updateInfo));
             await _messageBus.PublishAsync(new UpdateAvailable(updateInfo));
+
+            var settings = _settingsProvider?.GetSettings<UpdateSettings>();
+            if (settings?.AutoDownload == true)
+            {
+                _logger.LogInformation("Auto-downloading update per settings");
+                await DownloadUpdateAsync(cancellationToken);
+            }
         }
         catch (Exception ex)
         {
@@ -163,7 +170,6 @@ public class VelopackUpdateService : IUpdateService
 
             await manager.DownloadUpdatesAsync(veloUpdate, progress =>
             {
-                // Fire and forget progress updates - they're informational
                 _ = _messageBus.PublishAsync(new UpdateDownloadProgress(AvailableUpdate, progress));
             });
 
