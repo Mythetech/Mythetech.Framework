@@ -36,6 +36,6 @@ var host = builder.Build();
 
 host.Services.UseMessageBus();
 
-host.Services.UsePlugins();
+await host.Services.UsePluginsAsync();
 
 await host.RunAsync();

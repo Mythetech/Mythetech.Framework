@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure.Settings;
 
@@ -11,15 +12,18 @@ namespace Mythetech.Framework.WebAssembly.Settings;
 public class LocalStorageSettingsStorage : ISettingsStorage
 {
     private readonly IJSRuntime _jsRuntime;
+    private readonly ILogger<LocalStorageSettingsStorage>? _logger;
     private const string KeyPrefix = "settings:";
 
     /// <summary>
     /// Creates a new localStorage settings storage instance.
     /// </summary>
     /// <param name="jsRuntime">JS runtime for interop</param>
-    public LocalStorageSettingsStorage(IJSRuntime jsRuntime)
+    /// <param name="logger">Optional logger for diagnostics</param>
+    public LocalStorageSettingsStorage(IJSRuntime jsRuntime, ILogger<LocalStorageSettingsStorage>? logger = null)
     {
         _jsRuntime = jsRuntime;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -43,23 +47,31 @@ public class LocalStorageSettingsStorage : ISettingsStorage
 
         try
         {
-            // Get all localStorage keys
-            var allKeys = await _jsRuntime.InvokeAsync<string[]>("eval", "Object.keys(localStorage)");
-
-            // Filter to settings keys and load values
-            foreach (var key in allKeys.Where(k => k.StartsWith(KeyPrefix)))
+            // Iterate through localStorage keys without using eval
+            // localStorage.key(i) returns null when index is out of bounds
+            for (var i = 0; ; i++)
             {
-                var settingsId = key[KeyPrefix.Length..];
-                var value = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", key);
-                if (value != null)
+                var key = await _jsRuntime.InvokeAsync<string?>("localStorage.key", i);
+                if (key == null)
                 {
-                    result[settingsId] = value;
+                    break; // No more keys
+                }
+
+                if (key.StartsWith(KeyPrefix))
+                {
+                    var settingsId = key[KeyPrefix.Length..];
+                    var value = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", key);
+                    if (value != null)
+                    {
+                        result[settingsId] = value;
+                    }
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // JS interop may fail in certain contexts
+            // JS interop may fail in certain contexts (e.g., SSR, prerendering)
+            _logger?.LogDebug(ex, "Failed to load settings from localStorage");
         }
 
         return result;

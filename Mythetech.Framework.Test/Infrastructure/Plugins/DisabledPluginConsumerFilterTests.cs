@@ -31,56 +31,56 @@ public class DisabledPluginConsumerFilterTests
     }
 
     [Fact(DisplayName = "Consumer from enabled plugin is allowed")]
-    public void ConsumerFromEnabledPlugin_IsAllowed()
+    public async Task ConsumerFromEnabledPlugin_IsAllowed()
     {
         // Arrange
         var assembly = typeof(TestConsumer).Assembly;
         var pluginInfo = CreatePluginInfo("test-plugin", assembly, isEnabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
-        
+        await _pluginState.RegisterPluginAsync(pluginInfo);
+
         var consumer = new TestConsumer();
         var message = new TestMessage("Test");
-        
+
         // Act
         var result = _filter.ShouldInvoke(consumer, message);
-        
+
         // Assert
         result.ShouldBeTrue();
     }
 
     [Fact(DisplayName = "Consumer from disabled plugin is blocked")]
-    public void ConsumerFromDisabledPlugin_IsBlocked()
+    public async Task ConsumerFromDisabledPlugin_IsBlocked()
     {
         // Arrange
         var assembly = typeof(TestConsumer).Assembly;
         var pluginInfo = CreatePluginInfo("test-plugin", assembly, isEnabled: false);
-        _pluginState.RegisterPlugin(pluginInfo);
-        
+        await _pluginState.RegisterPluginAsync(pluginInfo);
+
         var consumer = new TestConsumer();
         var message = new TestMessage("Test");
-        
+
         // Act
         var result = _filter.ShouldInvoke(consumer, message);
-        
+
         // Assert
         result.ShouldBeFalse();
     }
 
     [Fact(DisplayName = "Consumer from plugin is blocked when PluginsActive is false")]
-    public void ConsumerFromPlugin_BlockedWhenPluginsInactive()
+    public async Task ConsumerFromPlugin_BlockedWhenPluginsInactive()
     {
         // Arrange
         var assembly = typeof(TestConsumer).Assembly;
         var pluginInfo = CreatePluginInfo("test-plugin", assembly, isEnabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         _pluginState.PluginsActive = false;
-        
+
         var consumer = new TestConsumer();
         var message = new TestMessage("Test");
-        
+
         // Act
         var result = _filter.ShouldInvoke(consumer, message);
-        
+
         // Assert
         result.ShouldBeFalse();
     }

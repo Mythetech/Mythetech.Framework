@@ -56,6 +56,10 @@ class Program
         builder.Services.AddDesktopSettingsStorage("SampleHost");
         builder.Services.AddPluginStateProvider("SampleHost");
 
+        // Register settings from assemblies (new DI-friendly API)
+        builder.Services.RegisterSettingsFromAssembly(typeof(SampleAppSettings).Assembly);
+        builder.Services.RegisterSettingsFromAssembly(typeof(PluginSettings).Assembly);
+
         builder.RootComponents.Add<App>("app");
 
         var app = builder.Build();
@@ -65,9 +69,6 @@ class Program
         app.Services.UseMcp();
         app.Services.UsePluginFramework();
         app.Services.UseSettingsFramework();
-        app.Services.RegisterSettings<SampleAppSettings>();
-        app.Services.RegisterSettings<PluginSettings>();
-        app.Services.RegisterSettings<McpSettings>();
 
         // Plugin loading is deferred to MainLayout.OnAfterRenderAsync
         // This allows custom plugin directory setting to take effect

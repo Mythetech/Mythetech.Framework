@@ -140,14 +140,14 @@
     {
         if (plugin.IsEnabled)
         {
-            PluginState.DisablePlugin(plugin.Manifest.Id);
+            await PluginState.DisablePluginAsync(plugin.Manifest.Id);
         }
         else
         {
-            PluginState.EnablePlugin(plugin.Manifest.Id);
+            await PluginState.EnablePluginAsync(plugin.Manifest.Id);
         }
     }
-    
+
     private async Task HandleDeletePlugin(PluginInfo plugin)
     {
         var result = await DialogService.ShowMessageBox(
@@ -155,10 +155,10 @@
             message: $"Are you sure you want to delete '{plugin.Manifest.Name}'? This action cannot be undone.",
             yesText: "Delete",
             cancelText: "Cancel");
-        
+
         if (result == true)
         {
-            PluginState.RemovePlugin(plugin.Manifest.Id);
+            await PluginState.RemovePluginAsync(plugin.Manifest.Id);
         }
     }
 
@@ -167,15 +167,15 @@
         var files = await FileOpenService.OpenFileAsync(
             title: "Select Plugin DLL",
             filters: [new FileFilter("Plugin DLLs", ["*.dll"])]);
-        
+
         if (files.Length == 0) return;
-        
+
         foreach (var dllPath in files)
         {
             var pluginInfo = PluginLoader.LoadPlugin(dllPath);
             if (pluginInfo is not null)
             {
-                PluginState.RegisterPlugin(pluginInfo);
+                await PluginState.RegisterPluginAsync(pluginInfo);
             }
         }
     }

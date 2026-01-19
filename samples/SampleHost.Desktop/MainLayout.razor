@@ -7,7 +7,6 @@
 @using SampleHost.Shared
 @using SampleHost.Shared.Settings
 @inherits LayoutComponentBase
-@inject IServiceProvider ServiceProvider
 @inject PluginState PluginState
 @inject IPluginAssetLoader AssetLoader
 @inject IShowFileService ShowFileService
@@ -100,7 +99,17 @@
     {
         try
         {
-            await ServiceProvider.UsePluginsFromSettingsAsync();
+            // Get custom plugin directory from settings if configured
+            var pluginSettings = SettingsProvider.GetSettings<PluginSettings>();
+            string? pluginDirectory = null;
+
+            if (!string.IsNullOrWhiteSpace(pluginSettings?.CustomPluginDirectory)
+                && Directory.Exists(pluginSettings.CustomPluginDirectory))
+            {
+                pluginDirectory = pluginSettings.CustomPluginDirectory;
+            }
+
+            await PluginState.InitializePluginsAsync(pluginDirectory);
             await PluginState.LoadStateAsync();
             await LoadAllPluginAssetsAsync();
         }
