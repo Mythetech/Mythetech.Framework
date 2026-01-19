@@ -2,6 +2,7 @@
 @using Mythetech.Framework.Components.SimpleTabs
 @using Mythetech.Framework.Components.Badge
 @using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Components.Switch
 @using Mythetech.Framework.Infrastructure.Environment
 @using System.IO.Compression
 @using System.Net.Http
@@ -71,12 +72,12 @@
                 </Tab>
                 <Tab Name="@_availableTabName">
                     <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
-                        <MudCheckBox T="bool" Value="_showPreviewPlugins"
-                                     Label="Show preview plugins"
-                                     Size="Size.Small"
-                                     Dense="true"
-                                     Color="Color.Primary"
-                                     ValueChanged="@(OnShowPreviewChanged)" />
+                        <Switch T="bool"
+                                Value="_showPreviewPlugins"
+                                Label="Show preview plugins"
+                                Size="Size.Small"
+                                Color="Color.Primary"
+                                ValueChanged="@(OnShowPreviewChanged)" />
                     </MudStack>
                     @if (_availablePlugins is null || _availablePlugins.Count == 0)
                     {
@@ -264,15 +265,15 @@
     }
     
     
-    private void HandleTogglePlugin(PluginInfo plugin)
+    private async Task HandleTogglePlugin(PluginInfo plugin)
     {
         if (plugin.IsEnabled)
         {
-            PluginState.DisablePlugin(plugin.Manifest.Id);
+            await PluginState.DisablePluginAsync(plugin.Manifest.Id);
         }
         else
         {
-            PluginState.EnablePlugin(plugin.Manifest.Id);
+            await PluginState.EnablePluginAsync(plugin.Manifest.Id);
         }
     }
     
@@ -286,7 +287,7 @@
         
         if (result == true)
         {
-            PluginState.RemovePlugin(plugin.Manifest.Id);
+            await PluginState.RemovePluginAsync(plugin.Manifest.Id);
             UpdateAvailablePlugins();
             UpdateTabNames();
             StateHasChanged();
@@ -362,11 +363,11 @@
             {
                 try
                 {
-                    PluginState.RegisterPlugin(plugin);
+                    await PluginState.RegisterPluginAsync(plugin);
                 }
                 catch (InvalidOperationException)
                 {
-                    PluginState.RegisterOrUpgradePlugin(plugin);
+                    await PluginState.RegisterOrUpgradePluginAsync(plugin);
                 }
             }
             
