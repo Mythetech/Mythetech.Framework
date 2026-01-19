@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,11 +11,12 @@ namespace Mythetech.Framework.Infrastructure.MessageBus;
 /// </summary>
 public class InMemoryMessageBus : IMessageBus
 {
-    private readonly Dictionary<Type, List<Type>> _registeredConsumerTypes = new();
-    private readonly Dictionary<Type, List<object>> _cachedConsumers = new();
-    private readonly Dictionary<Type, List<object>> _subscribers = new();
-    private readonly Dictionary<Type, (Type HandlerType, Type ResponseType)> _registeredQueryHandlerTypes = new();
-    private readonly Dictionary<Type, object> _cachedQueryHandlers = new();
+    private readonly ConcurrentDictionary<Type, List<Type>> _registeredConsumerTypes = new();
+    private readonly ConcurrentDictionary<Type, List<object>> _cachedConsumers = new();
+    private readonly ConcurrentDictionary<Type, List<object>> _subscribers = new();
+    private readonly ConcurrentDictionary<Type, (Type HandlerType, Type ResponseType)> _registeredQueryHandlerTypes = new();
+    private readonly ConcurrentDictionary<Type, object> _cachedQueryHandlers = new();
+    private readonly Lock _subscribersLock = new();
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<InMemoryMessageBus> _logger;
@@ -72,9 +74,18 @@ public class InMemoryMessageBus : IMessageBus
 
         var registeredConsumers = GetOrResolveConsumers<TMessage>();
 
-        var manualSubscribers = _subscribers.TryGetValue(typeof(TMessage), out var subscribers)
-            ? subscribers.Cast<IConsumer<TMessage>>()
-            : [];
+        IEnumerable<IConsumer<TMessage>> manualSubscribers;
+        if (_subscribers.TryGetValue(typeof(TMessage), out var subscribers))
+        {
+            lock (_subscribersLock)
+            {
+                manualSubscribers = subscribers.Cast<IConsumer<TMessage>>().ToList();
+            }
+        }
+        else
+        {
+            manualSubscribers = [];
+        }
 
         var allConsumers = registeredConsumers.Concat(manualSubscribers);
 
@@ -178,41 +189,51 @@ public class InMemoryMessageBus : IMessageBus
     /// <inheritdoc/>
     public void RegisterConsumerType<TMessage, TConsumer>() where TMessage : class where TConsumer : IConsumer<TMessage>
     {
-        if (!_registeredConsumerTypes.ContainsKey(typeof(TMessage)))
+        var consumerTypes = _registeredConsumerTypes.GetOrAdd(typeof(TMessage), _ => new List<Type>());
+        lock (consumerTypes)
         {
-            _registeredConsumerTypes[typeof(TMessage)] = new List<Type>();
+            consumerTypes.Add(typeof(TConsumer));
         }
-
-        _registeredConsumerTypes[typeof(TMessage)].Add(typeof(TConsumer));
     }
 
     private List<IConsumer<TMessage>> GetOrResolveConsumers<TMessage>() where TMessage : class
     {
         var messageType = typeof(TMessage);
 
-        if (!_cachedConsumers.TryGetValue(messageType, out var cached))
+        var cached = _cachedConsumers.GetOrAdd(messageType, _ =>
         {
             if (!_registeredConsumerTypes.TryGetValue(messageType, out var consumerTypes))
                 return [];
 
-            cached = consumerTypes
+            List<Type> typesCopy;
+            lock (consumerTypes)
+            {
+                typesCopy = consumerTypes.ToList();
+            }
+
+            return typesCopy
                 .Select(type => _serviceProvider.GetService(type))
                 .OfType<object>()
                 .ToList();
+        });
 
-            _cachedConsumers[messageType] = cached;
+        List<object> cachedCopy;
+        lock (cached)
+        {
+            cachedCopy = cached.ToList();
         }
 
-        return cached.Cast<IConsumer<TMessage>>().ToList();
+        return cachedCopy.Cast<IConsumer<TMessage>>().ToList();
     }
 
     /// <inheritdoc/>
     public void Subscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class
     {
-        if (!_subscribers.ContainsKey(typeof(TMessage)))
-            _subscribers[typeof(TMessage)] = [];
-
-        _subscribers[typeof(TMessage)].Add(consumer);
+        var subscribers = _subscribers.GetOrAdd(typeof(TMessage), _ => []);
+        lock (_subscribersLock)
+        {
+            subscribers.Add(consumer);
+        }
     }
 
     /// <inheritdoc/>
@@ -220,9 +241,12 @@ public class InMemoryMessageBus : IMessageBus
     {
         if (!_subscribers.TryGetValue(typeof(TMessage), out var handlers)) return;
 
-        handlers.Remove(consumer);
-        if (handlers.Count == 0)
-            _subscribers.Remove(typeof(TMessage));
+        lock (_subscribersLock)
+        {
+            handlers.Remove(consumer);
+            if (handlers.Count == 0)
+                _subscribers.TryRemove(typeof(TMessage), out _);
+        }
     }
 
     /// <inheritdoc/>

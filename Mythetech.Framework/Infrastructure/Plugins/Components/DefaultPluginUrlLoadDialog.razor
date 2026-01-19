@@ -181,7 +181,7 @@
             
             foreach (var plugin in loadedPlugins)
             {
-                PluginState.RegisterPlugin(plugin);
+                await PluginState.RegisterPluginAsync(plugin);
             }
             
             Snackbar.Add($"Successfully loaded {loadedPlugins.Count} plugin(s) from '{_pluginName}'", Severity.Success);

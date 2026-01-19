@@ -51,11 +51,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Renders child content when plugin is enabled")]
-    public void Renders_ChildContent_When_Plugin_Enabled()
+    public async Task Renders_ChildContent_When_Plugin_Enabled()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         // Act
@@ -69,11 +69,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Shows disabled UI when plugin is disabled")]
-    public void Shows_DisabledUI_When_Plugin_Disabled()
+    public async Task Shows_DisabledUI_When_Plugin_Disabled()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: false);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         // Act
@@ -90,11 +90,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Shows disabled UI when PluginsActive is false")]
-    public void Shows_DisabledUI_When_PluginsActive_False()
+    public async Task Shows_DisabledUI_When_PluginsActive_False()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         _pluginState.PluginsActive = false;
         var metadata = CreateMetadata();
 
@@ -110,11 +110,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Shows deleted UI when plugin is removed")]
-    public void Shows_DeletedUI_When_Plugin_Removed()
+    public async Task Shows_DeletedUI_When_Plugin_Removed()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         var cut = RenderComponent<PluginGuard>(parameters => parameters
@@ -123,7 +123,7 @@ public class PluginGuardTests : TestContext
             .AddChildContent("<div class=\"test-content\">Should not render</div>"));
 
         // Act - Remove the plugin
-        _pluginState.RemovePlugin(pluginInfo.Manifest.Id);
+        await _pluginState.RemovePluginAsync(pluginInfo.Manifest.Id);
         cut.Render();
 
         // Assert
@@ -133,11 +133,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Shows error UI when child component throws exception")]
-    public void Shows_ErrorUI_When_Component_Throws()
+    public async Task Shows_ErrorUI_When_Component_Throws()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         // Act
@@ -154,11 +154,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Shows error details when ShowErrorDetails is true")]
-    public void Shows_ErrorDetails_When_ShowErrorDetails_True()
+    public async Task Shows_ErrorDetails_When_ShowErrorDetails_True()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         // Act
@@ -174,11 +174,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Hides error details when ShowErrorDetails is false")]
-    public void Hides_ErrorDetails_When_ShowErrorDetails_False()
+    public async Task Hides_ErrorDetails_When_ShowErrorDetails_False()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         // Act
@@ -193,11 +193,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Updates UI when plugin state changes from enabled to disabled")]
-    public void Updates_UI_When_Plugin_Disabled()
+    public async Task Updates_UI_When_Plugin_Disabled()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         var cut = RenderComponent<PluginGuard>(parameters => parameters
@@ -208,7 +208,7 @@ public class PluginGuardTests : TestContext
         cut.Find(".test-content").ShouldNotBeNull();
 
         // Act - Disable the plugin
-        _pluginState.DisablePlugin(pluginInfo.Manifest.Id);
+        await _pluginState.DisablePluginAsync(pluginInfo.Manifest.Id);
         cut.Render();
 
         // Assert
@@ -217,11 +217,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Updates UI when plugin state changes from disabled to enabled")]
-    public void Updates_UI_When_Plugin_Enabled()
+    public async Task Updates_UI_When_Plugin_Enabled()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: false);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         var cut = RenderComponent<PluginGuard>(parameters => parameters
@@ -232,7 +232,7 @@ public class PluginGuardTests : TestContext
         cut.Markup.ShouldContain("Plugin Disabled");
 
         // Act - Enable the plugin
-        _pluginState.EnablePlugin(pluginInfo.Manifest.Id);
+        await _pluginState.EnablePluginAsync(pluginInfo.Manifest.Id);
         cut.Render();
 
         // Assert
@@ -241,11 +241,11 @@ public class PluginGuardTests : TestContext
     }
 
     [Fact(DisplayName = "Updates UI when PluginsActive changes")]
-    public void Updates_UI_When_PluginsActive_Changes()
+    public async Task Updates_UI_When_PluginsActive_Changes()
     {
         // Arrange
         var pluginInfo = CreatePluginInfo(enabled: true);
-        _pluginState.RegisterPlugin(pluginInfo);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
         var cut = RenderComponent<PluginGuard>(parameters => parameters

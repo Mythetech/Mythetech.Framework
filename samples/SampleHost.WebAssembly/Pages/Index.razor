@@ -104,12 +104,12 @@
 </MudGrid>
 
 @code {
-    private void TogglePlugin(string pluginId, bool enabled)
+    private async Task TogglePlugin(string pluginId, bool enabled)
     {
         if (enabled)
-            PluginState.EnablePlugin(pluginId);
+            await PluginState.EnablePluginAsync(pluginId);
         else
-            PluginState.DisablePlugin(pluginId);
+            await PluginState.DisablePluginAsync(pluginId);
     }
 }
 

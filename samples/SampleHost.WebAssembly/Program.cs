@@ -28,18 +28,19 @@ builder.Services.AddSettingsFramework();
 builder.Services.AddWebAssemblySettingsStorage();
 builder.Services.AddPluginStateProvider();
 
+// Register settings from assemblies (new DI-friendly API)
+builder.Services.RegisterSettingsFromAssembly(typeof(SampleAppSettings).Assembly);
+builder.Services.RegisterSettingsFromAssembly(typeof(Mythetech.Framework.Infrastructure.Plugins.PluginSettings).Assembly);
+
 var host = builder.Build();
 
 host.Services.UseMessageBus();
 host.Services.UsePluginFramework();
 host.Services.UseSettingsFramework();
-host.Services.RegisterSettings<SampleAppSettings>();
-host.Services.RegisterSettings<PluginSettings>();
-host.Services.RegisterSettings<McpSettings>();
 
 // In WASM, we load the plugin from the referenced assembly directly
 // (dynamic DLL loading is not supported in browser WASM)
-host.Services.UsePlugin(typeof(SamplePlugin.SamplePluginManifest).Assembly);
+await host.Services.UsePluginAsync(typeof(SamplePlugin.SamplePluginManifest).Assembly);
 
 await host.RunAsync();
 

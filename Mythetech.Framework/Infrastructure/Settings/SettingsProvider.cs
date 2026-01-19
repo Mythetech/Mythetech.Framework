@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,7 @@ public class SettingsProvider : ISettingsProvider
 {
     private readonly IMessageBus _bus;
     private readonly ILogger<SettingsProvider> _logger;
-    private readonly Dictionary<string, SettingsBase> _settings = new();
+    private readonly ConcurrentDictionary<string, SettingsBase> _settings = new();
 
     /// <summary>
     /// Creates a new settings provider.
@@ -44,7 +45,7 @@ public class SettingsProvider : ISettingsProvider
 
     /// <inheritdoc />
     public IReadOnlyList<SettingsBase> GetAllSettings()
-        => _settings.Values.OrderBy(s => s.Order).ThenBy(s => s.DisplayName).ToList().AsReadOnly();
+        => _settings.Values.ToList().OrderBy(s => s.Order).ThenBy(s => s.DisplayName ?? string.Empty).ToList().AsReadOnly();
 
     /// <inheritdoc />
     public T? GetSettings<T>() where T : SettingsBase
@@ -57,13 +58,12 @@ public class SettingsProvider : ISettingsProvider
     /// <inheritdoc />
     public void RegisterSettings(SettingsBase settings)
     {
-        if (_settings.ContainsKey(settings.SettingsId))
+        if (!_settings.TryAdd(settings.SettingsId, settings))
         {
             _logger.LogWarning("Settings with ID {SettingsId} already registered, skipping", settings.SettingsId);
             return;
         }
 
-        _settings[settings.SettingsId] = settings;
         _logger.LogDebug("Registered settings: {SettingsId} ({DisplayName})", settings.SettingsId, settings.DisplayName);
     }
 
@@ -146,7 +146,7 @@ public class SettingsProvider : ISettingsProvider
         }
     }
 
-    private static void SetPropertyWithoutNotification(SettingsBase settings, PropertyInfo property, object? value)
+    private void SetPropertyWithoutNotification(SettingsBase settings, PropertyInfo property, object? value)
     {
         // Try to find and set the backing field directly
         // Guard against single-character property names (edge case but possible)
@@ -164,6 +164,10 @@ public class SettingsProvider : ISettingsProvider
         else
         {
             // Fallback to property setter (will trigger notification)
+            _logger.LogDebug(
+                "Backing field '{BackingFieldName}' not found for property '{Property}' on settings '{SettingsId}'. " +
+                "Using property setter which may trigger change notifications during load.",
+                backingFieldName, property.Name, settings.SettingsId);
             property.SetValue(settings, value);
         }
     }

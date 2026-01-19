@@ -44,11 +44,12 @@ public class McpServer : IMcpServer
         _logger.LogInformation("MCP server starting: {ServerName} v{Version}",
             _options.ServerName, _options.ServerVersion ?? "1.0.0");
 
-        try
+        while (!cancellationToken.IsCancellationRequested)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            JsonRpcRequest? request = null;
+            try
             {
-                var request = await _transport.ReadMessageAsync(cancellationToken);
+                request = await _transport.ReadMessageAsync(cancellationToken);
                 if (request is null)
                 {
                     _logger.LogInformation("Transport closed, shutting down MCP server");
@@ -63,15 +64,42 @@ public class McpServer : IMcpServer
                     await _transport.WriteMessageAsync(response, cancellationToken);
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("MCP server cancelled");
+                break;
+            }
+            catch (JsonException ex)
+            {
+                // Malformed JSON in request - send error response if we have a request ID
+                _logger.LogWarning(ex, "Invalid JSON in MCP request");
+                await TrySendErrorResponseAsync(request?.Id, JsonRpcError.ParseError, "Invalid JSON", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Unexpected error - log and continue processing requests
+                _logger.LogError(ex, "Error processing MCP request");
+                await TrySendErrorResponseAsync(request?.Id, JsonRpcError.InternalError, "Internal server error", cancellationToken);
+            }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+    }
+
+    private async Task TrySendErrorResponseAsync(object? requestId, int errorCode, string message, CancellationToken cancellationToken)
+    {
+        if (requestId is null)
         {
-            _logger.LogInformation("MCP server cancelled");
+            // No request ID means we can't send a response (likely a notification or parse failure)
+            return;
+        }
+
+        try
+        {
+            var errorResponse = JsonRpcResponse.Failure(requestId, errorCode, message);
+            await _transport.WriteMessageAsync(errorResponse, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "MCP server error");
-            throw;
+            _logger.LogWarning(ex, "Failed to send error response to MCP client");
         }
     }
 

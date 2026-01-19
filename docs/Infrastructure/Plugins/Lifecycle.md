@@ -8,7 +8,7 @@ This document covers how plugins are loaded, enabled/disabled, and removed.
 
 ```csharp
 // Load all plugins from a directory
-app.Services.UsePlugins("plugins");
+await app.Services.UsePluginsAsync("plugins");
 ```
 
 **Discovery Process:**
@@ -34,7 +34,7 @@ plugins/
 
 ```csharp
 // Load from referenced assembly
-app.Services.UsePlugin(typeof(MyPlugin.Manifest).Assembly);
+await app.Services.UsePluginAsync(typeof(MyPlugin.Manifest).Assembly);
 ```
 
 WebAssembly doesn't support dynamic assembly loading, so plugins must be referenced at compile time.
@@ -129,7 +129,7 @@ public class PluginInfo
 
 ```csharp
 var pluginState = services.GetRequiredService<PluginState>();
-pluginState.EnablePlugin("com.example.myplugin");
+await pluginState.EnablePluginAsync("com.example.myplugin");
 ```
 
 **Flow:**
@@ -142,7 +142,7 @@ pluginState.EnablePlugin("com.example.myplugin");
 ### Disabling a Plugin
 
 ```csharp
-pluginState.DisablePlugin("com.example.myplugin");
+await pluginState.DisablePluginAsync("com.example.myplugin");
 ```
 
 **Flow:**
@@ -209,7 +209,7 @@ pluginState.PluginDisabling += (sender, args) =>
 ## Removing Plugins
 
 ```csharp
-pluginState.RemovePlugin("com.example.myplugin");
+await pluginState.RemovePluginAsync("com.example.myplugin");
 ```
 
 **Flow:**
@@ -239,7 +239,7 @@ The UI can prompt to delete stored data when removing the plugin.
 
 ```csharp
 // Registers or upgrades if newer version
-pluginState.RegisterOrUpgradePlugin(newPluginInfo);
+await pluginState.RegisterOrUpgradePluginAsync(newPluginInfo);
 ```
 
 **Behavior:**
@@ -324,25 +324,25 @@ Displays error message and optionally stack trace without crashing the host.
                     │ (Disabled)  │
                     └──────┬──────┘
                            │
-              PluginState.RegisterPlugin()
+              PluginState.RegisterPluginAsync()
                            │
                            ▼
                     ┌─────────────┐
-                    │  Registered │◄────────────────┐
-                    │  (Enabled)  │                 │
-                    └──────┬──────┘                 │
-                           │                        │
-         ┌─────────────────┼─────────────────┐      │
-         │                 │                 │      │
-    DisablePlugin()   StateChanged()    EnablePlugin()
-         │                 │                 │      │
-         ▼                 ▼                 ▼      │
-    ┌─────────────┐  ┌───────────┐    ┌───────────┐│
-    │  Disabled   │  │    UI     │    │  Enabled  ││
-    │(no messages)│  │  Updates  │    │(messages) │┘
+                    │  Registered │◄────────────────────┐
+                    │  (Enabled)  │                     │
+                    └──────┬──────┘                     │
+                           │                            │
+         ┌─────────────────┼─────────────────┐          │
+         │                 │                 │          │
+  DisablePluginAsync() StateChanged()  EnablePluginAsync()
+         │                 │                 │          │
+         ▼                 ▼                 ▼          │
+    ┌─────────────┐  ┌───────────┐    ┌───────────┐    │
+    │  Disabled   │  │    UI     │    │  Enabled  │────┘
+    │(no messages)│  │  Updates  │    │(messages) │
     └──────┬──────┘  └───────────┘    └───────────┘
            │
-     RemovePlugin()
+   RemovePluginAsync()
            │
            ▼
     ┌─────────────┐

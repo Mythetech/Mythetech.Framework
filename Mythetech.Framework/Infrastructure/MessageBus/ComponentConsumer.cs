@@ -75,8 +75,19 @@ public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable
         base.OnInitialized();
         _consumer1 = new Consumer1(this);
         _consumer2 = new Consumer2(this);
-        MessageBus.Subscribe(_consumer1);
-        MessageBus.Subscribe(_consumer2);
+
+        try
+        {
+            MessageBus.Subscribe(_consumer1);
+            MessageBus.Subscribe(_consumer2);
+        }
+        catch
+        {
+            // Clean up any subscribed consumers if initialization fails
+            if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+            if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+            throw;
+        }
     }
 
     private async Task HandleMessage1(T1 message)
@@ -150,9 +161,21 @@ public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
         _consumer1 = new Consumer1(this);
         _consumer2 = new Consumer2(this);
         _consumer3 = new Consumer3(this);
-        MessageBus.Subscribe(_consumer1);
-        MessageBus.Subscribe(_consumer2);
-        MessageBus.Subscribe(_consumer3);
+
+        try
+        {
+            MessageBus.Subscribe(_consumer1);
+            MessageBus.Subscribe(_consumer2);
+            MessageBus.Subscribe(_consumer3);
+        }
+        catch
+        {
+            // Clean up any subscribed consumers if initialization fails
+            if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+            if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+            if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
+            throw;
+        }
     }
 
     private async Task HandleMessage1(T1 message)
@@ -246,10 +269,23 @@ public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDispos
         _consumer2 = new Consumer2(this);
         _consumer3 = new Consumer3(this);
         _consumer4 = new Consumer4(this);
-        MessageBus.Subscribe(_consumer1);
-        MessageBus.Subscribe(_consumer2);
-        MessageBus.Subscribe(_consumer3);
-        MessageBus.Subscribe(_consumer4);
+
+        try
+        {
+            MessageBus.Subscribe(_consumer1);
+            MessageBus.Subscribe(_consumer2);
+            MessageBus.Subscribe(_consumer3);
+            MessageBus.Subscribe(_consumer4);
+        }
+        catch
+        {
+            // Clean up any subscribed consumers if initialization fails
+            if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+            if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+            if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
+            if (_consumer4 is not null) MessageBus.Unsubscribe(_consumer4);
+            throw;
+        }
     }
 
     private async Task HandleMessage1(T1 message)
