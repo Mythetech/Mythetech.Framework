@@ -85,11 +85,14 @@ public static class PluginRegistrationExtensions
         // Register settings consumer
         messageBus.RegisterConsumerType<SettingsModelChanged<PluginSettings>, PluginSettingsConsumer>();
 
-        // Set state provider and message bus if available
+        // Set state provider, message bus, and plugin loader
         var pluginState = services.GetRequiredService<PluginState>();
         var stateProvider = services.GetService<IPluginStateProvider>();
+        var pluginLoader = services.GetRequiredService<PluginLoader>();
+
         pluginState.SetStateProvider(stateProvider);
         pluginState.SetMessageBus(messageBus);
+        pluginState.SetPluginLoader(pluginLoader);
 
         return services;
     }
@@ -97,12 +100,13 @@ public static class PluginRegistrationExtensions
     /// <summary>
     /// Load plugins from the default 'plugins' directory relative to the app base
     /// </summary>
-    public static IServiceProvider UsePlugins(this IServiceProvider services)
+    [Obsolete("Use PluginState.InitializePluginsAsync() from OnAfterRenderAsync instead.")]
+    public static async Task<IServiceProvider> UsePluginsAsync(this IServiceProvider services)
     {
         var baseDir = AppContext.BaseDirectory;
         var pluginDir = Path.Combine(baseDir, DefaultPluginDirectory);
 
-        return services.UsePlugins(pluginDir);
+        return await services.UsePluginsAsync(pluginDir);
     }
 
     /// <summary>
@@ -110,7 +114,8 @@ public static class PluginRegistrationExtensions
     /// </summary>
     /// <param name="services">Service provider</param>
     /// <param name="pluginDirectory">Path to the plugins directory</param>
-    public static IServiceProvider UsePlugins(this IServiceProvider services, string pluginDirectory)
+    [Obsolete("Use PluginState.InitializePluginsAsync(pluginDirectory) from OnAfterRenderAsync instead.")]
+    public static async Task<IServiceProvider> UsePluginsAsync(this IServiceProvider services, string pluginDirectory)
     {
         var loader = services.GetRequiredService<PluginLoader>();
         var state = services.GetRequiredService<PluginState>();
@@ -124,22 +129,22 @@ public static class PluginRegistrationExtensions
         {
             try
             {
-                state.RegisterPlugin(plugin);
+                await state.RegisterPluginAsync(plugin);
             }
             catch (InvalidOperationException)
             {
-                state.RegisterOrUpgradePlugin(plugin);
+                await state.RegisterOrUpgradePluginAsync(plugin);
             }
         }
 
         state.PluginsLoaded = true;
         return services;
     }
-    
+
     /// <summary>
     /// Register a plugin from an assembly (useful for testing or embedded plugins)
     /// </summary>
-    public static IServiceProvider UsePlugin(this IServiceProvider services, System.Reflection.Assembly assembly)
+    public static async Task<IServiceProvider> UsePluginAsync(this IServiceProvider services, System.Reflection.Assembly assembly)
     {
         var loader = services.GetRequiredService<PluginLoader>();
         var state = services.GetRequiredService<PluginState>();
@@ -149,11 +154,11 @@ public static class PluginRegistrationExtensions
         {
             try
             {
-                state.RegisterPlugin(plugin);
+                await state.RegisterPluginAsync(plugin);
             }
             catch (InvalidOperationException)
             {
-                state.RegisterOrUpgradePlugin(plugin);
+                await state.RegisterOrUpgradePluginAsync(plugin);
             }
         }
 
@@ -168,6 +173,8 @@ public static class PluginRegistrationExtensions
     /// </summary>
     /// <param name="services">Service provider</param>
     /// <returns>The service provider for chaining</returns>
+    [Obsolete("Use PluginState.InitializePluginsAsync(pluginDirectory) from OnAfterRenderAsync instead. " +
+              "Read the custom directory from settings yourself and pass it to InitializePluginsAsync.")]
     public static async Task<IServiceProvider> UsePluginsFromSettingsAsync(this IServiceProvider services)
     {
         var state = services.GetRequiredService<PluginState>();
@@ -202,7 +209,7 @@ public static class PluginRegistrationExtensions
             await messageBus.PublishAsync(new PluginsLoadingStarted(pluginDirectory));
         }
 
-        services.UsePlugins(pluginDirectory);
+        await services.UsePluginsAsync(pluginDirectory);
 
         Console.WriteLine($"[PluginLoader] Loaded {state.Plugins.Count} plugins from {pluginDirectory}");
         foreach (var plugin in state.Plugins)

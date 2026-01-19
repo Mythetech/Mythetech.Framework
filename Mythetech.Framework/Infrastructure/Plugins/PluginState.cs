@@ -11,38 +11,40 @@ namespace Mythetech.Framework.Infrastructure.Plugins;
 public class PluginState : IDisposable
 {
     private readonly List<PluginInfo> _plugins = [];
+    private readonly Lock _pluginsLock = new();
     private IPluginStateProvider? _stateProvider;
     private IMessageBus? _messageBus;
     private ILogger<PluginState>? _logger;
+    private PluginLoader? _pluginLoader;
     private bool _disposed;
     private bool _pluginsActive = true;
     private bool _pluginsLoaded;
-    
+
     /// <summary>
     /// Raised before a plugin is enabled. Handlers can set Cancel = true to prevent enabling.
     /// </summary>
     public event EventHandler<PluginLifecycleEventArgs>? PluginEnabling;
-    
+
     /// <summary>
     /// Raised after a plugin has been enabled
     /// </summary>
     public event EventHandler<PluginLifecycleEventArgs>? PluginEnabled;
-    
+
     /// <summary>
     /// Raised before a plugin is disabled. Handlers can set Cancel = true to prevent disabling.
     /// </summary>
     public event EventHandler<PluginLifecycleEventArgs>? PluginDisabling;
-    
+
     /// <summary>
     /// Raised after a plugin has been disabled
     /// </summary>
     public event EventHandler<PluginLifecycleEventArgs>? PluginDisabled;
-    
+
     /// <summary>
     /// Raised when any plugin state changes (plugins added, enabled, disabled, etc.)
     /// </summary>
     public event EventHandler? StateChanged;
-    
+
     /// <summary>
     /// Global toggle for plugin system. When false, no plugins are considered enabled.
     /// </summary>
@@ -58,42 +60,59 @@ public class PluginState : IDisposable
             }
         }
     }
-    
+
     /// <summary>
     /// All loaded plugins regardless of enabled state
     /// </summary>
-    public IReadOnlyList<PluginInfo> Plugins => _plugins.AsReadOnly();
-    
+    public IReadOnlyList<PluginInfo> Plugins
+    {
+        get
+        {
+            lock (_pluginsLock)
+            {
+                return _plugins.ToList().AsReadOnly();
+            }
+        }
+    }
+
     /// <summary>
     /// Enabled plugins only (respects PluginsActive flag)
     /// </summary>
-    public IEnumerable<PluginInfo> EnabledPlugins => 
-        PluginsActive ? _plugins.Where(p => p.IsEnabled) : [];
-    
+    public IEnumerable<PluginInfo> EnabledPlugins
+    {
+        get
+        {
+            lock (_pluginsLock)
+            {
+                return PluginsActive ? _plugins.Where(p => p.IsEnabled).ToList() : [];
+            }
+        }
+    }
+
     /// <summary>
     /// All menu components from enabled plugins (types only)
     /// </summary>
     public IEnumerable<Type> EnabledMenuComponents =>
         EnabledPlugins.SelectMany(p => p.MenuComponents);
-    
+
     /// <summary>
     /// All context panel components from enabled plugins (types only)
     /// </summary>
     public IEnumerable<Type> EnabledContextPanelComponents =>
         EnabledPlugins.SelectMany(p => p.ContextPanelComponents);
-    
+
     /// <summary>
     /// All menu component metadata from enabled plugins (with Icon, Title, Order)
     /// </summary>
     public IEnumerable<PluginComponentMetadata> EnabledMenuComponentsMetadata =>
         EnabledPlugins.SelectMany(p => p.MenuComponentsMetadata);
-    
+
     /// <summary>
     /// All context panel component metadata from enabled plugins (with Icon, Title, Order)
     /// </summary>
     public IEnumerable<PluginComponentMetadata> EnabledContextPanelComponentsMetadata =>
         EnabledPlugins.SelectMany(p => p.ContextPanelComponentsMetadata);
-    
+
     /// <summary>
     /// The directory path from which plugins were loaded.
     /// Set when plugins are loaded via UsePlugins().
@@ -109,49 +128,54 @@ public class PluginState : IDisposable
         get => _pluginsLoaded;
         internal set => _pluginsLoaded = value;
     }
-    
+
     /// <summary>
-    /// Register a newly loaded plugin
-    /// Version-aware: throws only on identical version, upgrades on newer version
+    /// Register a newly loaded plugin.
+    /// Version-aware: throws only on identical version, upgrades on newer version.
     /// </summary>
-    public void RegisterPlugin(PluginInfo plugin)
+    public async Task RegisterPluginAsync(PluginInfo plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
 
-        var existing = GetPlugin(plugin.Manifest.Id);
-        if (existing is not null)
+        lock (_pluginsLock)
         {
-            if (plugin.IsSameVersion(existing.Manifest.Version))
+            var existing = GetPluginUnsafe(plugin.Manifest.Id);
+            if (existing is not null)
             {
-                throw new InvalidOperationException(
-                    $"Plugin with ID '{plugin.Manifest.Id}' version {plugin.Manifest.Version} is already registered");
-            }
+                if (plugin.IsSameVersion(existing.Manifest.Version))
+                {
+                    throw new InvalidOperationException(
+                        $"Plugin with ID '{plugin.Manifest.Id}' version {plugin.Manifest.Version} is already registered");
+                }
 
-            if (plugin.IsNewerThan(existing.Manifest.Version))
+                if (plugin.IsNewerThan(existing.Manifest.Version))
+                {
+                    var wasEnabled = existing.IsEnabled;
+                    _plugins.Remove(existing);
+                    plugin.IsEnabled = wasEnabled;
+                    _plugins.Add(plugin);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot downgrade plugin '{plugin.Manifest.Id}' from version {existing.Manifest.Version} to {plugin.Manifest.Version}");
+                }
+            }
+            else
             {
-                var wasEnabled = existing.IsEnabled;
-                _plugins.Remove(existing);
-                plugin.IsEnabled = wasEnabled;
                 _plugins.Add(plugin);
-                NotifyStateChanged();
-                _ = PublishPluginLoadedAsync(plugin);
-                return;
             }
-
-            throw new InvalidOperationException(
-                $"Cannot downgrade plugin '{plugin.Manifest.Id}' from version {existing.Manifest.Version} to {plugin.Manifest.Version}");
         }
 
-        _plugins.Add(plugin);
         NotifyStateChanged();
-        _ = PublishPluginLoadedAsync(plugin);
+        await PublishPluginLoadedAsync(plugin);
     }
-    
+
     /// <summary>
-    /// Enable a plugin by its ID
+    /// Enable a plugin by its ID.
     /// </summary>
     /// <returns>True if the plugin was enabled, false if cancelled or not found</returns>
-    public bool EnablePlugin(string pluginId)
+    public async Task<bool> EnablePluginAsync(string pluginId)
     {
         var plugin = GetPlugin(pluginId);
         if (plugin is null || plugin.IsEnabled) return false;
@@ -165,20 +189,17 @@ public class PluginState : IDisposable
         PluginEnabled?.Invoke(this, args);
         NotifyStateChanged();
 
-        // Publish MessageBus event
-        _ = PublishPluginEnabledAsync(plugin);
-
-        // Persist state asynchronously (fire and forget)
-        _ = PersistStateAsync();
+        await PublishPluginEnabledAsync(plugin);
+        await PersistStateAsync();
 
         return true;
     }
 
     /// <summary>
-    /// Disable a plugin by its ID
+    /// Disable a plugin by its ID.
     /// </summary>
     /// <returns>True if the plugin was disabled, false if cancelled or not found</returns>
-    public bool DisablePlugin(string pluginId)
+    public async Task<bool> DisablePluginAsync(string pluginId)
     {
         var plugin = GetPlugin(pluginId);
         if (plugin is null || !plugin.IsEnabled) return false;
@@ -192,31 +213,42 @@ public class PluginState : IDisposable
         PluginDisabled?.Invoke(this, args);
         NotifyStateChanged();
 
-        // Publish MessageBus event
-        _ = PublishPluginDisabledAsync(plugin);
-
-        // Persist state asynchronously (fire and forget)
-        _ = PersistStateAsync();
+        await PublishPluginDisabledAsync(plugin);
+        await PersistStateAsync();
 
         return true;
     }
-    
+
     /// <summary>
     /// Get a plugin by its ID
     /// </summary>
     public PluginInfo? GetPlugin(string pluginId)
     {
-        return _plugins.FirstOrDefault(p => p.Manifest.Id == pluginId);
+        lock (_pluginsLock)
+        {
+            return GetPluginUnsafe(pluginId);
+        }
     }
-    
+
     /// <summary>
     /// Get a plugin by its ID and version
     /// </summary>
     public PluginInfo? GetPlugin(string pluginId, Version version)
     {
-        return _plugins.FirstOrDefault(p => p.Manifest.Id == pluginId && p.IsSameVersion(version));
+        lock (_pluginsLock)
+        {
+            return _plugins.FirstOrDefault(p => p.Manifest.Id == pluginId && p.IsSameVersion(version));
+        }
     }
-    
+
+    /// <summary>
+    /// Internal method to get plugin without locking - must be called within a lock
+    /// </summary>
+    private PluginInfo? GetPluginUnsafe(string pluginId)
+    {
+        return _plugins.FirstOrDefault(p => p.Manifest.Id == pluginId);
+    }
+
     /// <summary>
     /// Check if a plugin can be registered (allows upgrades, disallows downgrades and identicals)
     /// </summary>
@@ -225,66 +257,81 @@ public class PluginState : IDisposable
     public bool CanRegisterPlugin(PluginInfo plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
-        
-        var existing = GetPlugin(plugin.Manifest.Id);
-        if (existing is null)
-            return true;
-        
-        return plugin.IsNewerThan(existing.Manifest.Version);
+
+        lock (_pluginsLock)
+        {
+            var existing = GetPluginUnsafe(plugin.Manifest.Id);
+            if (existing is null)
+                return true;
+
+            return plugin.IsNewerThan(existing.Manifest.Version);
+        }
     }
-    
+
     /// <summary>
     /// Register or upgrade a plugin. Replaces if newer version, ignores if same/older.
     /// </summary>
     /// <param name="plugin">Plugin to register</param>
     /// <returns>True if plugin was registered or upgraded, false if ignored</returns>
-    public bool RegisterOrUpgradePlugin(PluginInfo plugin)
+    public async Task<bool> RegisterOrUpgradePluginAsync(PluginInfo plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
 
-        var existing = GetPlugin(plugin.Manifest.Id);
-        if (existing is null)
+        bool registered = false;
+        lock (_pluginsLock)
         {
-            _plugins.Add(plugin);
-            NotifyStateChanged();
-            _ = PublishPluginLoadedAsync(plugin);
-            return true;
+            var existing = GetPluginUnsafe(plugin.Manifest.Id);
+            if (existing is null)
+            {
+                _plugins.Add(plugin);
+                registered = true;
+            }
+            else if (plugin.IsNewerThan(existing.Manifest.Version))
+            {
+                var wasEnabled = existing.IsEnabled;
+                _plugins.Remove(existing);
+                plugin.IsEnabled = wasEnabled;
+                _plugins.Add(plugin);
+                registered = true;
+            }
         }
 
-        if (plugin.IsNewerThan(existing.Manifest.Version))
+        if (registered)
         {
-            var wasEnabled = existing.IsEnabled;
-            _plugins.Remove(existing);
-            plugin.IsEnabled = wasEnabled;
-            _plugins.Add(plugin);
             NotifyStateChanged();
-            _ = PublishPluginLoadedAsync(plugin);
-            return true;
+            await PublishPluginLoadedAsync(plugin);
         }
 
-        return false;
+        return registered;
     }
-    
+
     /// <summary>
-    /// Remove a plugin by its ID
+    /// Remove a plugin by its ID.
     /// </summary>
     /// <returns>True if the plugin was removed, false if not found</returns>
-    public bool RemovePlugin(string pluginId)
+    public async Task<bool> RemovePluginAsync(string pluginId)
     {
-        var plugin = GetPlugin(pluginId);
-        if (plugin is null) return false;
-        
+        PluginInfo? plugin;
+        lock (_pluginsLock)
+        {
+            plugin = GetPluginUnsafe(pluginId);
+            if (plugin is null) return false;
+        }
+
         if (plugin.IsEnabled)
         {
-            DisablePlugin(pluginId);
+            await DisablePluginAsync(pluginId);
         }
-        
-        _plugins.Remove(plugin);
+
+        lock (_pluginsLock)
+        {
+            _plugins.Remove(plugin);
+        }
         NotifyStateChanged();
-        
+
         return true;
     }
-    
+
     /// <summary>
     /// Sets the plugin directory path. Called when plugins are loaded.
     /// </summary>
@@ -321,6 +368,15 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Sets the plugin loader for discovering and loading plugins.
+    /// </summary>
+    /// <param name="loader">The plugin loader to use.</param>
+    public void SetPluginLoader(PluginLoader? loader)
+    {
+        _pluginLoader = loader;
+    }
+
+    /// <summary>
     /// Loads persisted plugin states from the state provider.
     /// Should be called after plugins are loaded.
     /// </summary>
@@ -331,11 +387,14 @@ public class PluginState : IDisposable
         try
         {
             var disabledPlugins = await _stateProvider.LoadDisabledPluginsAsync();
-            foreach (var plugin in _plugins)
+            lock (_pluginsLock)
             {
-                if (disabledPlugins.Contains(plugin.Manifest.Id))
+                foreach (var plugin in _plugins)
                 {
-                    plugin.IsEnabled = false;
+                    if (disabledPlugins.Contains(plugin.Manifest.Id))
+                    {
+                        plugin.IsEnabled = false;
+                    }
                 }
             }
             NotifyStateChanged();
@@ -347,6 +406,51 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Initializes plugins from a directory. Call from OnAfterRenderAsync after first render.
+    /// </summary>
+    /// <param name="pluginDirectory">Plugin directory path, or null to use default 'plugins' directory</param>
+    public async Task InitializePluginsAsync(string? pluginDirectory = null)
+    {
+        if (PluginsLoaded)
+        {
+            _logger?.LogDebug("Plugins already initialized, skipping");
+            return;
+        }
+
+        if (_pluginLoader is null)
+        {
+            throw new InvalidOperationException("PluginLoader not set. Call UsePluginFramework() before initializing plugins.");
+        }
+
+        var fullPath = Path.GetFullPath(pluginDirectory ?? GetDefaultPluginDirectory());
+        SetPluginDirectory(fullPath);
+
+        if (_messageBus != null)
+        {
+            await _messageBus.PublishAsync(new Events.PluginsLoadingStarted(fullPath));
+        }
+
+        var plugins = _pluginLoader.LoadPluginsFromDirectory(fullPath);
+
+        foreach (var plugin in plugins)
+        {
+            await RegisterOrUpgradePluginAsync(plugin);
+        }
+
+        PluginsLoaded = true;
+
+        if (_messageBus != null)
+        {
+            await _messageBus.PublishAsync(new Events.PluginsLoadingCompleted(fullPath, Plugins.Count));
+        }
+    }
+
+    private static string GetDefaultPluginDirectory()
+    {
+        return Path.Combine(AppContext.BaseDirectory, "plugins");
+    }
+
+    /// <summary>
     /// Persists current plugin states to the state provider.
     /// </summary>
     private async Task PersistStateAsync()
@@ -355,10 +459,14 @@ public class PluginState : IDisposable
 
         try
         {
-            var disabledPlugins = _plugins
-                .Where(p => !p.IsEnabled)
-                .Select(p => p.Manifest.Id)
-                .ToHashSet();
+            HashSet<string> disabledPlugins;
+            lock (_pluginsLock)
+            {
+                disabledPlugins = _plugins
+                    .Where(p => !p.IsEnabled)
+                    .Select(p => p.Manifest.Id)
+                    .ToHashSet();
+            }
 
             await _stateProvider.SaveDisabledPluginsAsync(disabledPlugins);
         }
@@ -379,40 +487,19 @@ public class PluginState : IDisposable
     private async Task PublishPluginLoadedAsync(PluginInfo plugin)
     {
         if (_messageBus == null) return;
-        try
-        {
-            await _messageBus.PublishAsync(new PluginLoaded(plugin));
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogDebug(ex, "Failed to publish PluginLoaded event for {PluginId}", plugin.Manifest.Id);
-        }
+        await _messageBus.PublishAsync(new PluginLoaded(plugin));
     }
 
     private async Task PublishPluginEnabledAsync(PluginInfo plugin)
     {
         if (_messageBus == null) return;
-        try
-        {
-            await _messageBus.PublishAsync(new Events.PluginEnabled(plugin));
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogDebug(ex, "Failed to publish PluginEnabled event for {PluginId}", plugin.Manifest.Id);
-        }
+        await _messageBus.PublishAsync(new Events.PluginEnabled(plugin));
     }
 
     private async Task PublishPluginDisabledAsync(PluginInfo plugin)
     {
         if (_messageBus == null) return;
-        try
-        {
-            await _messageBus.PublishAsync(new Events.PluginDisabled(plugin));
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogDebug(ex, "Failed to publish PluginDisabled event for {PluginId}", plugin.Manifest.Id);
-        }
+        await _messageBus.PublishAsync(new Events.PluginDisabled(plugin));
     }
 
     /// <inheritdoc />
@@ -420,9 +507,11 @@ public class PluginState : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        
-        _plugins.Clear();
+
+        lock (_pluginsLock)
+        {
+            _plugins.Clear();
+        }
         GC.SuppressFinalize(this);
     }
 }
-

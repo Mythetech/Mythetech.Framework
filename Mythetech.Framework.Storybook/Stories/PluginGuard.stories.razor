@@ -158,43 +158,43 @@
 @code {
     [Inject]
     protected PluginState PluginState { get; set; } = default!;
-    
+
     private PluginInfo _currentPluginInfo = StorybookPluginData.EnabledPluginInfo;
-    
-    protected override void OnInitialized()
+
+    protected override async Task OnInitializedAsync()
     {
         if (PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id) is null)
         {
-            PluginState.RegisterPlugin(StorybookPluginData.EnabledPluginInfo);
+            await PluginState.RegisterPluginAsync(StorybookPluginData.EnabledPluginInfo);
         }
         _currentPluginInfo = StorybookPluginData.EnabledPluginInfo;
     }
-    
-    private void EnablePlugin()
+
+    private async Task EnablePlugin()
     {
-        PluginState.EnablePlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
+        await PluginState.EnablePluginAsync(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
         _currentPluginInfo = PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id)!;
         StateHasChanged();
     }
-    
-    private void DisablePlugin()
+
+    private async Task DisablePlugin()
     {
-        PluginState.DisablePlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
+        await PluginState.DisablePluginAsync(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
         _currentPluginInfo = PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id)!;
         StateHasChanged();
     }
-    
-    private void DeletePlugin()
+
+    private async Task DeletePlugin()
     {
-        PluginState.RemovePlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
+        await PluginState.RemovePluginAsync(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
         StateHasChanged();
     }
-    
-    private void RestorePlugin()
+
+    private async Task RestorePlugin()
     {
         if (PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id) is null)
         {
-            PluginState.RegisterPlugin(StorybookPluginData.EnabledPluginInfo);
+            await PluginState.RegisterPluginAsync(StorybookPluginData.EnabledPluginInfo);
         }
         _currentPluginInfo = StorybookPluginData.EnabledPluginInfo;
         StateHasChanged();
