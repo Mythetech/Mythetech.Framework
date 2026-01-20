@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -54,6 +53,56 @@ public class SettingsProvider : ISettingsProvider
     /// <inheritdoc />
     public SettingsBase? GetSettingsById(string settingsId)
         => _settings.TryGetValue(settingsId, out var settings) ? settings : null;
+
+    /// <inheritdoc />
+    public IEnumerable<SettingsSearchResult> SearchSettings(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Enumerable.Empty<SettingsSearchResult>();
+
+        var term = searchTerm.Trim();
+        var results = new List<SettingsSearchResult>();
+
+        foreach (var settings in GetAllSettings())
+        {
+            // Check if section-level metadata matches
+            var sectionMatches = settings.DisplayName?.Contains(term, StringComparison.OrdinalIgnoreCase) == true ||
+                                 settings.SettingsId.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+            // Get cached setting properties
+            var settingProperties = SettingsPropertyCache.GetSettingProperties(settings.GetType());
+
+            if (sectionMatches)
+            {
+                // Add all settings from matching section
+                foreach (var propInfo in settingProperties)
+                {
+                    results.Add(new SettingsSearchResult(settings, propInfo.Property.Name, propInfo.Attribute!, "SectionName"));
+                }
+            }
+            else
+            {
+                // Search individual settings
+                foreach (var propInfo in settingProperties)
+                {
+                    var attr = propInfo.Attribute!;
+                    string? matchField = null;
+
+                    if (attr.Label?.Contains(term, StringComparison.OrdinalIgnoreCase) == true)
+                        matchField = "Label";
+                    else if (attr.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) == true)
+                        matchField = "Description";
+                    else if (attr.Group?.Contains(term, StringComparison.OrdinalIgnoreCase) == true)
+                        matchField = "Group";
+
+                    if (matchField != null)
+                        results.Add(new SettingsSearchResult(settings, propInfo.Property.Name, attr, matchField));
+                }
+            }
+        }
+
+        return results;
+    }
 
     /// <inheritdoc />
     public void RegisterSettings(SettingsBase settings)
@@ -116,50 +165,40 @@ public class SettingsProvider : ISettingsProvider
     {
         using var document = JsonDocument.Parse(jsonData);
         var root = document.RootElement;
-        var type = settings.GetType();
 
-        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        // Use cached property info for better performance
+        var properties = SettingsPropertyCache.GetSettingProperties(settings.GetType());
+
+        foreach (var propInfo in properties)
         {
-            // Only apply to properties with [Setting] attribute
-            if (property.GetCustomAttribute<SettingAttribute>() == null)
+            if (!propInfo.Property.CanWrite)
                 continue;
 
-            if (!property.CanWrite)
-                continue;
-
-            if (!root.TryGetProperty(property.Name, out var jsonValue))
+            if (!root.TryGetProperty(propInfo.Property.Name, out var jsonValue))
                 continue;
 
             try
             {
-                var value = JsonSerializer.Deserialize(jsonValue.GetRawText(), property.PropertyType);
+                var value = JsonSerializer.Deserialize(jsonValue.GetRawText(), propInfo.Property.PropertyType);
 
-                // Use reflection to set backing field directly to avoid triggering change events
+                // Use cached backing field to set value directly without triggering change events
                 // during initial load. We'll publish one event after all properties are set.
-                SetPropertyWithoutNotification(settings, property, value);
+                SetPropertyWithoutNotification(settings, propInfo, value);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to deserialize setting {Property} for {SettingsId}",
-                    property.Name, settings.SettingsId);
+                    propInfo.Property.Name, settings.SettingsId);
             }
         }
     }
 
-    private void SetPropertyWithoutNotification(SettingsBase settings, PropertyInfo property, object? value)
+    private void SetPropertyWithoutNotification(SettingsBase settings, SettingPropertyInfo propInfo, object? value)
     {
-        // Try to find and set the backing field directly
-        // Guard against single-character property names (edge case but possible)
-        var backingFieldName = property.Name.Length > 1
-            ? $"_{char.ToLowerInvariant(property.Name[0])}{property.Name[1..]}"
-            : $"_{char.ToLowerInvariant(property.Name[0])}";
-
-        var backingField = settings.GetType().GetField(backingFieldName,
-            BindingFlags.NonPublic | BindingFlags.Instance);
-
-        if (backingField != null)
+        // Use cached backing field for better performance
+        if (propInfo.BackingField != null)
         {
-            backingField.SetValue(settings, value);
+            propInfo.BackingField.SetValue(settings, value);
         }
         else
         {
@@ -167,8 +206,8 @@ public class SettingsProvider : ISettingsProvider
             _logger.LogDebug(
                 "Backing field '{BackingFieldName}' not found for property '{Property}' on settings '{SettingsId}'. " +
                 "Using property setter which may trigger change notifications during load.",
-                backingFieldName, property.Name, settings.SettingsId);
-            property.SetValue(settings, value);
+                propInfo.BackingFieldName, propInfo.Property.Name, settings.SettingsId);
+            propInfo.Property.SetValue(settings, value);
         }
     }
 }

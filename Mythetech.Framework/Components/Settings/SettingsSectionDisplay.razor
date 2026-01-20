@@ -25,7 +25,8 @@
 
             @foreach (var setting in group.Value)
             {
-                <div class="mf-setting-item">
+                var isMatch = MatchingProperties?.Contains(setting.Property.Name) == true;
+                <div class="mf-setting-item @(isMatch ? "mf-setting-match" : "")">
                     <DynamicSettingControl Settings="@Settings"
                                            Property="@setting.Property"
                                            Attribute="@setting.Attribute"
@@ -44,6 +45,12 @@
 @code {
     [Parameter, EditorRequired]
     public SettingsBase Settings { get; set; } = default!;
+
+    /// <summary>
+    /// Set of property names that match the current search (for highlighting).
+    /// </summary>
+    [Parameter]
+    public HashSet<string>? MatchingProperties { get; set; }
 
     /// <summary>
     /// Callback when any setting in this section changes.

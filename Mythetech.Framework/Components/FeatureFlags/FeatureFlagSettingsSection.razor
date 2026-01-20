@@ -1,0 +1,55 @@
+@using MudBlazor
+@using Mythetech.Framework.Infrastructure.FeatureFlags
+
+<div id="section-@Settings.SettingsId" class="mf-settings-section mf-feature-flags-section">
+    <div class="mf-settings-section-header">
+        <MudIcon Icon="@Settings.Icon" Class="mr-2" />
+        <MudText Typo="Typo.h6">@Settings.DisplayName</MudText>
+    </div>
+
+    @if (Settings.BeginningContent != null)
+    {
+        <DynamicComponent Type="@Settings.BeginningContent" />
+    }
+
+    @foreach (var group in GetFlagGroups())
+    {
+        <div class="mf-settings-group">
+            @if (!string.IsNullOrEmpty(group.Key) && group.Key != "General")
+            {
+                <MudText Class="mf-settings-group-header mud-text-secondary">
+                    @group.Key
+                </MudText>
+            }
+
+            @foreach (var flag in group.Value)
+            {
+                <div class="mf-setting-item">
+                    <FeatureFlagToggleEditor FlagInfo="@flag"
+                                              OnFlagChanged="@OnSettingChanged" />
+                </div>
+            }
+        </div>
+    }
+
+    @if (Settings.EndingContent != null)
+    {
+        <DynamicComponent Type="@Settings.EndingContent" />
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public FeatureFlagsSettingsBase Settings { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnSettingChanged { get; set; }
+
+    private Dictionary<string, List<FeatureFlagInfo>> GetFlagGroups()
+    {
+        return Settings.GetFeatureFlags()
+            .OrderBy(f => f.Order)
+            .GroupBy(f => f.Group)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+}

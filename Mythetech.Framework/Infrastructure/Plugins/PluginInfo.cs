@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Loader;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -51,6 +52,12 @@ public class PluginInfo
     /// Path to the plugin DLL if loaded from disk
     /// </summary>
     public string? SourcePath { get; init; }
+
+    /// <summary>
+    /// The AssemblyLoadContext used to load this plugin.
+    /// When set, allows the plugin's assembly to be unloaded when the plugin is removed.
+    /// </summary>
+    public AssemblyLoadContext? LoadContext { get; init; }
     
     /// <summary>
     /// Parse a version string (e.g., "1.0.0") to a Version object

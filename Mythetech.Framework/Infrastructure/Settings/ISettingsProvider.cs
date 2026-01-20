@@ -45,4 +45,12 @@ public interface ISettingsProvider
     /// </summary>
     /// <param name="persistedData">Dictionary of settingsId to JSON data.</param>
     Task ApplyPersistedSettingsAsync(Dictionary<string, string> persistedData);
+
+    /// <summary>
+    /// Searches all registered settings for matching metadata.
+    /// Searches across Label, Description, Group, and section DisplayName.
+    /// </summary>
+    /// <param name="searchTerm">The search term to match against.</param>
+    /// <returns>Collection of search results.</returns>
+    IEnumerable<SettingsSearchResult> SearchSettings(string searchTerm);
 }

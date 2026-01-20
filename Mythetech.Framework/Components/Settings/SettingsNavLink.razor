@@ -10,6 +10,13 @@
     <ChildContent>
         <MudIcon Icon="@Icon" Size="Size.Small" Class="mr-3" />
         <MudText>@DisplayName</MudText>
+        @if (MatchCount.HasValue && MatchCount.Value > 0)
+        {
+            <MudSpacer />
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text" Class="mf-match-count">
+                @MatchCount
+            </MudChip>
+        }
     </ChildContent>
 </Button>
 
@@ -43,6 +50,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnClick { get; set; }
+
+    /// <summary>
+    /// Optional count of matching settings in this section (shown during search).
+    /// </summary>
+    [Parameter]
+    public int? MatchCount { get; set; }
 
     private async Task HandleClick()
     {

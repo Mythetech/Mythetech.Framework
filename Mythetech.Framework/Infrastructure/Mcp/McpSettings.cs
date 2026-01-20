@@ -19,7 +19,7 @@ public class McpSettings : SettingsBase
     public override string Icon => Icons.Material.Filled.Api;
 
     /// <inheritdoc />
-    public override int Order => 30;
+    public override int Order => 300;
 
     /// <summary>
     /// Whether to auto-start the MCP server when the application launches.

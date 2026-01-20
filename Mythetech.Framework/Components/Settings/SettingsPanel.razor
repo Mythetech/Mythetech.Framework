@@ -1,6 +1,8 @@
 @using MudBlazor
 @namespace Mythetech.Framework.Components.Settings
 @using Mythetech.Framework.Infrastructure.Settings
+@using Mythetech.Framework.Infrastructure.FeatureFlags
+@using Mythetech.Framework.Components.FeatureFlags
 @using Microsoft.JSInterop
 @inject ISettingsProvider SettingsProvider
 @inject IJSRuntime JS
@@ -14,17 +16,36 @@
             <MudText Class="mf-settings-title" Typo="Typo.h5">@Title</MudText>
         }
 
+        @* Search input *@
+        <div class="mf-settings-search">
+            <MudTextField T="string"
+                          @bind-Value="_searchTerm"
+                          @bind-Value:after="OnSearchChanged"
+                          Placeholder="Search settings..."
+                          Variant="@SearchVariant"
+                          Margin="Margin.Dense"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Clearable="true"
+                          Class="@SearchClass"
+                          Style="@SearchStyle"
+                          OnClearButtonClick="ClearSearch" />
+        </div>
+
         <div class="mf-settings-nav">
             @* Slot for app-specific nav items BEFORE framework settings *@
             @NavPrefix
 
             @* Dynamic settings sections *@
-            @foreach (var settings in SettingsProvider.GetAllSettings())
+            @foreach (var settings in GetFilteredSettings())
             {
+                var matchCount = GetMatchCountForSection(settings.SettingsId);
                 <SettingsNavLink SettingsId="@settings.SettingsId"
                                  DisplayName="@settings.DisplayName"
                                  Icon="@settings.Icon"
                                  IsActive="@(ActiveSection == settings.SettingsId)"
+                                 MatchCount="@(HasSearchTerm ? matchCount : null)"
                                  OnClick="@(() => ScrollToSection(settings.SettingsId))" />
             }
 
@@ -41,8 +62,17 @@
         @* Dynamic settings sections *@
         @foreach (var settings in SettingsProvider.GetAllSettings())
         {
-            <SettingsSectionDisplay Settings="@settings"
-                                    OnSettingChanged="@HandleSettingChanged" />
+            @if (settings is FeatureFlagsSettingsBase flagSettings)
+            {
+                <FeatureFlagSettingsSection Settings="@flagSettings"
+                                            OnSettingChanged="@HandleSettingChanged" />
+            }
+            else
+            {
+                <SettingsSectionDisplay Settings="@settings"
+                                        MatchingProperties="@GetMatchingProperties(settings.SettingsId)"
+                                        OnSettingChanged="@HandleSettingChanged" />
+            }
         }
 
         @* Slot for app-specific content AFTER framework settings *@
@@ -122,6 +152,24 @@
     [Parameter]
     public EventCallback<string> ActiveSectionChanged { get; set; }
 
+    /// <summary>
+    /// Variant for the search text field.
+    /// </summary>
+    [Parameter]
+    public Variant SearchVariant { get; set; } = Variant.Outlined;
+
+    /// <summary>
+    /// Additional CSS class(es) for the search text field.
+    /// </summary>
+    [Parameter]
+    public string? SearchClass { get; set; }
+
+    /// <summary>
+    /// Inline styles for the search text field.
+    /// </summary>
+    [Parameter]
+    public string? SearchStyle { get; set; }
+
     private ElementReference _contentRef;
     private IJSObjectReference? _jsModule;
     private DotNetObjectReference<SettingsPanel>? _dotNetRef;
@@ -129,6 +177,14 @@
 
     // Snapshot of settings when panel was created (for revert capability)
     private Dictionary<string, Dictionary<string, object?>> _snapshots = new();
+
+    // Search state
+    private string _searchTerm = string.Empty;
+    private HashSet<string> _matchingSettingsIds = new();
+    private Dictionary<string, int> _sectionMatchCounts = new();
+    private Dictionary<string, HashSet<string>> _matchingPropertiesBySectionId = new();
+
+    private bool HasSearchTerm => !string.IsNullOrWhiteSpace(_searchTerm);
 
     protected override void OnInitialized()
     {
@@ -269,6 +325,77 @@
         }
 
         return false;
+    }
+
+    private async Task OnSearchChanged()
+    {
+        _matchingSettingsIds.Clear();
+        _sectionMatchCounts.Clear();
+        _matchingPropertiesBySectionId.Clear();
+
+        if (!HasSearchTerm)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var results = SettingsProvider.SearchSettings(_searchTerm);
+
+        foreach (var result in results)
+        {
+            _matchingSettingsIds.Add(result.Settings.SettingsId);
+
+            if (!_sectionMatchCounts.ContainsKey(result.Settings.SettingsId))
+                _sectionMatchCounts[result.Settings.SettingsId] = 0;
+            _sectionMatchCounts[result.Settings.SettingsId]++;
+
+            if (!_matchingPropertiesBySectionId.ContainsKey(result.Settings.SettingsId))
+                _matchingPropertiesBySectionId[result.Settings.SettingsId] = new HashSet<string>();
+            _matchingPropertiesBySectionId[result.Settings.SettingsId].Add(result.PropertyName);
+        }
+
+        // Auto-scroll to first match
+        if (_matchingSettingsIds.Any())
+        {
+            var firstMatchSection = SettingsProvider.GetAllSettings()
+                .FirstOrDefault(s => _matchingSettingsIds.Contains(s.SettingsId));
+            if (firstMatchSection != null)
+            {
+                await ScrollToSection(firstMatchSection.SettingsId);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        _matchingSettingsIds.Clear();
+        _sectionMatchCounts.Clear();
+        _matchingPropertiesBySectionId.Clear();
+        StateHasChanged();
+    }
+
+    private IEnumerable<SettingsBase> GetFilteredSettings()
+    {
+        var all = SettingsProvider.GetAllSettings();
+        if (!HasSearchTerm) return all;
+        return all.Where(s => _matchingSettingsIds.Contains(s.SettingsId));
+    }
+
+    private int GetMatchCountForSection(string sectionId)
+    {
+        return _sectionMatchCounts.TryGetValue(sectionId, out var count) ? count : 0;
+    }
+
+    /// <summary>
+    /// Gets the set of property names that match the current search for a given section.
+    /// </summary>
+    public HashSet<string>? GetMatchingProperties(string sectionId)
+    {
+        if (!HasSearchTerm) return null;
+        return _matchingPropertiesBySectionId.TryGetValue(sectionId, out var props) ? props : null;
     }
 
     public async ValueTask DisposeAsync()

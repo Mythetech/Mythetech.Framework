@@ -20,6 +20,11 @@
     padding: 0 0.5rem;
 }
 
+.mf-settings-search {
+    margin-bottom: 1rem;
+    padding: 0 0.25rem;
+}
+
 .mf-settings-nav {
     display: flex;
     flex-direction: column;
