@@ -1,7 +1,12 @@
 @namespace SampleHost.Desktop
 @using MudBlazor
+@using Mythetech.Framework.Infrastructure.FeatureFlags.Events
+@using Mythetech.Framework.Infrastructure.MessageBus
+@using Mythetech.Framework.Infrastructure.Settings
+@using SampleHost.Shared.Settings
+@implements IDisposable
 
-<MudThemeProvider Theme="_theme" IsDarkMode="true" />
+<MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -18,13 +23,19 @@
 </Router>
 
 @code {
+    [Inject] private ISettingsProvider SettingsProvider { get; set; } = default!;
+    [Inject] private IMessageBus MessageBus { get; set; } = default!;
+
+    private bool _isDarkMode = true;
+    private DarkModeConsumer? _consumer;
+
     private MudTheme _theme = new()
     {
         PaletteLight = new PaletteLight
         {
             Primary = "#7C4DFF",
             Secondary = "#00BFA5",
-            AppbarBackground = "#1E1E2E"
+            AppbarBackground = "#7C4DFF"
         },
         PaletteDark = new PaletteDark
         {
@@ -35,5 +46,53 @@
             AppbarBackground = "#1E1E2E"
         }
     };
+
+    protected override void OnInitialized()
+    {
+        var flags = SettingsProvider.GetSettings<SampleFeatureFlags>();
+        _isDarkMode = flags?.DarkMode ?? false;
+
+        _consumer = new DarkModeConsumer(enabled =>
+        {
+            _isDarkMode = enabled;
+            InvokeAsync(StateHasChanged);
+        });
+
+        MessageBus.Subscribe<FeatureFlagEnabled>(_consumer);
+        MessageBus.Subscribe<FeatureFlagDisabled>(_consumer);
+    }
+
+    public void Dispose()
+    {
+        if (_consumer != null)
+        {
+            MessageBus.Unsubscribe<FeatureFlagEnabled>(_consumer);
+            MessageBus.Unsubscribe<FeatureFlagDisabled>(_consumer);
+        }
+    }
+
+    private class DarkModeConsumer : IConsumer<FeatureFlagEnabled>, IConsumer<FeatureFlagDisabled>
+    {
+        private readonly Action<bool> _onDarkModeChanged;
+
+        public DarkModeConsumer(Action<bool> onDarkModeChanged)
+        {
+            _onDarkModeChanged = onDarkModeChanged;
+        }
+
+        public Task Consume(FeatureFlagEnabled message)
+        {
+            if (message.FlagKey == "DarkMode")
+                _onDarkModeChanged(true);
+            return Task.CompletedTask;
+        }
+
+        public Task Consume(FeatureFlagDisabled message)
+        {
+            if (message.FlagKey == "DarkMode")
+                _onDarkModeChanged(false);
+            return Task.CompletedTask;
+        }
+    }
 }
 
