@@ -25,6 +25,7 @@ public class PluginLoader
     /// <summary>
     /// Load a plugin from a DLL file path.
     /// Uses a custom AssemblyLoadContext to resolve dependencies from the plugin's directory.
+    /// The load context is stored in the PluginInfo to enable unloading when the plugin is removed.
     /// </summary>
     /// <param name="dllPath">Full path to the plugin DLL</param>
     /// <returns>PluginInfo if loaded successfully, null otherwise</returns>
@@ -40,15 +41,13 @@ public class PluginLoader
         {
             var fullPath = Path.GetFullPath(dllPath);
             var pluginDirectory = Path.GetDirectoryName(fullPath)!;
-            
-            // Pre-load all DLLs from the plugin directory to ensure dependencies are available
+
             PreloadDependencies(pluginDirectory, Path.GetFileName(fullPath));
-            
-            // Use custom load context for dependency resolution
+
             var loadContext = new PluginLoadContext(fullPath);
             var assembly = loadContext.LoadFromAssemblyPath(fullPath);
-            
-            return LoadPlugin(assembly, dllPath);
+
+            return LoadPlugin(assembly, dllPath, loadContext);
         }
         catch (Exception ex)
         {
@@ -100,8 +99,9 @@ public class PluginLoader
     /// </summary>
     /// <param name="assembly">The plugin assembly</param>
     /// <param name="sourcePath">Optional source path for reference</param>
+    /// <param name="loadContext">Optional load context for unloading support</param>
     /// <returns>PluginInfo if valid plugin, null otherwise</returns>
-    public PluginInfo? LoadPlugin(Assembly assembly, string? sourcePath = null)
+    public PluginInfo? LoadPlugin(Assembly assembly, string? sourcePath = null, AssemblyLoadContext? loadContext = null)
     {
         try
         {
@@ -111,29 +111,30 @@ public class PluginLoader
                 _logger.LogWarning("No IPluginManifest implementation found in assembly {Assembly}", assembly.FullName);
                 return null;
             }
-            
+
             var menuComponents = DiscoverComponentsOfType<Components.PluginMenu>(assembly);
             var contextPanelComponents = DiscoverComponentsOfType<Components.PluginContextPanel>(assembly);
-            
+
             var menuMetadata = ExtractMenuMetadata(menuComponents);
             var panelMetadata = ExtractContextPanelMetadata(contextPanelComponents);
-            
+
             var pluginInfo = new PluginInfo
             {
                 Manifest = manifest,
                 Assembly = assembly,
                 SourcePath = sourcePath,
+                LoadContext = loadContext,
                 MenuComponents = menuComponents,
                 ContextPanelComponents = contextPanelComponents,
                 MenuComponentsMetadata = menuMetadata,
                 ContextPanelComponentsMetadata = panelMetadata
             };
-            
+
             _logger.LogInformation(
                 "Loaded plugin '{Name}' v{Version} by {Developer} with {MenuCount} menu and {PanelCount} panel components",
                 manifest.Name, manifest.Version, manifest.Developer,
                 menuComponents.Count, contextPanelComponents.Count);
-            
+
             return pluginInfo;
         }
         catch (Exception ex)

@@ -19,7 +19,7 @@ public class PluginSettings : SettingsBase
     public override string Icon => Icons.Material.Filled.Extension;
 
     /// <inheritdoc />
-    public override int Order => 20;
+    public override int Order => 500;
 
     /// <summary>
     /// Global toggle for the plugin system.

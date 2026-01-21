@@ -34,3 +34,15 @@
 .mf-setting-item {
     padding: 0.5rem 0;
 }
+
+.mf-setting-item.mf-setting-match {
+    background: rgba(var(--mud-palette-primary-rgb), 0.1);
+    border-left: 3px solid var(--mud-palette-primary);
+    margin-left: -0.5rem;
+    padding-left: calc(0.5rem - 3px);
+    border-radius: 4px;
+}
+
+.mf-setting-item.mf-setting-match:hover {
+    background: rgba(var(--mud-palette-primary-rgb), 0.15);
+}

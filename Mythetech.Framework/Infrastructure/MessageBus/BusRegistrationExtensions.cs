@@ -77,7 +77,7 @@ public static class BusRegistrationExtensions
         var consumerTypes = assembly
             .GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t))
+            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
                 .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))
@@ -100,7 +100,7 @@ public static class BusRegistrationExtensions
         var handlerTypes = assembly
             .GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t))
+            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryHandler<,>))
                 .Select(i => new
@@ -119,6 +119,9 @@ public static class BusRegistrationExtensions
 
     private static bool IsMcpHandler(Type type)
         => type.Namespace?.Contains(".Mcp") == true;
+
+    private static bool IsFeatureFlagHandler(Type type)
+        => type.Namespace?.Contains(".FeatureFlags") == true;
     
     /// <summary>
     /// Registers consumers to the bus
@@ -130,7 +133,7 @@ public static class BusRegistrationExtensions
         var consumerTypes = assembly
             .GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t))
+            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
                 .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))
@@ -166,7 +169,7 @@ public static class BusRegistrationExtensions
         var handlerTypes = assembly
             .GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t))
+            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryHandler<,>))
                 .Select(i => new

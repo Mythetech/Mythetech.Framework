@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using Mythetech.Framework.Desktop;
 using Mythetech.Framework.Desktop.Environment;
+using Mythetech.Framework.Infrastructure.FeatureFlags;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Mcp;
 using Mythetech.Framework.Infrastructure.Plugins;
@@ -26,10 +27,10 @@ class Program
             return;
         }
 
-        RunDesktopApp(args);
+        await RunDesktopApp(args);
     }
 
-    static void RunDesktopApp(string[] args)
+    static async Task RunDesktopApp(string[] args)
     {
         var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
 
@@ -53,6 +54,7 @@ class Program
         });
         builder.Services.AddMcpTools();
         builder.Services.AddSettingsFramework();
+        builder.Services.AddFeatureFlags();
         builder.Services.AddDesktopSettingsStorage("SampleHost");
         builder.Services.AddPluginStateProvider("SampleHost");
 
@@ -69,6 +71,8 @@ class Program
         app.Services.UseMcp();
         app.Services.UsePluginFramework();
         app.Services.UseSettingsFramework();
+        await app.Services.LoadPersistedSettingsAsync();
+        await app.Services.UseFeatureFlags();
 
         // Plugin loading is deferred to MainLayout.OnAfterRenderAsync
         // This allows custom plugin directory setting to take effect

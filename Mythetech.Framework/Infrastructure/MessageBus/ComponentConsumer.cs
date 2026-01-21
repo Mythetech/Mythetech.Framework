@@ -3,22 +3,33 @@ using Microsoft.AspNetCore.Components;
 namespace Mythetech.Framework.Infrastructure.MessageBus;
 
 /// <summary>
-/// Base class to simplify registering components directly to the bus 
+/// Base class to simplify registering components directly to the bus
 /// </summary>
 /// <typeparam name="TMessage"></typeparam>
-public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMessage>, IDisposable where TMessage : class
+public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMessage>, IDisposable, IAsyncDisposable where TMessage : class
 {
+    private bool _disposed;
+
     /// <summary>
     /// Message bus abstraction
     /// </summary>
     [Inject]
     protected IMessageBus MessageBus { get; set; } = default!;
-    
+
     /// <inheritdoc />
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        MessageBus.Subscribe(this);
+        try
+        {
+            MessageBus.Subscribe(this);
+        }
+        catch
+        {
+            // Clean up if subscription fails
+            MessageBus.Unsubscribe(this);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -27,7 +38,7 @@ public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMe
         using var cts = new CancellationTokenSource();
         await InvokeAsync(async () => await Consume(message, cts.Token));
     }
-    
+
     /// <summary>
     /// Overrideable consume method with the message and a cancellation token
     /// </summary>
@@ -38,15 +49,27 @@ public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMe
     /// <inheritdoc />
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         MessageBus.Unsubscribe(this);
         GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        if (_disposed) return ValueTask.CompletedTask;
+        _disposed = true;
+        MessageBus.Unsubscribe(this);
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
     }
 }
 
 /// <summary>
 /// Base class to simplify registering components directly to the bus for two message types
 /// </summary>
-public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable
+public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable, IAsyncDisposable
     where T1 : class
     where T2 : class
 {
@@ -60,6 +83,7 @@ public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable
         public Task Consume(T2 message) => parent.HandleMessage2(message);
     }
 
+    private bool _disposed;
     private IConsumer<T1>? _consumer1;
     private IConsumer<T2>? _consumer2;
 
@@ -115,16 +139,29 @@ public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
         if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
         GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        if (_disposed) return ValueTask.CompletedTask;
+        _disposed = true;
+        if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+        if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
     }
 }
 
 /// <summary>
 /// Base class to simplify registering components directly to the bus for three message types
 /// </summary>
-public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
+public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable, IAsyncDisposable
     where T1 : class
     where T2 : class
     where T3 : class
@@ -144,6 +181,7 @@ public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
         public Task Consume(T3 message) => parent.HandleMessage3(message);
     }
 
+    private bool _disposed;
     private IConsumer<T1>? _consumer1;
     private IConsumer<T2>? _consumer2;
     private IConsumer<T3>? _consumer3;
@@ -214,17 +252,31 @@ public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
         if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
         if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
         GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        if (_disposed) return ValueTask.CompletedTask;
+        _disposed = true;
+        if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+        if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+        if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
     }
 }
 
 /// <summary>
 /// Base class to simplify registering components directly to the bus for four message types
 /// </summary>
-public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDisposable
+public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDisposable, IAsyncDisposable
     where T1 : class
     where T2 : class
     where T3 : class
@@ -250,6 +302,7 @@ public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDispos
         public Task Consume(T4 message) => parent.HandleMessage4(message);
     }
 
+    private bool _disposed;
     private IConsumer<T1>? _consumer1;
     private IConsumer<T2>? _consumer2;
     private IConsumer<T3>? _consumer3;
@@ -335,10 +388,25 @@ public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDispos
     /// <inheritdoc />
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
         if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
         if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
         if (_consumer4 is not null) MessageBus.Unsubscribe(_consumer4);
         GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        if (_disposed) return ValueTask.CompletedTask;
+        _disposed = true;
+        if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
+        if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+        if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
+        if (_consumer4 is not null) MessageBus.Unsubscribe(_consumer4);
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
     }
 }

@@ -307,6 +307,7 @@ public class PluginState : IDisposable
 
     /// <summary>
     /// Remove a plugin by its ID.
+    /// If the plugin has an associated LoadContext, the assembly will be unloaded.
     /// </summary>
     /// <returns>True if the plugin was removed, false if not found</returns>
     public async Task<bool> RemovePluginAsync(string pluginId)
@@ -327,6 +328,20 @@ public class PluginState : IDisposable
         {
             _plugins.Remove(plugin);
         }
+
+        if (plugin.LoadContext is not null)
+        {
+            try
+            {
+                plugin.LoadContext.Unload();
+                _logger?.LogDebug("Unloaded assembly for plugin {PluginId}", pluginId);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to unload assembly for plugin {PluginId}", pluginId);
+            }
+        }
+
         NotifyStateChanged();
 
         return true;
@@ -510,6 +525,20 @@ public class PluginState : IDisposable
 
         lock (_pluginsLock)
         {
+            foreach (var plugin in _plugins)
+            {
+                if (plugin.LoadContext is not null)
+                {
+                    try
+                    {
+                        plugin.LoadContext.Unload();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "Failed to unload assembly for plugin {PluginId}", plugin.Manifest.Id);
+                    }
+                }
+            }
             _plugins.Clear();
         }
         GC.SuppressFinalize(this);

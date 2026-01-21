@@ -19,7 +19,7 @@ public class UpdateSettings : SettingsBase
     public override string Icon => Icons.Material.Filled.SystemUpdate;
 
     /// <inheritdoc />
-    public override int Order => 40;
+    public override int Order => 100;
 
     /// <inheritdoc />
     public override Type? EndingContent => typeof(UpdateSettingsEndingContent);

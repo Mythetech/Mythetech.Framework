@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace Mythetech.Framework.Infrastructure.Settings;
 
 /// <summary>
@@ -35,7 +33,7 @@ public abstract class SettingsBase
     /// <summary>
     /// Sort order in the settings UI (lower values appear first).
     /// </summary>
-    public virtual int Order => 100;
+    public virtual int Order => 50;
 
     /// <summary>
     /// Tracks whether this settings model has unsaved changes.
@@ -67,17 +65,15 @@ public abstract class SettingsBase
     public Dictionary<string, object?> CreateSnapshot()
     {
         var snapshot = new Dictionary<string, object?>();
-        var type = GetType();
 
-        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        var properties = SettingsPropertyCache.GetSettingProperties(GetType());
+
+        foreach (var propInfo in properties)
         {
-            if (property.GetCustomAttribute<SettingAttribute>() == null)
+            if (!propInfo.Property.CanRead)
                 continue;
 
-            if (!property.CanRead)
-                continue;
-
-            snapshot[property.Name] = property.GetValue(this);
+            snapshot[propInfo.Property.Name] = propInfo.Property.GetValue(this);
         }
 
         return snapshot;
@@ -88,20 +84,19 @@ public abstract class SettingsBase
     /// </summary>
     public void RestoreFromSnapshot(Dictionary<string, object?> snapshot)
     {
-        var type = GetType();
+        var properties = SettingsPropertyCache.GetSettingProperties(GetType());
 
-        foreach (var (propertyName, value) in snapshot)
+        foreach (var propInfo in properties)
         {
-            var property = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
-            if (property == null || !property.CanWrite)
+            if (!propInfo.Property.CanWrite)
                 continue;
 
-            if (property.GetCustomAttribute<SettingAttribute>() == null)
+            if (!snapshot.TryGetValue(propInfo.Property.Name, out var value))
                 continue;
 
             try
             {
-                property.SetValue(this, value);
+                propInfo.Property.SetValue(this, value);
             }
             catch
             {
