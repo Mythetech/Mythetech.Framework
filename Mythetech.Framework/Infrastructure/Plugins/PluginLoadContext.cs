@@ -15,7 +15,7 @@ public class PluginLoadContext : AssemblyLoadContext
     /// Create a load context for a plugin
     /// </summary>
     /// <param name="pluginPath">Full path to the plugin DLL</param>
-    public PluginLoadContext(string pluginPath) : base(isCollectible: false)
+    public PluginLoadContext(string pluginPath) : base(isCollectible: true)
     {
         _pluginDirectory = Path.GetDirectoryName(pluginPath) ?? string.Empty;
     }

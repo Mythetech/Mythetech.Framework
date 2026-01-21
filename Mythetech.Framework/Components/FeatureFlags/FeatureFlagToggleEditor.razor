@@ -1,0 +1,45 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Switch
+@using Mythetech.Framework.Infrastructure.FeatureFlags
+
+<div class="mf-feature-flag-item">
+    <div class="mf-flag-content">
+        <div class="mf-flag-header">
+            <Switch T="bool"
+                    Value="@_value"
+                    ValueChanged="@OnValueChangedAsync"
+                    Color="Color.Primary" />
+            <MudText Typo="Typo.body1" Class="mf-flag-label">@FlagInfo.Label</MudText>
+        </div>
+
+        @if (!string.IsNullOrEmpty(FlagInfo.Description))
+        {
+            <MudText Typo="Typo.caption" Class="mf-flag-description mud-text-secondary">
+                @FlagInfo.Description
+            </MudText>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public FeatureFlagInfo FlagInfo { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnFlagChanged { get; set; }
+
+    private bool _value;
+
+    protected override void OnParametersSet()
+    {
+        _value = FlagInfo.SourceSettings.GetFlagValue(FlagInfo.Key);
+    }
+
+    private async Task OnValueChangedAsync(bool newValue)
+    {
+        _value = newValue;
+        FlagInfo.SourceSettings.SetFlagValue(FlagInfo.Key, newValue);
+        FlagInfo.SourceSettings.MarkDirty();
+        await OnFlagChanged.InvokeAsync();
+    }
+}
