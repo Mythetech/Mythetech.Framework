@@ -6,6 +6,10 @@
 @namespace Mythetech.Framework.Desktop.Updates.Components
 @implements IConsumer<UpdateCheckStarted>
 @implements IConsumer<UpdateCheckCompleted>
+@implements IConsumer<UpdateAvailable>
+@implements IConsumer<UpdateDownloadProgress>
+@implements IConsumer<UpdateDownloadCompleted>
+@implements IConsumer<UpdateDownloadFailed>
 @implements IDisposable
 @inject IUpdateService UpdateService
 @inject IMessageBus MessageBus
@@ -26,6 +30,49 @@
         }
     </MudStack>
 
+    @if (UpdateService.AvailableUpdate is not null)
+    {
+        <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.body2">
+                    Update available: v@(UpdateService.AvailableUpdate.TargetVersion)
+                </MudText>
+                <MudSpacer />
+                @if (_isDownloading)
+                {
+                    <MudStack Spacing="1" Style="min-width: 120px;">
+                        <MudProgressLinear Value="@_progress" Color="Color.Primary" Rounded="true" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+                            @_progress% complete
+                        </MudText>
+                    </MudStack>
+                }
+                else if (_downloadFailed)
+                {
+                    <Button Size="Size.Small"
+                            Color="Color.Error"
+                            Variant="Variant.Outlined"
+                            OnClick="DownloadUpdate"
+                            Text="Retry" />
+                }
+                else if (UpdateService.AvailableUpdate.IsDownloaded)
+                {
+                    <Button Size="Size.Small"
+                            Color="Color.Primary"
+                            OnClick="RestartAndUpdate"
+                            Text="Restart to Update" />
+                }
+                else
+                {
+                    <Button Size="Size.Small"
+                            Variant="Variant.Outlined"
+                            OnClick="DownloadUpdate"
+                            Text="Download" />
+                }
+            </MudStack>
+        </MudAlert>
+    }
+
     <Button Text="Check for Updates"
             StartIcon="@Icons.Material.Filled.Refresh"
             Variant="Variant.Outlined"
@@ -43,11 +90,18 @@
 @code {
     private bool _isChecking;
     private DateTime? _lastChecked;
+    private bool _isDownloading;
+    private int _progress;
+    private bool _downloadFailed;
 
     protected override void OnInitialized()
     {
         MessageBus.Subscribe<UpdateCheckStarted>(this);
         MessageBus.Subscribe<UpdateCheckCompleted>(this);
+        MessageBus.Subscribe<UpdateAvailable>(this);
+        MessageBus.Subscribe<UpdateDownloadProgress>(this);
+        MessageBus.Subscribe<UpdateDownloadCompleted>(this);
+        MessageBus.Subscribe<UpdateDownloadFailed>(this);
     }
 
     Task IConsumer<UpdateCheckStarted>.Consume(UpdateCheckStarted message)
@@ -67,6 +121,68 @@
             _lastChecked = DateTime.UtcNow;
             StateHasChanged();
         });
+    }
+
+    Task IConsumer<UpdateAvailable>.Consume(UpdateAvailable message)
+    {
+        return InvokeAsync(() =>
+        {
+            _downloadFailed = false;
+            StateHasChanged();
+        });
+    }
+
+    Task IConsumer<UpdateDownloadProgress>.Consume(UpdateDownloadProgress message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isDownloading = true;
+            _progress = message.Progress;
+            StateHasChanged();
+        });
+    }
+
+    Task IConsumer<UpdateDownloadCompleted>.Consume(UpdateDownloadCompleted message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isDownloading = false;
+            _downloadFailed = false;
+            StateHasChanged();
+        });
+    }
+
+    Task IConsumer<UpdateDownloadFailed>.Consume(UpdateDownloadFailed message)
+    {
+        return InvokeAsync(() =>
+        {
+            _isDownloading = false;
+            _downloadFailed = true;
+            StateHasChanged();
+        });
+    }
+
+    private async Task DownloadUpdate()
+    {
+        _isDownloading = true;
+        _downloadFailed = false;
+        StateHasChanged();
+
+        try
+        {
+            await UpdateService.DownloadUpdateAsync();
+        }
+        catch
+        {
+            _isDownloading = false;
+            _downloadFailed = true;
+            StateHasChanged();
+        }
+    }
+
+    private void RestartAndUpdate()
+    {
+        UpdateService.ApplyUpdateAndRestart();
     }
 
     private async Task CheckForUpdates()
@@ -100,5 +216,9 @@
     {
         MessageBus.Unsubscribe<UpdateCheckStarted>(this);
         MessageBus.Unsubscribe<UpdateCheckCompleted>(this);
+        MessageBus.Unsubscribe<UpdateAvailable>(this);
+        MessageBus.Unsubscribe<UpdateDownloadProgress>(this);
+        MessageBus.Unsubscribe<UpdateDownloadCompleted>(this);
+        MessageBus.Unsubscribe<UpdateDownloadFailed>(this);
     }
 }
