@@ -67,7 +67,7 @@
         </MudStack>
     </div>
 
-    <div class="mud-height-full mud-width-full px-4">
+    <div class="@($"mud-height-full mud-width-full px-4 {ContentClass}")">
         @foreach (var tab in _tabs.Where(t => t.IsActive))
         {
             @tab.ChildContent
@@ -96,6 +96,11 @@
     /// CSS class applied to the tab bar wrapper div
     /// </summary>
     [Parameter] public string WrapperClass { get; set; } = "mx-4";
+
+    /// <summary>
+    /// CSS class applied to the tab content container div
+    /// </summary>
+    [Parameter] public string ContentClass { get; set; } = "";
 
     private List<Tab> _tabs = new();
     private ElementReference _tabBarRef;
