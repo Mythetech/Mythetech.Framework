@@ -45,8 +45,14 @@ jobs:
       - name: Install .Net WASM workload
         run: dotnet workload install wasm-tools
 
+      - name: Restore
+        run: dotnet restore
+        env:
+          GITHUB_USERNAME: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Tests
-        run: dotnet test Mythetech.Framework.Test --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
+        run: dotnet test Mythetech.Framework.Test --no-restore --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
 
       - name: Upload dotnet test results
         uses: actions/upload-artifact@v4
@@ -75,8 +81,14 @@ jobs:
       - name: Install .Net WASM workload
         run: dotnet workload install wasm-tools
 
+      - name: Restore
+        run: dotnet restore
+        env:
+          GITHUB_USERNAME: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish app
-        run: dotnet publish Mythetech.Framework.Storybook -c Release
+        run: dotnet publish Mythetech.Framework.Storybook -c Release --no-restore
 
       - name: Rewrite base href
         uses: SteveSandersonMS/ghaction-rewrite-base-href@v1

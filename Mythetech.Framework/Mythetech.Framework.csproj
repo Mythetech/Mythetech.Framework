@@ -7,10 +7,10 @@
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <PackageId>Mythetech.Framework</PackageId>
-        <Version>0.8.1</Version>
+        <Version>0.9.0</Version>
         <Authors>Mythetech</Authors>
         <Description>Base component library for Mythetech applications</Description>
-        <PackageTags>blazor;components;ui;framework;cross-platform;desktop;webassembly;photino</PackageTags>
+        <PackageTags>blazor;components;ui;framework;cross-platform;desktop;webassembly;photino;hermes</PackageTags>
         <Copyright>Copyright (c) 2026 Mythetech</Copyright>
         <PackageReleaseNotes>See CHANGELOG.md for release notes</PackageReleaseNotes>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>

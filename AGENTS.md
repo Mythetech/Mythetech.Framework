@@ -108,13 +108,8 @@ When subscribing to C# events (like `StateChanged`) from components:
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(StateHasChanged).ContinueWith(t =>
-        {
-            if (t.IsFaulted && t.Exception != null)
-            {
-                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
-            }
-        }, TaskScheduler.Default);
+        Console.WriteLine("State Changed");
+        StateHasChanged();
     }
 
     public void Dispose()

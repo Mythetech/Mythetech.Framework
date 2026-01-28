@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.WebAssembly</PackageId>
-        <Version>0.8.0</Version>
+        <Version>0.9.0</Version>
         <Authors>Mythetech</Authors>
         <Description>WebAssembly-specific components for building blazor applications</Description>
         <PackageTags>blazor;wasm;webassembly;components;ui;framework</PackageTags>

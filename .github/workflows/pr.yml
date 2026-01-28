@@ -18,8 +18,14 @@ jobs:
       with:
         dotnet-version: 10.0.x
 
+    - name: Restore
+      run: dotnet restore
+      env:
+        GITHUB_USERNAME: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Execute unit tests
-      run: dotnet test Mythetech.Framework.Test/Mythetech.Framework.Test.csproj
+      run: dotnet test Mythetech.Framework.Test/Mythetech.Framework.Test.csproj --no-restore
       env:
         Configuration: Release
 
