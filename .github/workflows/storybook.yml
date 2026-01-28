@@ -45,11 +45,11 @@ jobs:
       - name: Install .Net WASM workload
         run: dotnet workload install wasm-tools
 
+      - name: Add GitHub Packages source
+        run: dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github-gtksharp https://nuget.pkg.github.com/GtkSharp/index.json
+
       - name: Restore
         run: dotnet restore
-        env:
-          GITHUB_USERNAME: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Tests
         run: dotnet test Mythetech.Framework.Test --no-restore --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
@@ -81,11 +81,11 @@ jobs:
       - name: Install .Net WASM workload
         run: dotnet workload install wasm-tools
 
+      - name: Add GitHub Packages source
+        run: dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github-gtksharp https://nuget.pkg.github.com/GtkSharp/index.json
+
       - name: Restore
         run: dotnet restore
-        env:
-          GITHUB_USERNAME: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish app
         run: dotnet publish Mythetech.Framework.Storybook -c Release --no-restore
