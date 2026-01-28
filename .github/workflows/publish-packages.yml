@@ -24,11 +24,17 @@ jobs:
       - name: Install .NET WASM workload
         run: dotnet workload install wasm-tools
 
+      - name: Restore
+        run: dotnet restore
+        env:
+          GITHUB_USERNAME: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and Pack
         run: |
-          dotnet pack Mythetech.Framework/Mythetech.Framework.csproj -c Release -o ./nupkgs
-          dotnet pack Mythetech.Framework.WebAssembly/Mythetech.Framework.WebAssembly.csproj -c Release -o ./nupkgs
-          dotnet pack Mythetech.Framework.Desktop/Mythetech.Framework.Desktop.csproj -c Release -o ./nupkgs
+          dotnet pack Mythetech.Framework/Mythetech.Framework.csproj -c Release --no-restore -o ./nupkgs
+          dotnet pack Mythetech.Framework.WebAssembly/Mythetech.Framework.WebAssembly.csproj -c Release --no-restore -o ./nupkgs
+          dotnet pack Mythetech.Framework.Desktop/Mythetech.Framework.Desktop.csproj -c Release --no-restore -o ./nupkgs
 
       - name: Publish to NuGet.org
         run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate

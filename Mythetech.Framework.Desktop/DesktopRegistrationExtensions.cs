@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Desktop.Environment;
+using Mythetech.Framework.Desktop.Hermes;
 using Mythetech.Framework.Desktop.Photino;
 using Mythetech.Framework.Desktop.Services;
 using Mythetech.Framework.Desktop.Settings;
@@ -41,6 +42,9 @@ public static class DesktopRegistrationExtensions
         {
             case DesktopHost.Photino:
                 services.AddPhotinoServices();
+                break;
+            case DesktopHost.Hermes:
+                services.AddHermesServices();
                 break;
             default:
                 throw new ArgumentException("Invalid host type", nameof(host));
