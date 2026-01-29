@@ -7,7 +7,7 @@
         <!-- Prevent static asset conflicts with consuming app -->
         <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
         <PackageId>Mythetech.Framework.Desktop</PackageId>
-        <Version>0.9.4</Version>
+        <Version>0.9.45</Version>
         <Authors>Mythetech</Authors>
         <Description>Desktop-specific components for cross platform Blazor applications using Photino or Hermes</Description>
         <PackageTags>blazor;desktop;photino;hermes;components;ui;framework;cross-platform</PackageTags>
@@ -23,8 +23,8 @@
     <ItemGroup>
       <PackageReference Include="LiteDB" Version="5.0.21" />
       <PackageReference Include="Photino.Blazor" Version="4.0.13" />
-      <PackageReference Include="Mythetech.Hermes" Version="0.0.0-preview.31" />
-      <PackageReference Include="Mythetech.Hermes.Blazor" Version="0.0.0-preview.30" />
+      <PackageReference Include="Mythetech.Hermes" Version="0.0.0-preview.32" />
+      <PackageReference Include="Mythetech.Hermes.Blazor" Version="0.0.0-preview.32" />
       <PackageReference Include="Velopack" Version="0.0.1298" />
     </ItemGroup>
 
