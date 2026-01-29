@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.WebAssembly</PackageId>
-        <Version>0.9.0</Version>
+        <Version>0.9.1</Version>
         <Authors>Mythetech</Authors>
         <Description>WebAssembly-specific components for building blazor applications</Description>
         <PackageTags>blazor;wasm;webassembly;components;ui;framework</PackageTags>
@@ -29,7 +29,7 @@
 
     <ItemGroup>
       <PackageReference Include="KristofferStrube.Blazor.FileSystemAccess" Version="3.3.0" />
-      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.0-preview.1.25120.3" />
+      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.2" />
     </ItemGroup>
 
 </Project>
