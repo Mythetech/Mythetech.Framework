@@ -10,6 +10,7 @@ using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Settings;
+using Mythetech.Framework.Infrastructure.Shell;
 
 namespace Mythetech.Framework.Desktop;
 
@@ -54,6 +55,7 @@ public static class DesktopRegistrationExtensions
         services.AddPluginStorage();
         services.AddDesktopAssetLoader();
         services.AddShowFileService();
+        services.AddShellExecutor();
 
         return services;
     }
@@ -134,6 +136,18 @@ public static class DesktopRegistrationExtensions
     public static IServiceCollection AddShowFileService(this IServiceCollection services)
     {
         services.AddTransient<IShowFileService, ShowFileService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the shell executor for Desktop.
+    /// Provides cross-platform CLI command execution with proper PATH setup
+    /// for GUI applications on macOS and Linux.
+    /// </summary>
+    public static IServiceCollection AddShellExecutor(this IServiceCollection services)
+    {
+        services.AddSingleton<IShellExecutor, ShellExecutor>();
 
         return services;
     }

@@ -5,9 +5,11 @@ using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Settings;
+using Mythetech.Framework.Infrastructure.Shell;
 using Mythetech.Framework.WebAssembly.Environment;
 using Mythetech.Framework.WebAssembly.Plugins;
 using Mythetech.Framework.WebAssembly.Settings;
+using Mythetech.Framework.WebAssembly.Shell;
 
 namespace Mythetech.Framework.WebAssembly;
 
@@ -156,6 +158,37 @@ public static class WebAssemblyRegistrationExtensions
     {
         services.AddFileOperations();
         services.AddDirectoryOperations();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the WebAssembly shell execution services.
+    /// </summary>
+    /// <remarks>
+    /// This provides a simulated shell environment for WebAssembly applications.
+    /// Commands can be registered via <see cref="ICommandRegistry"/> in C# or
+    /// via <c>mythetech.shell.registerCommand()</c> in JavaScript.
+    /// <para>
+    /// Built-in commands include: echo, env, help, clear, version.
+    /// </para>
+    /// <para>
+    /// Important: Include the shell-executor.js script in your application:
+    /// <code>&lt;script src="_content/Mythetech.Framework.WebAssembly/shell-executor.js"&gt;&lt;/script&gt;</code>
+    /// </para>
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Optional configuration for shell options.</param>
+    public static IServiceCollection AddShellExecution(
+        this IServiceCollection services,
+        Action<WasmShellOptions>? configure = null)
+    {
+        var options = new WasmShellOptions();
+        configure?.Invoke(options);
+
+        services.AddSingleton(options);
+        services.AddSingleton<ICommandRegistry, CommandRegistry>();
+        services.AddScoped<IShellExecutor, WasmShellExecutor>();
 
         return services;
     }
