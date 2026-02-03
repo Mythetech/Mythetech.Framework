@@ -1,0 +1,40 @@
+name: Publish Preview NuGet Packages
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  publish-preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0'
+
+      - name: Install .NET WASM workload
+        run: dotnet workload install wasm-tools
+
+      - name: Add GitHub Packages source
+        run: dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github-gtksharp https://nuget.pkg.github.com/GtkSharp/index.json
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build and Pack Preview
+        run: |
+          dotnet pack Mythetech.Framework/Mythetech.Framework.csproj -c Release --no-restore -o ./nupkgs --version-suffix "preview.${{ github.run_number }}"
+          dotnet pack Mythetech.Framework.WebAssembly/Mythetech.Framework.WebAssembly.csproj -c Release --no-restore -o ./nupkgs --version-suffix "preview.${{ github.run_number }}"
+          dotnet pack Mythetech.Framework.Desktop/Mythetech.Framework.Desktop.csproj -c Release --no-restore -o ./nupkgs --version-suffix "preview.${{ github.run_number }}"
+          dotnet pack Mythetech.Framework.Observability/Mythetech.Framework.Observability.csproj -c Release --no-restore -o ./nupkgs --version-suffix "preview.${{ github.run_number }}"
+
+      - name: Publish to NuGet.org
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate

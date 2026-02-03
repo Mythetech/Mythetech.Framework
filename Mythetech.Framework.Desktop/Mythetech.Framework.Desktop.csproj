@@ -7,7 +7,7 @@
         <!-- Prevent static asset conflicts with consuming app -->
         <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
         <PackageId>Mythetech.Framework.Desktop</PackageId>
-        <Version>0.10.1</Version>
+        <VersionPrefix>0.11.0</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Description>Desktop-specific components for cross platform Blazor applications using Photino or Hermes</Description>
         <PackageTags>blazor;desktop;photino;hermes;components;ui;framework;cross-platform</PackageTags>
