@@ -55,28 +55,15 @@
     </div>
 
     @* Right content area *@
-    <div class="mf-settings-content" @ref="_contentRef">
-        @* Slot for app-specific content BEFORE framework settings (e.g., Appearance/Theme) *@
-        @ContentPrefix
-
-        @* Dynamic settings sections *@
-        @foreach (var settings in SettingsProvider.GetAllSettings())
+    <div class="mf-settings-content @(ContentWrapper != null ? "mf-settings-content--wrapped" : "")" @ref="_contentRef">
+        @if (ContentWrapper != null)
         {
-            @if (settings is FeatureFlagsSettingsBase flagSettings)
-            {
-                <FeatureFlagSettingsSection Settings="@flagSettings"
-                                            OnSettingChanged="@HandleSettingChanged" />
-            }
-            else
-            {
-                <SettingsSectionDisplay Settings="@settings"
-                                        MatchingProperties="@GetMatchingProperties(settings.SettingsId)"
-                                        OnSettingChanged="@HandleSettingChanged" />
-            }
+            @ContentWrapper(InnerContent)
         }
-
-        @* Slot for app-specific content AFTER framework settings *@
-        @ContentSuffix
+        else
+        {
+            @InnerContent
+        }
     </div>
 </div>
 
@@ -125,6 +112,19 @@
     /// </summary>
     [Parameter]
     public RenderFragment? ContentSuffix { get; set; }
+
+    /// <summary>
+    /// Optional wrapper for the content area's inner content.
+    /// When provided, the inner content (ContentPrefix, settings, ContentSuffix) will be
+    /// passed to this render fragment, allowing custom scroll containers or other wrappers.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// &lt;SettingsPanel ContentWrapper="@(content => @&lt;OverlayScrollbar&gt;@content&lt;/OverlayScrollbar&gt;)" /&gt;
+    /// </code>
+    /// </example>
+    [Parameter]
+    public RenderFragment<RenderFragment>? ContentWrapper { get; set; }
 
     /// <summary>
     /// Callback when any setting value changes.
@@ -185,6 +185,28 @@
     private Dictionary<string, HashSet<string>> _matchingPropertiesBySectionId = new();
 
     private bool HasSearchTerm => !string.IsNullOrWhiteSpace(_searchTerm);
+
+    private RenderFragment InnerContent => __builder =>
+    {
+        @ContentPrefix
+
+        foreach (var settings in SettingsProvider.GetAllSettings())
+        {
+            if (settings is FeatureFlagsSettingsBase flagSettings)
+            {
+                <FeatureFlagSettingsSection Settings="@flagSettings"
+                                            OnSettingChanged="@HandleSettingChanged" />
+            }
+            else
+            {
+                <SettingsSectionDisplay Settings="@settings"
+                                        MatchingProperties="@GetMatchingProperties(settings.SettingsId)"
+                                        OnSettingChanged="@HandleSettingChanged" />
+            }
+        }
+
+        @ContentSuffix
+    };
 
     protected override void OnInitialized()
     {

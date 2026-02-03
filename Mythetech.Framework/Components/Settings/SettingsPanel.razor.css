@@ -37,6 +37,10 @@
     padding: 1rem 1.5rem;
 }
 
+.mf-settings-content--wrapped {
+    overflow-y: visible;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .mf-settings-panel {
