@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Company>Mythetech</Company>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <PackageId>Mythetech.Framework.Observability</PackageId>
+        <VersionPrefix>0.11.0</VersionPrefix>
+        <Authors>Mythetech</Authors>
+        <Description>Observability abstractions and implementations for Mythetech applications</Description>
+        <PackageTags>blazor;observability;metrics;health;diagnostics;telemetry</PackageTags>
+        <Copyright>Copyright (c) 2026 Mythetech</Copyright>
+        <PackageReleaseNotes>See CHANGELOG.md for release notes</PackageReleaseNotes>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/mythetech/Mythetech.Framework</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/mythetech/Mythetech.Framework</PackageProjectUrl>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+    </ItemGroup>
+
+</Project>
