@@ -7,7 +7,7 @@
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <PackageId>Mythetech.Framework.Observability</PackageId>
-        <VersionPrefix>0.11.0</VersionPrefix>
+        <VersionPrefix>0.11.1</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Description>Observability abstractions and implementations for Mythetech applications</Description>
         <PackageTags>blazor;observability;metrics;health;diagnostics;telemetry</PackageTags>
