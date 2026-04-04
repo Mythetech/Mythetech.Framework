@@ -1,0 +1,56 @@
+@using Mythetech.Framework.Infrastructure.Guards
+@using Microsoft.JSInterop
+@inject IJsGuardService GuardService
+@inject IJSRuntime JS
+
+@if (GuardService.IsReady(Name))
+{
+    <ErrorBoundary @ref="_errorBoundary">
+        <ChildContent>
+            @ChildContent
+        </ChildContent>
+        <ErrorContent>
+            @if (ErrorContent != null)
+            {
+                @ErrorContent(context)
+            }
+        </ErrorContent>
+    </ErrorBoundary>
+}
+
+@code {
+    private ErrorBoundary? _errorBoundary;
+
+    /// <summary>
+    /// The name of the JS guard to check, matching the name passed to registerJsGuard() in JavaScript.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Content to render when the named JS dependency is ready.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Optional content to render when the guarded content throws an exception.
+    /// If not provided, nothing is rendered on error.
+    /// </summary>
+    [Parameter]
+    public RenderFragment<Exception>? ErrorContent { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !GuardService.IsReady(Name))
+        {
+            await GuardService.WaitForReadyAsync(JS, Name);
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Resets the error boundary, allowing the guarded content to re-render.
+    /// </summary>
+    public void Recover() => _errorBoundary?.Recover();
+}
