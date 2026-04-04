@@ -461,14 +461,18 @@
             if (string.IsNullOrEmpty(relativePath))
                 continue;
             
-            var destinationPath = Path.Combine(targetDir, relativePath);
+            var destinationPath = Path.GetFullPath(Path.Combine(targetDir, relativePath));
+
+            if (!destinationPath.StartsWith(Path.GetFullPath(targetDir) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Zip entry '{entry.FullName}' would extract outside the target directory.");
+
             var destinationDir = Path.GetDirectoryName(destinationPath);
-            
+
             if (!string.IsNullOrEmpty(destinationDir))
             {
                 Directory.CreateDirectory(destinationDir);
             }
-            
+
             entry.ExtractToFile(destinationPath, overwrite: true);
         }
     }
