@@ -16,6 +16,7 @@ public class InMemoryMessageBus : IMessageBus
     private readonly ConcurrentDictionary<Type, List<object>> _subscribers = new();
     private readonly ConcurrentDictionary<Type, (Type HandlerType, Type ResponseType)> _registeredQueryHandlerTypes = new();
     private readonly ConcurrentDictionary<Type, object> _cachedQueryHandlers = new();
+    private readonly ConcurrentDictionary<Type, List<object>> _cachedTypedPipes = new();
     private readonly Lock _subscribersLock = new();
 
     private readonly IServiceProvider _serviceProvider;
@@ -157,11 +158,11 @@ public class InMemoryMessageBus : IMessageBus
         return true;
     }
 
-    private async Task<bool> RunTypedPipesAsync<TMessage>(TMessage message, CancellationToken cancellationToken) 
+    private async Task<bool> RunTypedPipesAsync<TMessage>(TMessage message, CancellationToken cancellationToken)
         where TMessage : class
     {
-        var typedPipes = _serviceProvider.GetServices<IMessagePipe<TMessage>>();
-        
+        var typedPipes = GetOrResolveTypedPipes<TMessage>();
+
         foreach (var pipe in typedPipes)
         {
             try
@@ -184,6 +185,24 @@ public class InMemoryMessageBus : IMessageBus
             }
         }
         return true;
+    }
+
+    private List<IMessagePipe<TMessage>> GetOrResolveTypedPipes<TMessage>() where TMessage : class
+    {
+        var messageType = typeof(TMessage);
+
+        var cached = _cachedTypedPipes.GetOrAdd(messageType, _ =>
+            _serviceProvider.GetServices<IMessagePipe<TMessage>>()
+                .Cast<object>()
+                .ToList());
+
+        List<object> cachedCopy;
+        lock (cached)
+        {
+            cachedCopy = cached.ToList();
+        }
+
+        return cachedCopy.Cast<IMessagePipe<TMessage>>().ToList();
     }
 
     /// <inheritdoc/>
