@@ -1,7 +1,9 @@
 namespace Mythetech.Framework.Infrastructure.Mcp;
 
 /// <summary>
-/// Declares a class as an MCP tool with metadata for tool listing.
+/// Declares a class as a manually-authored MCP tool with metadata for tool listing.
+/// For generated MCP tools, use <see cref="ToolCommandAttribute"/> or <see cref="ToolQueryAttribute"/>
+/// with the Mythetech.Framework.AI.Generator package instead.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class McpToolAttribute : Attribute

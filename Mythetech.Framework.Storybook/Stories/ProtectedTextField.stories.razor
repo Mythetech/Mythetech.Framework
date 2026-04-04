@@ -1,0 +1,47 @@
+@using Mythetech.Framework.Components.Input
+@using MudBlazor
+@attribute [Stories("Components/Input")]
+
+<Stories TComponent="ProtectedTextField">
+
+    <ArgType For="_ => _.Label" Control="ControlType.Default" />
+    <ArgType For="_ => _.Dense" Control="ControlType.Default" />
+
+    <ProductStory Name="Default" TComponent="ProtectedTextField">
+        <Arguments>
+            <Arg For="_ => _.Value" Value="@("s3cret-p@ssw0rd")" />
+            <Arg For="_ => _.Label" Value="@("Password")" />
+            <Arg For="_ => _.Dense" Value="false" />
+        </Arguments>
+
+        <Template>
+            <ProtectedTextField @attributes="context.Args" />
+        </Template>
+    </ProductStory>
+
+    <ProductStory Name="Dense" TComponent="ProtectedTextField">
+        <Arguments>
+            <Arg For="_ => _.Value" Value="@("my-api-key")" />
+            <Arg For="_ => _.Label" Value="@("API Key")" />
+            <Arg For="_ => _.Dense" Value="true" />
+        </Arguments>
+
+        <Template>
+            <ProtectedTextField @attributes="context.Args" />
+        </Template>
+    </ProductStory>
+
+    <ProductStory Name="Custom Icons" TComponent="ProtectedTextField">
+        <Arguments>
+            <Arg For="_ => _.Value" Value="@("hidden-value")" />
+            <Arg For="_ => _.Label" Value="@("Secret Token")" />
+            <Arg For="_ => _.VisibilityOnIcon" Value="@Icons.Material.Filled.LockOpen" />
+            <Arg For="_ => _.VisibilityOffIcon" Value="@Icons.Material.Filled.Lock" />
+        </Arguments>
+
+        <Template>
+            <ProtectedTextField @attributes="context.Args" />
+        </Template>
+    </ProductStory>
+
+</Stories>

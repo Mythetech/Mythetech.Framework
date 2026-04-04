@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+
+        <!-- Source Generator settings -->
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IsRoslynComponent>true</IsRoslynComponent>
+
+        <!-- Don't include build output in consuming projects' bin folders -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+
+        <!-- NuGet metadata -->
+        <PackageId>Mythetech.Framework.AI.Generator</PackageId>
+        <VersionPrefix>0.12.0</VersionPrefix>
+        <Authors>Mythetech</Authors>
+        <Company>Mythetech</Company>
+        <Description>Roslyn source generator that creates MCP tools from ToolCommand/ToolQuery decorated message bus types</Description>
+        <PackageTags>blazor;mcp;source-generator;ai;tools;roslyn</PackageTags>
+        <Copyright>Copyright (c) 2026 Mythetech</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/mythetech/Mythetech.Framework</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/mythetech/Mythetech.Framework</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    </ItemGroup>
+
+    <!-- Pack the generator DLL into the analyzers folder for NuGet -->
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+        <None Include="..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>
