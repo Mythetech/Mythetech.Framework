@@ -27,6 +27,7 @@ static async Task Main(string[] args)
 ```
 
 **Why:** The `[STAThread]` attribute is required for Blazor Hybrid on Windows (WebView2 needs STA threading). When combined with `async Task Main`, the runtime modifies the thread context in ways that can prevent WebView2 from initializing properly. Symptoms include:
+
 - Black window with no content
 - index.html never loads (splash screen doesn't appear)
 - No errors or exceptions thrown
@@ -95,6 +96,7 @@ public class AppAsyncInitializer : IAppAsyncInitializer
 ```
 
 **Benefits:**
+
 - Window renders immediately (splash screen visible)
 - User sees responsiveness right away
 - Centralized initialization with error handling
@@ -109,55 +111,65 @@ Don't wait for Blazor to render a splash screen - put it directly in index.html 
 ```html
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <style>
-        #app-splash {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999;
-            opacity: 1;
-            transition: opacity 0.4s ease-out;
-        }
-        #app-splash.fade-out { opacity: 0; pointer-events: none; }
+      #app-splash {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        opacity: 1;
+        transition: opacity 0.4s ease-out;
+      }
+      #app-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
 
-        #app-splash .logo {
-            animation: pulse 2s ease-in-out infinite;
+      #app-splash .logo {
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
         }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+        50% {
+          transform: scale(1.05);
         }
+      }
 
-        /* Add loading spinner, wave bars, etc. */
+      /* Add loading spinner, wave bars, etc. */
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="app-splash">
-        <img class="logo" src="logo.png" alt="App" />
-        <div class="title">App Name</div>
-        <!-- CSS-animated loader here -->
+      <img class="logo" src="logo.png" alt="App" />
+      <div class="title">App Name</div>
+      <!-- CSS-animated loader here -->
     </div>
 
     <app id="app"></app>
 
     <script src="_framework/blazor.webview.js"></script>
     <script>
-        window.appSplash = {
-            hide: function() {
-                var splash = document.getElementById('app-splash');
-                if (splash) {
-                    splash.classList.add('fade-out');
-                    setTimeout(function() { splash.remove(); }, 400);
-                }
-            }
-        };
+      window.appSplash = {
+        hide: function () {
+          var splash = document.getElementById("app-splash");
+          if (splash) {
+            splash.classList.add("fade-out");
+            setTimeout(function () {
+              splash.remove();
+            }, 400);
+          }
+        },
+      };
     </script>
-</body>
+  </body>
 </html>
 ```
 
@@ -173,6 +185,7 @@ if (firstRender)
 ```
 
 **Why pure HTML/CSS:**
+
 - Appears instantly before Blazor loads
 - No dependency on .NET runtime initialization
 - Smooth animations even during heavy initialization
@@ -183,22 +196,24 @@ if (firstRender)
 ### Native Child Windows
 
 Photino currently does not support true native child windows. You cannot:
+
 - Create popup windows that are children of the main window
 - Have modal dialogs that block the parent window natively
 - Spawn secondary windows with parent-child relationships
 
 **Workarounds:**
+
 - Use in-app modal dialogs (MudBlazor dialogs, etc.)
 - Use overlay panels instead of popups
 - For multi-window needs, spawn independent windows (no parent relationship)
 
 ### Platform Differences
 
-| Feature | Windows | macOS | Linux |
-|---------|---------|-------|-------|
-| WebView | WebView2 (Edge) | WKWebView | WebKitGTK |
-| STA Threading | Required | N/A | N/A |
-| Native menus | Limited | Limited | Limited |
+| Feature       | Windows         | macOS     | Linux     |
+| ------------- | --------------- | --------- | --------- |
+| WebView       | WebView2 (Edge) | WKWebView | WebKitGTK |
+| STA Threading | Required        | N/A       | N/A       |
+| Native menus  | Limited         | Limited   | Limited   |
 
 ## Project Configuration
 
@@ -226,6 +241,7 @@ Photino currently does not support true native child windows. You cannot:
 ```
 
 **Avoid:**
+
 - `<SupportedPlatform Include="browser" />` - This is for Blazor WebAssembly, not desktop apps
 
 ### Window Configuration
@@ -264,6 +280,7 @@ If you see a black window with no content:
 ### WebView2 Not Found (Windows)
 
 Ensure WebView2 runtime is installed. For development, it's usually present. For deployment, consider:
+
 - Evergreen WebView2 (auto-updates, requires internet)
 - Fixed version WebView2 (bundled, larger install size)
 
@@ -281,6 +298,7 @@ Getting file paths right is surprisingly hard in cross-platform desktop apps. Th
 ### AppContext.BaseDirectory (Read-Only Resources)
 
 Use for files bundled with your app that don't need to be modified:
+
 - `wwwroot/` folder (CSS, JS, images)
 - `appsettings.json`
 - Bundled assets
@@ -297,6 +315,7 @@ var wwwrootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");
 ```
 
 **Why not `Directory.GetCurrentDirectory()`?**
+
 - Returns different paths depending on how the app was launched
 - Launching from Start Menu, shortcut, or terminal all give different results
 - On macOS, launching a `.app` bundle sets CWD to `/` or user's home
@@ -305,6 +324,7 @@ var wwwrootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");
 ### LocalApplicationData (Writable User Data)
 
 Use for anything you need to write to disk:
+
 - Databases (LiteDB, SQLite)
 - User settings
 - Plugins
@@ -327,11 +347,11 @@ var logsPath = Path.Combine(appDataPath, "logs");
 
 **Platform paths:**
 
-| Platform | LocalApplicationData |
-|----------|---------------------|
-| Windows | `C:\Users\{user}\AppData\Local\YourAppName\` |
-| macOS | `/Users/{user}/Library/Application Support/YourAppName/` |
-| Linux | `/home/{user}/.local/share/YourAppName/` |
+| Platform | LocalApplicationData                                     |
+| -------- | -------------------------------------------------------- |
+| Windows  | `C:\Users\{user}\AppData\Local\YourAppName\`             |
+| macOS    | `/Users/{user}/Library/Application Support/YourAppName/` |
+| Linux    | `/home/{user}/.local/share/YourAppName/`                 |
 
 ### Why AppContext.BaseDirectory is Read-Only
 
@@ -344,6 +364,7 @@ var logsPath = Path.Combine(appDataPath, "logs");
 ### Common Patterns
 
 **Database storage:**
+
 ```csharp
 public class AppRepository
 {
@@ -359,6 +380,7 @@ public class AppRepository
 ```
 
 **Plugin storage:**
+
 ```csharp
 // Plugins need writable location for downloads and state
 var pluginDbPath = Path.Combine(
@@ -370,6 +392,7 @@ services.AddPluginStorage(pluginDbPath);
 ```
 
 **Diagnostic logging (for debugging path issues):**
+
 ```csharp
 var diagnosticPath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -429,15 +452,59 @@ Use a consistent app name for your data directory that's separate from Velopack'
 
 ### Path Resolution Summary
 
-| Need | Method | Example |
-|------|--------|---------|
-| App resources (wwwroot, config) | `AppContext.BaseDirectory` | `Path.Combine(AppContext.BaseDirectory, "wwwroot")` |
-| User data (DB, settings) | `SpecialFolder.LocalApplicationData` | `Path.Combine(Environment.GetFolderPath(...), "AppName", "data.db")` |
-| User's home directory | `SpecialFolder.UserProfile` | For default project paths, etc. |
-| Temp files | `Path.GetTempPath()` | Short-lived files only |
+| Need                            | Method                               | Example                                                              |
+| ------------------------------- | ------------------------------------ | -------------------------------------------------------------------- |
+| App resources (wwwroot, config) | `AppContext.BaseDirectory`           | `Path.Combine(AppContext.BaseDirectory, "wwwroot")`                  |
+| User data (DB, settings)        | `SpecialFolder.LocalApplicationData` | `Path.Combine(Environment.GetFolderPath(...), "AppName", "data.db")` |
+| User's home directory           | `SpecialFolder.UserProfile`          | For default project paths, etc.                                      |
+| Temp files                      | `Path.GetTempPath()`                 | Short-lived files only                                               |
 
 **Never use:**
+
 - `Directory.GetCurrentDirectory()` - Unreliable
 - `Environment.CurrentDirectory` - Same problem
 - Hardcoded paths - Not cross-platform
 - Writing to `AppContext.BaseDirectory` - Breaks on macOS, survives updates poorly
+
+## Scrollbar Styling
+
+### The macOS Problem
+
+CSS scrollbar styling (`::-webkit-scrollbar`, `scrollbar-width`, etc.) is unreliable in desktop Blazor Hybrid apps. macOS in particular tends to ignore custom scrollbar CSS and display its native overlay scrollbars instead. This results in inconsistent appearance across platforms.
+
+**Key gotcha:** Local development builds on macOS override scrollbars with native styling more aggressively than published release builds. Your scrollbars may look correct in a release build but wrong during development, or vice versa. Don't rely on dev builds alone to validate scrollbar appearance.
+
+### Recommended: OverlayScrollbars
+
+If a consistent cross-platform scrollbar experience is desired, use [Blazor.OverlayScrollbars](https://github.com/Mythetech/Blazor.OverlayScrollbars) — a .NET 10 Blazor wrapper around the [OverlayScrollbars](https://github.com/KingSora/OverlayScrollbars) JavaScript library. This replaces native scrollbars entirely with custom-rendered overlays that behave consistently across Windows, macOS, and Linux.
+
+**Basic usage:**
+
+```razor
+@using Blazor.OverlayScrollbars
+
+<OverlayScrollbar Options="OverlayScrollbarDefaults.AlwaysVisible">
+    @* Scrollable content here *@
+</OverlayScrollbar>
+```
+
+**Built-in presets via `OverlayScrollbarDefaults`:**
+
+- `AlwaysVisible` — Scrollbars always shown
+- `HideOnScroll` — Auto-hide when not scrolling
+- `HorizontalOnly` / `VerticalOnly` — Single-axis scrolling
+
+```razor
+<HorizonScrollArea Axis="ScrollAxis.Vertical" Height="500px">
+    @* Content here *@
+</HorizonScrollArea>
+```
+
+### What Doesn't Work Reliably
+
+| Approach                         | Problem                                     |
+| -------------------------------- | ------------------------------------------- |
+| `::-webkit-scrollbar` CSS        | Ignored by macOS native scrollbars          |
+| `scrollbar-width: thin`          | Inconsistent across WebView implementations |
+| `overflow: overlay`              | Deprecated, not supported everywhere        |
+| Hiding scrollbars with CSS hacks | Breaks accessibility and scroll behavior    |
