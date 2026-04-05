@@ -1,12 +1,12 @@
-# Photino Best Practices
+# Blazor Hybrid Best Practices
 
-Lessons from building desktop Blazor apps with Photino.
+Lessons from building desktop Blazor Hybrid apps.
 
 ## Entry Point
 
 ### Use Synchronous Main
 
-**Always use `void Main`, never `async Task Main` with Photino.**
+**Always use `void Main`, never `async Task Main` with Blazor Hybrid.**
 
 ```csharp
 // GOOD
@@ -26,7 +26,7 @@ static async Task Main(string[] args)
 }
 ```
 
-**Why:** The `[STAThread]` attribute is required for Photino on Windows (WebView2 needs STA threading). When combined with `async Task Main`, the runtime modifies the thread context in ways that can prevent WebView2 from initializing properly. Symptoms include:
+**Why:** The `[STAThread]` attribute is required for Blazor Hybrid on Windows (WebView2 needs STA threading). When combined with `async Task Main`, the runtime modifies the thread context in ways that can prevent WebView2 from initializing properly. Symptoms include:
 - Black window with no content
 - index.html never loads (splash screen doesn't appear)
 - No errors or exceptions thrown
