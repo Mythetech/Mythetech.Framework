@@ -23,8 +23,8 @@
     <ItemGroup>
       <PackageReference Include="LiteDB" Version="5.0.21" />
       <PackageReference Include="Photino.Blazor" Version="4.0.13" />
-      <PackageReference Include="Mythetech.Hermes" Version="0.0.0-preview.87" />
-      <PackageReference Include="Mythetech.Hermes.Blazor" Version="0.0.0-preview.87" />
+      <PackageReference Include="Mythetech.Hermes" Version="0.0.0-preview.94" />
+      <PackageReference Include="Mythetech.Hermes.Blazor" Version="0.0.0-preview.94" />
       <PackageReference Include="Velopack" Version="0.0.1298" />
     </ItemGroup>
 
