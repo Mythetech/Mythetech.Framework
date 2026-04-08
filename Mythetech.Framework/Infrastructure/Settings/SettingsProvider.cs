@@ -69,8 +69,9 @@ public class SettingsProvider : ISettingsProvider
             var sectionMatches = settings.DisplayName?.Contains(term, StringComparison.OrdinalIgnoreCase) == true ||
                                  settings.SettingsId.Contains(term, StringComparison.OrdinalIgnoreCase);
 
-            // Get cached setting properties
-            var settingProperties = SettingsPropertyCache.GetSettingProperties(settings.GetType());
+            // Get cached setting properties (exclude hidden ones from search)
+            var settingProperties = SettingsPropertyCache.GetSettingProperties(settings.GetType())
+                .Where(p => !p.Attribute!.Hide);
 
             if (sectionMatches)
             {

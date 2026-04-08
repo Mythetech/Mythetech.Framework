@@ -63,7 +63,7 @@
         var props = Settings.GetType()
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Select(p => (Property: p, Attribute: p.GetCustomAttribute<SettingAttribute>()))
-            .Where(x => x.Attribute != null)
+            .Where(x => x.Attribute != null && !x.Attribute.Hide)
             .OrderBy(x => x.Attribute!.Order)
             .GroupBy(x => x.Attribute!.Group ?? "")
             .ToDictionary(
