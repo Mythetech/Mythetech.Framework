@@ -58,6 +58,11 @@ public class SettingAttribute : Attribute
     public bool HasRange => !double.IsNaN(Min) && !double.IsNaN(Max);
 
     /// <summary>
+    /// When true, this setting is persisted but not rendered in the settings UI.
+    /// </summary>
+    public bool Hide { get; set; } = false;
+
+    /// <summary>
     /// Custom Blazor component type to use for rendering this setting.
     /// When set, overrides the default type-based editor selection from ISettingsEditorRegistry.
     /// The component must accept parameters: Settings (SettingsBase), Property (PropertyInfo),

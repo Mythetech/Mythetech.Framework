@@ -41,5 +41,6 @@ public class PrivacySettings : SettingsBase
     /// Whether the user has been shown the privacy consent dialog.
     /// Not rendered in the settings panel.
     /// </summary>
+    [Setting(Hide = true)]
     public bool HasSeenPrivacyDialog { get; set; } = false;
 }
