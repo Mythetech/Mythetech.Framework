@@ -1,0 +1,67 @@
+@using MudBlazor
+@using Mythetech.Framework.Components.Links
+@using Mythetech.Framework.Infrastructure.Settings
+
+<MudDialog Class="mf-privacy-dialog">
+    <DialogContent>
+        <MudStack Spacing="4">
+            <MudText Typo="Typo.body1">
+                <strong>@AppName</strong> is built on
+                <ExternalLink Link="https://github.com/Mythetech/Hermes" Color="Color.Primary">Hermes</ExternalLink>,
+                a new cross-platform desktop host. Anonymous crash and error reports help us improve stability
+                across platforms. No personal data is collected, and reports are never sold to third parties.
+            </MudText>
+
+            <div>
+                <MudText Typo="Typo.subtitle2"><strong>What's included:</strong></MudText>
+                <MudList T="string" Dense="true" ReadOnly="true">
+                    <MudListItem Icon="@Icons.Material.Filled.BugReport" Text="Exception type, message, and stack trace frames" />
+                    <MudListItem Icon="@Icons.Material.Filled.ErrorOutline" Text="Error and critical log messages" />
+                    <MudListItem Icon="@Icons.Material.Filled.Computer" Text="Platform info (OS, version, CPU architecture, .NET version)" />
+                    <MudListItem Icon="@Icons.Material.Filled.Info" Text="Product name and version" />
+                    <MudListItem Icon="@Icons.Material.Filled.Language" Text="System locale" />
+                    <MudListItem Icon="@Icons.Material.Filled.Schedule" Text="Crash source type and UTC timestamp" />
+                    <MudListItem Icon="@Icons.Material.Filled.Tag" Text="An anonymous session ID (generated fresh each launch - cannot link separate app runs or identify you)" />
+                </MudList>
+            </div>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="EnableReporting">Enable Reporting</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Decline">No Thanks</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public string AppName { get; set; } = string.Empty;
+
+    [Inject]
+    private ISettingsProvider SettingsProvider { get; set; } = null!;
+
+    private async Task EnableReporting()
+    {
+        await SetConsent(enabled: true);
+    }
+
+    private async Task Decline()
+    {
+        await SetConsent(enabled: false);
+    }
+
+    private async Task SetConsent(bool enabled)
+    {
+        var settings = SettingsProvider.GetSettings<PrivacySettings>();
+        if (settings is null) return;
+
+        settings.CrashReportingEnabled = enabled;
+        settings.ErrorReportingEnabled = enabled;
+        settings.HasSeenPrivacyDialog = true;
+        await SettingsProvider.NotifySettingsChangedAsync(settings);
+
+        MudDialog?.Close(DialogResult.Ok(enabled));
+    }
+}
