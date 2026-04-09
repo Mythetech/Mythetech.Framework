@@ -1,5 +1,6 @@
 @using Mythetech.Framework.Infrastructure.Guards
 @using Microsoft.JSInterop
+@using MudBlazor
 @inject IJsGuardService GuardService
 @inject IJSRuntime JS
 
@@ -13,6 +14,19 @@
             @if (ErrorContent != null)
             {
                 @ErrorContent(context)
+            }
+            else
+            {
+                <div class="js-guard-error mud-border-error">
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="Recover"
+                                   Class="js-guard-error-retry" />
+                    <MudText Typo="Typo.body2" Color="Color.Error">
+                        Error loading component
+                    </MudText>
+                </div>
             }
         </ErrorContent>
     </ErrorBoundary>
