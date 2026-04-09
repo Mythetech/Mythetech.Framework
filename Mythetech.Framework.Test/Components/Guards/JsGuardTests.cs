@@ -134,6 +134,39 @@ public class JsGuardTests : TestContext
         cut.Markup.ShouldNotContain("Markdown editor");
     }
 
+    [Fact(DisplayName = "Renders default error UI when guard times out")]
+    public void RendersDefaultErrorUI_WhenGuardTimesOut()
+    {
+        _guardService.IsReady("monaco").Returns(false);
+        _guardService.WaitForReadyAsync(Arg.Any<IJSRuntime>(), "monaco")
+            .Returns(Task.FromResult(false));
+
+        var cut = RenderComponent<JsGuard>(parameters => parameters
+            .Add(p => p.Name, "monaco")
+            .AddChildContent("<p>Editor loaded</p>"));
+
+        cut.Markup.ShouldContain("Error loading component");
+        cut.Markup.ShouldContain("js-guard-error");
+        cut.Markup.ShouldNotContain("Editor loaded");
+    }
+
+    [Fact(DisplayName = "Renders custom error content when guard times out")]
+    public void RendersCustomErrorContent_WhenGuardTimesOut()
+    {
+        _guardService.IsReady("monaco").Returns(false);
+        _guardService.WaitForReadyAsync(Arg.Any<IJSRuntime>(), "monaco")
+            .Returns(Task.FromResult(false));
+
+        var cut = RenderComponent<JsGuard>(parameters => parameters
+            .Add(p => p.Name, "monaco")
+            .AddChildContent("<p>Editor loaded</p>")
+            .Add(p => p.ErrorContent, ex => $"<p>Custom error: {ex.Message}</p>"));
+
+        cut.Markup.ShouldContain("Custom error:");
+        cut.Markup.ShouldContain("timed out");
+        cut.Markup.ShouldNotContain("Editor loaded");
+    }
+
     /// <summary>
     /// Test component that throws during rendering.
     /// </summary>
