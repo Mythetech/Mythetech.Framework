@@ -14,15 +14,17 @@
          Dense="@Dense"
          ListClass="@ListClass">
     <ActivatorContent>
-        <Button Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass">
-            <ChildContent>
-                @MenuText
-                @if (McpState.IsRunning)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="font-size: 10px;" />
-                }
-            </ChildContent>
-        </Button>
+        <div @onpointerenter="@context.OpenAsync" @onpointerleave="@context.CloseAsync">
+            <Button Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass">
+                <ChildContent>
+                    @MenuText
+                    @if (McpState.IsRunning)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="font-size: 10px;" />
+                    }
+                </ChildContent>
+            </Button>
+        </div>
     </ActivatorContent>
     <ChildContent>
         <MudMenuItem Class="@ItemClass"

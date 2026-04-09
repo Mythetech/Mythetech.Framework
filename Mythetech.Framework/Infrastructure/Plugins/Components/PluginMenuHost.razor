@@ -8,9 +8,11 @@
          Dense="true"
          ListClass="@_menu?.MenuListClass">
     <ActivatorContent>
-        <MudMenuItem Class="@ItemClass" Icon="@_menu?.Icon">
-            @_menu?.Title
-        </MudMenuItem>
+        <div @onpointerenter="@context.OpenAsync" @onpointerleave="@context.CloseAsync">
+            <MudMenuItem Class="@ItemClass" Icon="@_menu?.Icon">
+                @_menu?.Title
+            </MudMenuItem>
+        </div>
     </ActivatorContent>
     <ChildContent>
         @foreach (var item in _menu?.Items ?? [])
