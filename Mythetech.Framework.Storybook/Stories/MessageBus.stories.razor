@@ -19,7 +19,7 @@
                 <Button @attributes="context.Args" Text="Click Me" OnClick="@OpenDialog">
                 </Button>
                 
-                <MudMarkdown Value="@_recordMarkdown" CodeBlockTheme="CodeBlockTheme.Dark" />
+                <MudMarkdown Value="@_recordMarkdown" Styling="MythetechMarkdownStyling.Default" />
             </MudStack>
         </Template>
     </Story>
@@ -41,7 +41,7 @@
 
     protected override async Task Consume(ExampleDialogMessage message, CancellationToken cancellationToken)
     {
-        await DialogService.ShowMessageBox(new()
+        await DialogService.ShowMessageBoxAsync(new()
         {
             Title = "Example",
             Message = "Triggered from a message"
@@ -71,7 +71,7 @@ You can either implement the interface `IConsumer`, or use the component base cl
 ```csharp
     protected override async Task Consume(ExampleDialogMessage message, CancellationToken cancellationToken)
     {
-        await DialogService.ShowMessageBox(new()
+        await DialogService.ShowMessageBoxAsync(new()
         {
             Title = ""Example"",
             Message = ""Triggered from a message""
