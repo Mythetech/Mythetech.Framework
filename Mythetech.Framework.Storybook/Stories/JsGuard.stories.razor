@@ -1,0 +1,69 @@
+@using Mythetech.Framework.Infrastructure.Guards
+@using MudBlazor
+@attribute [Stories("Infrastructure/Guards/JsGuard")]
+
+<Stories TComponent="JsGuard">
+
+    <Story Name="Default Error State" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                <MudText Typo="Typo.h5">JsGuard - Default Error State</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    When guarded content throws and no custom ErrorContent is provided,
+                    the JsGuard displays a default error UI with a retry button.
+                </MudText>
+                <MudPaper Class="pa-4" Elevation="2" Style="height: 200px;">
+                    <JsGuard Name="storybook">
+                        <ChildContent>
+                            <ThrowingComponent />
+                        </ChildContent>
+                    </JsGuard>
+                </MudPaper>
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Custom Error Content" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                <MudText Typo="Typo.h5">JsGuard - Custom Error Content</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    When custom ErrorContent is provided, it takes precedence over the default error UI.
+                </MudText>
+                <MudPaper Class="pa-4" Elevation="2" Style="height: 200px;">
+                    <JsGuard Name="storybook">
+                        <ChildContent>
+                            <ThrowingComponent />
+                        </ChildContent>
+                        <ErrorContent Context="ex">
+                            <MudAlert Severity="Severity.Warning">
+                                Custom error handler: @ex.Message
+                            </MudAlert>
+                        </ErrorContent>
+                    </JsGuard>
+                </MudPaper>
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Normal Rendering" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4" Style="max-width: 800px; margin: 0 auto;">
+                <MudText Typo="Typo.h5">JsGuard - Normal Rendering</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    When the JS dependency is ready and no errors occur, child content renders normally.
+                </MudText>
+                <MudPaper Class="pa-4" Elevation="2">
+                    <JsGuard Name="storybook">
+                        <ChildContent>
+                            <MudText Typo="Typo.body1">
+                                JS dependency loaded successfully. Component content is visible.
+                            </MudText>
+                        </ChildContent>
+                    </JsGuard>
+                </MudPaper>
+            </MudStack>
+        </Template>
+    </Story>
+
+</Stories>
