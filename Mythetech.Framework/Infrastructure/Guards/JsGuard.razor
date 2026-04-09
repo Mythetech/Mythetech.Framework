@@ -31,9 +31,30 @@
         </ErrorContent>
     </ErrorBoundary>
 }
+else if (_timedOut)
+{
+    @if (ErrorContent != null)
+    {
+        @ErrorContent(new TimeoutException($"JS guard '{Name}' timed out — dependency may not be available"))
+    }
+    else
+    {
+        <div class="js-guard-error mud-border-error">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="RetryGuard"
+                           Class="js-guard-error-retry" />
+            <MudText Typo="Typo.body2" Color="Color.Error">
+                Error loading component
+            </MudText>
+        </div>
+    }
+}
 
 @code {
     private ErrorBoundary? _errorBoundary;
+    private bool _timedOut;
 
     /// <summary>
     /// The name of the JS guard to check, matching the name passed to registerJsGuard() in JavaScript.
@@ -49,7 +70,7 @@
 
     /// <summary>
     /// Optional content to render when the guarded content throws an exception.
-    /// If not provided, nothing is rendered on error.
+    /// If not provided, a default error UI is rendered on error.
     /// </summary>
     [Parameter]
     public RenderFragment<Exception>? ErrorContent { get; set; }
@@ -58,7 +79,8 @@
     {
         if (firstRender && !GuardService.IsReady(Name))
         {
-            await GuardService.WaitForReadyAsync(JS, Name);
+            var ready = await GuardService.WaitForReadyAsync(JS, Name);
+            _timedOut = !ready;
             StateHasChanged();
         }
     }
@@ -67,4 +89,12 @@
     /// Resets the error boundary, allowing the guarded content to re-render.
     /// </summary>
     public void Recover() => _errorBoundary?.Recover();
+
+    private async Task RetryGuard()
+    {
+        _timedOut = false;
+        var ready = await GuardService.WaitForReadyAsync(JS, Name);
+        _timedOut = !ready;
+        StateHasChanged();
+    }
 }
