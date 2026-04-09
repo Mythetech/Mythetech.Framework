@@ -17,7 +17,9 @@
          Dense="@Dense" 
          ListClass="@ListClass">
     <ActivatorContent>
-        <Button Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass" Text="@MenuText" />
+        <div @onpointerenter="@context.OpenAsync" @onpointerleave="@context.CloseAsync">
+            <Button Size="@ButtonSize" Variant="@ButtonVariant" Color="@ButtonColor" Class="@ButtonClass" Text="@MenuText" />
+        </div>
     </ActivatorContent>
     <ChildContent>
         @{
@@ -150,7 +152,7 @@
 
     private async Task HandleDeletePlugin(PluginInfo plugin)
     {
-        var result = await DialogService.ShowMessageBox(
+        var result = await DialogService.ShowMessageBoxAsync(
             title: "Delete Plugin",
             message: $"Are you sure you want to delete '{plugin.Manifest.Name}'? This action cannot be undone.",
             yesText: "Delete",

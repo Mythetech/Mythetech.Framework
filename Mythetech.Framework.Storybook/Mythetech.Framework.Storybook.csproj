@@ -9,10 +9,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="BlazingStory" Version="1.0.0-preview.47"/>
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.2" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.2" PrivateAssets="all" />
-        <PackageReference Include="MudBlazor.Markdown" Version="8.6.0" />
+        <PackageReference Include="BlazingStory" Version="1.0.0-preview.75" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.DotNet.HotReload.WebAssembly.Browser" Version="10.0.201" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.5" />
+        <PackageReference Include="MudBlazor.Markdown" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>
