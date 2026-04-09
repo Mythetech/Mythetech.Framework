@@ -45,8 +45,8 @@ public class JsGuardTests : TestContext
         cut.Markup.ShouldNotContain("Editor loaded");
     }
 
-    [Fact(DisplayName = "ErrorBoundary catches child exceptions and renders nothing by default")]
-    public void ErrorBoundary_CatchesChildException_RendersNothing()
+    [Fact(DisplayName = "ErrorBoundary catches child exceptions and renders default error UI")]
+    public void ErrorBoundary_CatchesChildException_RendersDefaultErrorUI()
     {
         _guardService.IsReady("monaco").Returns(true);
 
@@ -54,8 +54,9 @@ public class JsGuardTests : TestContext
             .Add(p => p.Name, "monaco")
             .AddChildContent<ThrowingComponent>());
 
-        // ErrorBoundary should have caught the exception — no unhandled crash
-        cut.Markup.ShouldNotContain("This should not appear");
+        // Default error UI should render with error message and retry button
+        cut.Markup.ShouldContain("Error loading component");
+        cut.Markup.ShouldContain("js-guard-error");
     }
 
     [Fact(DisplayName = "ErrorBoundary renders custom error content on failure")]

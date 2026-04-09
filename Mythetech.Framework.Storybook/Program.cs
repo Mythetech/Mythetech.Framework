@@ -5,6 +5,8 @@ using MudBlazor;
 using MudBlazor.Services;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Guards;
+using Mythetech.Framework.Storybook.Stories;
 using Mythetech.Framework.WebAssembly;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -31,6 +33,8 @@ builder.Services.AddRuntimeEnvironment();
 builder.Services.AddMessageBus();
 
 builder.Services.AddPluginFramework();
+
+builder.Services.AddSingleton<IJsGuardService, AlwaysReadyJsGuardService>();
 
 var host = builder.Build();
 
