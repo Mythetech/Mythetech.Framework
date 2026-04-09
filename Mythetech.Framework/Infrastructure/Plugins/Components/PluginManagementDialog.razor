@@ -279,7 +279,7 @@
     
     private async Task HandleDeletePlugin(PluginInfo plugin)
     {
-        var result = await DialogService.ShowMessageBox(
+        var result = await DialogService.ShowMessageBoxAsync(
             title: "Delete Plugin",
             message: $"Are you sure you want to delete '{plugin.Manifest.Name}'? This action cannot be undone.",
             yesText: "Delete",
