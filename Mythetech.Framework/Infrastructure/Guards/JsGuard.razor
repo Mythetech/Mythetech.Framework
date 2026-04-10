@@ -75,11 +75,17 @@ else if (_timedOut)
     [Parameter]
     public RenderFragment<Exception>? ErrorContent { get; set; }
 
+    /// <summary>
+    /// Optional overall timeout for registration + readiness. Defaults to 15 seconds.
+    /// </summary>
+    [Parameter]
+    public TimeSpan? Timeout { get; set; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && !GuardService.IsReady(Name))
         {
-            var ready = await GuardService.WaitForReadyAsync(JS, Name);
+            var ready = await GuardService.WaitForReadyAsync(JS, Name, Timeout);
             _timedOut = !ready;
             StateHasChanged();
         }
@@ -93,7 +99,8 @@ else if (_timedOut)
     private async Task RetryGuard()
     {
         _timedOut = false;
-        var ready = await GuardService.WaitForReadyAsync(JS, Name);
+        await GuardService.ResetAsync(JS, Name);
+        var ready = await GuardService.WaitForReadyAsync(JS, Name, Timeout);
         _timedOut = !ready;
         StateHasChanged();
     }

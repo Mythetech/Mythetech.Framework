@@ -167,6 +167,22 @@ public class JsGuardTests : TestContext
         cut.Markup.ShouldNotContain("Editor loaded");
     }
 
+    [Fact(DisplayName = "Timeout parameter is propagated to WaitForReadyAsync")]
+    public void TimeoutParameter_IsPropagatedToWaitForReadyAsync()
+    {
+        _guardService.IsReady("monaco").Returns(false);
+        _guardService.WaitForReadyAsync(Arg.Any<IJSRuntime>(), "monaco", Arg.Any<TimeSpan?>())
+            .Returns(Task.FromResult(true));
+
+        var timeout = TimeSpan.FromSeconds(30);
+        RenderComponent<JsGuard>(parameters => parameters
+            .Add(p => p.Name, "monaco")
+            .Add(p => p.Timeout, timeout)
+            .AddChildContent("<p>Editor loaded</p>"));
+
+        _guardService.Received(1).WaitForReadyAsync(Arg.Any<IJSRuntime>(), "monaco", timeout);
+    }
+
     /// <summary>
     /// Test component that throws during rendering.
     /// </summary>
