@@ -52,19 +52,4 @@ public static class InitializationRegistrationExtensions
         services.AddSingleton(factory);
         return services;
     }
-
-    /// <summary>
-    /// Runs async initialization after the service provider is built.
-    /// This executes all registered <see cref="IAsyncInitializationHook"/> instances.
-    /// </summary>
-    /// <param name="serviceProvider">The service provider</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    public static async Task<IServiceProvider> UseAsyncInitialization(
-        this IServiceProvider serviceProvider,
-        CancellationToken cancellationToken = default)
-    {
-        var host = serviceProvider.GetRequiredService<IAsyncInitializationHost>();
-        await host.InitializeAsync(cancellationToken);
-        return serviceProvider;
-    }
 }
