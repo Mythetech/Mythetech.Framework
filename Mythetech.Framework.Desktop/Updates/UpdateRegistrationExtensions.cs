@@ -20,6 +20,20 @@ public static class UpdateRegistrationExtensions
     }
 
     /// <summary>
+    /// Adds Velopack update management services with platform-aware configuration.
+    /// The callback receives pre-computed platform identifier (e.g., "windows", "macos", "linux")
+    /// and channel identifier (e.g., "win", "osx", "linux").
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Configuration callback receiving (options, platform, channel).</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddUpdateService(this IServiceCollection services, Action<UpdateServiceOptions, string, string> configure)
+    {
+        var (platform, channel) = GetPlatformInfo();
+        return services.AddUpdateService(options => configure(options, platform, channel));
+    }
+
+    /// <summary>
     /// Adds Velopack update management services with full configuration.
     /// </summary>
     /// <param name="services">The service collection.</param>
@@ -43,5 +57,14 @@ public static class UpdateRegistrationExtensions
         // Currently a no-op, but provides a consistent activation pattern
         // and a place to add future initialization logic
         return serviceProvider;
+    }
+
+    private static (string Platform, string Channel) GetPlatformInfo()
+    {
+        if (OperatingSystem.IsWindows())
+            return ("windows", "win");
+        if (OperatingSystem.IsMacOS())
+            return ("macos", "osx");
+        return ("linux", "linux");
     }
 }
