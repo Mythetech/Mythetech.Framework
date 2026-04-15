@@ -1,0 +1,46 @@
+@inherits MudComponentBase
+@using MudBlazor;
+@using Color = MudBlazor.Color;
+
+@if (!string.IsNullOrWhiteSpace(Tooltip))
+{
+    <MudTooltip Text="@Tooltip" Color="Color.Primary" Placement="@TooltipPlacement" >
+        <MudIconButton Class="@Class" Color="@Color" OnClick="@OnClick" ChildContent="@ChildContent" Style="@Style"
+                       Icon="@Icon" Size="@Size" Disabled="@Disabled" Ripple="false" Variant="@Variant" />
+    </MudTooltip>
+}
+else
+{
+    <MudIconButton Class="@Class" Color="@Color" OnClick="@OnClick" ChildContent="@ChildContent" Style="@Style" Icon="@Icon"
+                   Size="@Size" Ripple="false" Disabled="@Disabled" Variant="@Variant" />
+}
+
+
+@code {
+    [Parameter]
+    public Color Color { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; } = default;
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    [Parameter]
+    public Variant Variant { get; set; }
+
+    [Parameter]
+    public required string Icon { get; set; } = string.Empty;
+
+    [Parameter]
+    public Size Size { get; set; } = Size.Medium;
+
+    [Parameter]
+    public string Tooltip { get; set; } = "";
+
+    [Parameter]
+    public Placement TooltipPlacement { get; set; } = Placement.Top;
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+}

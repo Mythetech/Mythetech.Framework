@@ -1,0 +1,27 @@
+@using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Enums
+@attribute [Stories("Components/IconButton")]
+
+<Stories TComponent="IconButton">
+
+    <ArgType For="_ => _.Color" Control="ControlType.Color" />
+    <ArgType For="_ => _.Class" Control="ControlType.Default" />
+
+    <ProductStory TComponent="IconButton">
+        <Arguments>
+            <Arg For="_ => _.Color" Value="Color.Primary" />
+            <Arg For="_ => _.Variant" Value="Variant.Filled" />
+            <Arg For="_ => _.Icon" Value="@(MudBlazor.Icons.Material.Rounded.ContentCopy)" />
+            <Arg For="_ => _.Tooltip" Value="@("Copy")" />
+            <Arg For="_ => _.TooltipPlacement" Value="Placement.Top" />
+            <Arg For="_ => _.Size" Value="Size.Medium" />
+            <Arg For="_ => _.Disabled" Value="false" />
+            <Arg For="_ => _.Class" Value="@("")" />
+        </Arguments>
+
+        <Template>
+            <IconButton @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")">
+            </IconButton>
+        </Template>
+    </ProductStory>
+</Stories>

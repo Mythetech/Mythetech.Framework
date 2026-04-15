@@ -20,6 +20,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddMudServices(config =>
 {
     config.PopoverOptions.ThrowOnDuplicateProvider = false;
+    config.PopoverOptions.OverflowBehavior = OverflowBehavior.FlipNever;
 });
 
 builder.Services.AddMudMarkdownServices();
