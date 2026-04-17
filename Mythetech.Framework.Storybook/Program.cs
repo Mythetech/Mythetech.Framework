@@ -5,6 +5,7 @@ using MudBlazor;
 using MudBlazor.Services;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Components.CommandPalette;
 using Mythetech.Framework.Infrastructure.Guards;
 using Mythetech.Framework.Storybook.Stories;
 using Mythetech.Framework.WebAssembly;
@@ -34,6 +35,9 @@ builder.Services.AddMessageBus();
 builder.Services.AddPluginFramework();
 
 builder.Services.AddSingleton<IJsGuardService, AlwaysReadyJsGuardService>();
+
+builder.Services.AddCommandPalette();
+builder.Services.AddCommandProvider<SampleCommandProvider>();
 
 var host = builder.Build();
 

@@ -551,3 +551,13 @@
     background-color: var(--mud-palette-secondary);
     border-radius: 20%;
 }
+
+/* ============================================================================
+   Dialog Backdrop
+   ============================================================================ */
+
+.mythetech-dialog {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--mud-palette-primary);
+}

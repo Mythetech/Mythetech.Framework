@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Mythetech.Framework.Components.Kbd;
+using Mythetech.Framework.Desktop.Components;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Desktop.Hermes;
 using Mythetech.Framework.Desktop.Photino;
@@ -56,6 +58,7 @@ public static class DesktopRegistrationExtensions
         services.AddDesktopAssetLoader();
         services.AddShowFileService();
         services.AddShellExecutor();
+        services.AddSingleton<IPlatformDetector, DesktopPlatformDetector>();
 
         return services;
     }

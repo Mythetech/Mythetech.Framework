@@ -1,6 +1,8 @@
 using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.Extensions.DependencyInjection;
+using Mythetech.Framework.Components.Kbd;
 using Mythetech.Framework.Infrastructure;
+using Mythetech.Framework.WebAssembly.Components;
 using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
@@ -81,6 +83,7 @@ public static class WebAssemblyRegistrationExtensions
         services.AddFileSaveService();
         services.AddPluginStorage();
         services.AddShowFileService();
+        services.AddSingleton<IPlatformDetector, WebAssemblyPlatformDetector>();
 
         return services;
     }
