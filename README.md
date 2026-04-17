@@ -1,3 +1,10 @@
+[![PR Tests](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/pr.yml/badge.svg)](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/pr.yml)
+[![Deploy Component Storybook](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/storybook.yml/badge.svg)](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/storybook.yml)
+![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework)
+![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.Desktop)
+![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.WebAssembly)
+![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.AI.Generator)
+
 ```markdown
     ______                                             __  
    / ____/________ _____ ___  ___ _      ______  _____/ /__
