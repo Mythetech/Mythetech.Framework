@@ -1,0 +1,45 @@
+@using Mythetech.Framework.Components.CommandPalette
+@using Mythetech.Framework.Components.Kbd
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging.Abstractions
+@using MudBlazor
+@attribute [Stories("Components/CommandPalette")]
+
+<Stories TComponent="CommandPalettePanel">
+
+    <Story Name="Interactive Demo" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.h6">Command Palette Panel</MudText>
+                <MudText Typo="Typo.body2">
+                    The panel rendered directly (no dialog wrapper). Try typing to filter,
+                    use arrow keys to navigate, and press Enter to invoke a command.
+                </MudText>
+
+                <div style="max-width: 500px; border: 1px solid var(--mud-palette-divider); border-radius: 8px; overflow: hidden;">
+                    <CommandPalettePanel OnInvoked="HandleInvoked" OnCancel="HandleCancel" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(_lastAction))
+                {
+                    <MudAlert Severity="Severity.Info" Dense>@_lastAction</MudAlert>
+                }
+            </MudStack>
+        </Template>
+    </Story>
+
+</Stories>
+
+@code {
+    private string? _lastAction;
+
+    private void HandleInvoked(string commandId)
+    {
+        _lastAction = $"Invoked: {commandId}";
+    }
+
+    private void HandleCancel()
+    {
+        _lastAction = "Cancelled (Escape pressed)";
+    }
+}

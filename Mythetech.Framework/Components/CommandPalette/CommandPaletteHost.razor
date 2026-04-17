@@ -1,0 +1,55 @@
+@namespace Mythetech.Framework.Components.CommandPalette
+@using MudBlazor
+@using MudBlazor.Utilities
+@inject CommandPaletteService Palette
+@inject IDialogService DialogService
+
+@*
+    Headless mount point for the command palette and global hotkeys.
+    Drop a single <CommandPaletteHost /> into MainLayout and the global
+    Ctrl+K / Cmd+K shortcut becomes available app-wide.
+
+    Two MudHotkey instances per shortcut are required because MudHotkey
+    treats KeyModifiers as logical AND, not OR — there's no single binding
+    that means "Ctrl OR Meta".
+*@
+
+<MudHotkey Key="JsKey.KeyK"
+           KeyModifiers="@_ctrlOnly"
+           OnHotkeyPressed="OpenPaletteAsync" />
+<MudHotkey Key="JsKey.KeyK"
+           KeyModifiers="@_metaOnly"
+           OnHotkeyPressed="OpenPaletteAsync" />
+
+@code {
+    /// <summary>
+    /// CSS class applied to the dialog backdrop.
+    /// Defaults to "mythetech-dialog" which provides a backdrop blur effect.
+    /// Consuming apps can override with their own class (e.g., "iris-dialog").
+    /// </summary>
+    [Parameter] public string BackgroundClass { get; set; } = "mythetech-dialog";
+
+    private static readonly IEnumerable<JsKeyModifier> _ctrlOnly = new[] { JsKeyModifier.ControlLeft };
+    private static readonly IEnumerable<JsKeyModifier> _metaOnly = new[] { JsKeyModifier.MetaLeft };
+
+    private DialogOptions PaletteOptions => new()
+    {
+        NoHeader = true,
+        CloseOnEscapeKey = true,
+        BackdropClick = true,
+        Position = DialogPosition.TopCenter,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        BackgroundClass = BackgroundClass,
+    };
+
+    private async Task OpenPaletteAsync()
+    {
+        if (Palette.IsOpen)
+        {
+            return;
+        }
+
+        await DialogService.ShowAsync(typeof(CommandPaletteDialog), string.Empty, PaletteOptions);
+    }
+}

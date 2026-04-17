@@ -1,0 +1,98 @@
+@using Mythetech.Framework.Components.Kbd
+@using MudBlazor
+@attribute [Stories("Components/Kbd")]
+
+<Stories TComponent="Mythetech.Framework.Components.Kbd.Kbd">
+
+    <Story Name="Single Keys" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.h6">Single Key Rendering</MudText>
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    <Kbd Key="K" />
+                    <Kbd Key="Enter" />
+                    <Kbd Key="Esc" />
+                    <Kbd Key="Tab" />
+                    <Kbd Key="F5" />
+                </MudStack>
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Platform Comparison" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.h6">Default (Windows/Linux)</MudText>
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    <Kbd Key="Ctrl" Platform="KbdPlatform.Default" />
+                    <MudText Typo="Typo.body2">+</MudText>
+                    <Kbd Key="K" Platform="KbdPlatform.Default" />
+                    <MudText Typo="Typo.body2" Class="ml-4">|</MudText>
+                    <Kbd Key="Ctrl" Platform="KbdPlatform.Default" />
+                    <MudText Typo="Typo.body2">+</MudText>
+                    <Kbd Key="Shift" Platform="KbdPlatform.Default" />
+                    <MudText Typo="Typo.body2">+</MudText>
+                    <Kbd Key="P" Platform="KbdPlatform.Default" />
+                </MudStack>
+
+                <MudText Typo="Typo.h6">macOS</MudText>
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    <Kbd Key="Cmd" Platform="KbdPlatform.MacOS" />
+                    <MudText Typo="Typo.body2">+</MudText>
+                    <Kbd Key="K" Platform="KbdPlatform.MacOS" />
+                    <MudText Typo="Typo.body2" Class="ml-4">|</MudText>
+                    <Kbd Key="Cmd" Platform="KbdPlatform.MacOS" />
+                    <MudText Typo="Typo.body2">+</MudText>
+                    <Kbd Key="Shift" Platform="KbdPlatform.MacOS" />
+                    <MudText Typo="Typo.body2">+</MudText>
+                    <Kbd Key="P" Platform="KbdPlatform.MacOS" />
+                </MudStack>
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="All macOS Symbols" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.h6">macOS Symbol Mapping</MudText>
+                <MudSimpleTable Dense Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Default</th>
+                            <th>macOS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var key in new[] { "Ctrl", "Alt", "Shift", "Cmd", "Enter", "Esc", "Backspace", "Tab" })
+                        {
+                            <tr>
+                                <td>@key</td>
+                                <td><Kbd Key="@key" Platform="KbdPlatform.Default" /></td>
+                                <td><Kbd Key="@key" Platform="KbdPlatform.MacOS" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Shortcut Hints Footer" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.h6">KeyboardShortcutHints Component</MudText>
+                <MudText Typo="Typo.body2">Used as the footer in the Command Palette and anywhere keyboard hints are needed.</MudText>
+
+                <div style="max-width: 400px;">
+                    <KeyboardShortcutHints>
+                        <ShortcutHint><Kbd Key="↑" PlatformAware="false" /><Kbd Key="↓" PlatformAware="false" /> navigate</ShortcutHint>
+                        <ShortcutHint><Kbd Key="↵" PlatformAware="false" /> select</ShortcutHint>
+                        <ShortcutHint><Kbd Key="esc" PlatformAware="false" /> close</ShortcutHint>
+                    </KeyboardShortcutHints>
+                </div>
+            </MudStack>
+        </Template>
+    </Story>
+
+</Stories>

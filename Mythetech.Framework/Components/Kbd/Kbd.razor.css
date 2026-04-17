@@ -1,0 +1,11 @@
+kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    margin: 0 2px;
+    border-radius: 3px;
+    border: 1px solid var(--mud-palette-divider);
+    background-color: var(--mud-palette-action-default-hover);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}

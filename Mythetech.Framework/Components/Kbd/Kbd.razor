@@ -1,0 +1,61 @@
+@namespace Mythetech.Framework.Components.Kbd
+@inject IPlatformDetector PlatformDetector
+
+<kbd>@MappedKey</kbd>
+
+@code {
+    /// <summary>
+    /// The key text to display (e.g., "Ctrl", "K", "↵").
+    /// Platform-aware mapping is applied when <see cref="PlatformAware"/> is true.
+    /// </summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Override platform detection. <see cref="KbdPlatform.Auto"/> uses
+    /// <see cref="IPlatformDetector"/>; <see cref="KbdPlatform.MacOS"/> and
+    /// <see cref="KbdPlatform.Default"/> bypass detection.
+    /// </summary>
+    [Parameter] public KbdPlatform Platform { get; set; } = KbdPlatform.Auto;
+
+    /// <summary>
+    /// When false, renders the key text as-is with no platform mapping.
+    /// </summary>
+    [Parameter] public bool PlatformAware { get; set; } = true;
+
+    private string MappedKey => PlatformAware ? MapKey(Key) : Key;
+
+    private bool UseMacOS => Platform switch
+    {
+        KbdPlatform.MacOS => true,
+        KbdPlatform.Default => false,
+        _ => PlatformDetector.IsMacOS
+    };
+
+    private string MapKey(string key) => UseMacOS
+        ? key switch
+        {
+            "Ctrl" => "\u2303",
+            "Control" => "\u2303",
+            "Alt" => "\u2325",
+            "Option" => "\u2325",
+            "Shift" => "\u21E7",
+            "Cmd" => "\u2318",
+            "Meta" => "\u2318",
+            "Command" => "\u2318",
+            "Enter" => "\u23CE",
+            "Return" => "\u23CE",
+            "Esc" => "\u238B",
+            "Escape" => "\u238B",
+            "Backspace" => "\u232B",
+            "Delete" => "\u232B",
+            "Tab" => "\u21E5",
+            _ => key
+        }
+        : key switch
+        {
+            "Cmd" => "Ctrl",
+            "Meta" => "Ctrl",
+            "Command" => "Ctrl",
+            _ => key
+        };
+}

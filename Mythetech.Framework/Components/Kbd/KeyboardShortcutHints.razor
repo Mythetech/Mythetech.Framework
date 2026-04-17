@@ -1,0 +1,15 @@
+@namespace Mythetech.Framework.Components.Kbd
+
+<div class="mf-shortcut-hints">
+    <CascadingValue Value="this" IsFixed="true">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly List<ShortcutHint> _hints = new();
+
+    internal void AddHint(ShortcutHint hint) => _hints.Add(hint);
+}

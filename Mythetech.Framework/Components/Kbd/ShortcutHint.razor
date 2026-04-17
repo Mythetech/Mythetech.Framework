@@ -1,0 +1,14 @@
+@namespace Mythetech.Framework.Components.Kbd
+
+<span>@ChildContent</span>
+
+@code {
+    [CascadingParameter] private KeyboardShortcutHints? Parent { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Parent?.AddHint(this);
+    }
+}
