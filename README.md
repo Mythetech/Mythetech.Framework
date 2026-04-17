@@ -1,9 +1,10 @@
 [![PR Tests](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/pr.yml/badge.svg)](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/pr.yml)
 [![Deploy Component Storybook](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/storybook.yml/badge.svg)](https://github.com/Mythetech/Mythetech.Framework/actions/workflows/storybook.yml)
-![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework)
-![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.Desktop)
-![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.WebAssembly)
-![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.AI.Generator)
+
+[![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework?label=Core%20Framework&color=%232d2d2d)](https://www.nuget.org/packages/Mythetech.Framework/)
+[![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.Desktop?label=Desktop&color=%232d2d2d)](https://www.nuget.org/packages/Mythetech.Framework.Desktop/)
+[![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.WebAssembly?label=WebAssembly&color=%232d2d2d)](https://www.nuget.org/packages/Mythetech.Framework.WebAssembly/)
+[![NuGet Version](https://img.shields.io/nuget/v/Mythetech.Framework.AI.Generator?label=AI%20Generator&color=%232d2d2d)](https://www.nuget.org/packages/Mythetech.Framework.AI.Generator/)
 
 ```markdown
     ______                                             __  
