@@ -521,8 +521,8 @@
     min-width: var(--mud-drawer-width-mini-left);
     max-width: var(--mud-drawer-width-mini-left);
     overflow: hidden;
-    background: var(--mud-palette-drawer-background);
-    border-right: solid 1px var(--mud-palette-divider);
+    background: linear-gradient(360deg, var(--mud-palette-secondary) 1%, var(--mud-palette-surface) 10%);
+    border-right: solid 1px var(--mud-palette-primary);
     padding: 0.5rem 0;
 }
 
@@ -548,8 +548,9 @@
 
 /* Active context panel item indicator */
 .context-item-active {
-    background-color: var(--mud-palette-secondary);
-    border-radius: 20%;
+    border-radius: 0%;
+    border-right: solid 2px var(--mud-palette-primary);
+    background-color: color-mix(in srgb, var(--mud-palette-primary) 20%, transparent 80%);
 }
 
 /* ============================================================================
