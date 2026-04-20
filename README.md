@@ -34,9 +34,14 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 ## Features
 
 - Custom components to either deliver a unique experience or style
-- Built on top of MudBlazor for consistent styling, behavior, and themeing system
+- Built on top of MudBlazor for consistent styling, behavior, and theming system
 - CSS utility classes that work with existing MudBlazor variables
-- .NET 9.0 support
+- In-memory message bus for decoupled communication
+- Settings framework with auto-discovery and persistence
+- Extensible plugin system with storage and state management
+- AI generator integration for LLM-powered features
+- Desktop support via [Hermes](https://github.com/Mythetech/Hermes) (recommended) or Photino
+- .NET 10.0 support
 - Comprehensive test coverage
 
 ## Project Structure
@@ -44,25 +49,26 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 - `Mythetech.Framework/` - Main component library
   - `Components/` - Custom Blazor components
   - `Infrastructure/` - Supporting infrastructure code and abstractions
-- `Mythetech.Framework.Desktop/` - Desktop application specific implementations
+- `Mythetech.Framework.Desktop/` - Desktop application specific implementations (Hermes and Photino hosts)
 - `Mythetech.Framework.WebAssembly/` - WebAssembly specific implementations
+- `Mythetech.Framework.AI.Generator/` - AI generator integration for LLM-powered features
 - `Mythetech.Framework.Storybook/` - Component documentation and showcase
 - `Mythetech.Framework.Test/` - Unit tests for components
+- `samples/` - Sample applications demonstrating framework usage
 
 ## Requirements
 
 - .NET 10.0 SDK
-- Editor of choice
-- Rider (recommended)
-- Visual Studio 2022 or later (recommended)
-- VS Code with C# Dev Kit
+- Editor of choice (Rider, Visual Studio 2022+, or VS Code with C# Dev Kit)
 
 ## Getting Started
 
 1. Clone the repository
-2. Open the solution in Visual Studio
-3. Restore NuGet packages
-4. Build the solution
+2. Restore NuGet packages and build:
+
+```bash
+dotnet build
+```
 
 ## Usage
 
@@ -89,26 +95,31 @@ app.Services.UseMessageBus(typeof(Program).Assembly, typeof(IConsumer<>).Assembl
 
 The library has additional packages to provide concrete implementations for the underlying hosting architecture so generic components and concepts can work across discrete runtimes.
 
-With desktop:
+With desktop (Hermes, recommended):
 
 ```csharp
-builder.Services.AddPhotinoServices();
+builder.Services.AddDesktopServices(DesktopHost.Hermes);
 
 ...
 
- BlazorPhotinoApp app = appBuilder.Build();
- app.RegisterProvider(app.Services);
+HermesBlazorApp app = appBuilder.Build();
+app.RegisterHermesProvider();
+```
+
+With desktop (Photino):
+
+```csharp
+builder.Services.AddDesktopServices(DesktopHost.Photino);
+
+...
+
+PhotinoBlazorApp app = appBuilder.Build();
+app.RegisterProvider(app.Services);
 ```
 
 ## Development
 
 ### Running Tests
-
-The project includes a comprehensive test suite. To run the tests:
-
-1. Open the solution in Visual Studio
-2. Use the Test Explorer to run individual tests
-3. Or run all tests using the command line:
 
 ```bash
 dotnet test
@@ -116,13 +127,10 @@ dotnet test
 
 ### Storybook
 
-The project includes a Storybook implementation for component documentation and testing. To run Storybook:
-
-1. Navigate to the `Mythetech.Framework.Storybook` directory
-2. Run the project:
+The project includes a Storybook implementation for component documentation and testing. 
 
 ```bash
-dotnet run
+dotnet run --project Mythetech.Framework.Storybook
 ```
 
 ## Contributing
@@ -136,7 +144,7 @@ dotnet run
 
 1. MudBlazor
 2. CodeBeams MudExtensions
-3. Photino Blazor
+3. [Hermes](https://github.com/Mythetech/Hermes)
 
 ## License
 
