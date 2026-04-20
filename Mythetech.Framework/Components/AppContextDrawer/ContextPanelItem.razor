@@ -1,5 +1,8 @@
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Routing
 @using Mythetech.Framework.Components.Buttons
+@inject NavigationManager Nav
+@implements IDisposable
 
 <div class="context-panel-item-wrapper">
     @if (IsActive)
@@ -79,13 +82,41 @@
     public Action<ContextPanelItem>? RegisterPanelItem { get; set; }
 
     /// <summary>
-    /// Whether this panel is currently active.
+    /// Optional route prefix for route-based highlighting.
+    /// When set, the icon highlights if the current URI starts with this prefix,
+    /// even when the panel is closed.
     /// </summary>
-    public bool IsActive => !string.IsNullOrEmpty(ActivePanelId) && ActivePanelId == Id;
+    [Parameter]
+    public string? RoutePrefix { get; set; }
+
+    /// <summary>
+    /// Whether this panel is currently active (panel open or route match).
+    /// </summary>
+    public bool IsActive => IsPanelActive || IsRouteActive;
+
+    private bool IsPanelActive => !string.IsNullOrEmpty(ActivePanelId) && ActivePanelId == Id;
+
+    private bool IsRouteActive => !string.IsNullOrEmpty(RoutePrefix)
+        && Nav.ToBaseRelativePath(Nav.Uri).StartsWith(RoutePrefix.TrimStart('/'), StringComparison.OrdinalIgnoreCase);
 
     protected override void OnInitialized()
     {
         RegisterPanelItem?.Invoke(this);
+
+        if (!string.IsNullOrEmpty(RoutePrefix))
+        {
+            Nav.LocationChanged += OnLocationChanged;
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
     }
 
     private async Task HandleClick()
