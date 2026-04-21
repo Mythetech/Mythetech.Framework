@@ -1,13 +1,14 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Routing
 @using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Utilities
 @inject NavigationManager Nav
 @implements IDisposable
 
 <div class="context-panel-item-wrapper">
     @if (IsActive)
     {
-        <MudIconButton Class="context-item-active"
+        <MudIconButton Class="@ActiveClass"
                        Color="Color.Primary"
                        Icon="@Icon"
                        OnClick="HandleClick" />
@@ -90,9 +91,26 @@
     public string? RoutePrefix { get; set; }
 
     /// <summary>
+    /// CSS class applied when the item is active due to route matching.
+    /// </summary>
+    [Parameter]
+    public string ActiveRouteClass { get; set; } = "context-item-active";
+
+    /// <summary>
+    /// CSS class applied when the item is active due to the panel being open.
+    /// </summary>
+    [Parameter]
+    public string ActivePanelClass { get; set; } = "context-item-active";
+
+    /// <summary>
     /// Whether this panel is currently active (panel open or route match).
     /// </summary>
     public bool IsActive => IsPanelActive || IsRouteActive;
+
+    private string ActiveClass => Css.MergeIf(
+        (ActiveRouteClass, IsRouteActive),
+        (ActivePanelClass, IsPanelActive)
+    );
 
     private bool IsPanelActive => !string.IsNullOrEmpty(ActivePanelId) && ActivePanelId == Id;
 
