@@ -546,6 +546,15 @@
     background: var(--mud-palette-drawer-background);
 }
 
+.context-panel-item-wrapper > * > button {
+    border-radius: 0%;
+}
+
+.context-panel-item-wrapper:hover {
+    background-color: color-mix(in srgb, var(--mud-palette-primary) 10%, transparent 90%);
+}
+
+
 /* Active context panel item indicator */
 .context-item-active {
     border-radius: 0%;
