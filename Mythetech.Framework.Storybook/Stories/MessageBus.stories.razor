@@ -16,8 +16,8 @@
 *@
         <Template>
             <MudStack Class="mud-height-full" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height:50dvh;">
-                <Button @attributes="context.Args" Text="Click Me" OnClick="@OpenDialog">
-                </Button>
+                <MtButton @attributes="context.Args" Text="Click Me" OnClick="@OpenDialog">
+                </MtButton>
                 
                 <MudMarkdown Value="@_recordMarkdown" Styling="MythetechMarkdownStyling.Default" />
             </MudStack>

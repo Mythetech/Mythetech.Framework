@@ -49,7 +49,7 @@
                 }
                 else if (_downloadFailed)
                 {
-                    <Button Size="Size.Small"
+                    <MtButton Size="Size.Small"
                             Color="Color.Error"
                             Variant="Variant.Outlined"
                             OnClick="DownloadUpdate"
@@ -57,14 +57,14 @@
                 }
                 else if (UpdateService.AvailableUpdate.IsDownloaded)
                 {
-                    <Button Size="Size.Small"
+                    <MtButton Size="Size.Small"
                             Color="Color.Primary"
                             OnClick="RestartAndUpdate"
                             Text="Restart to Update" />
                 }
                 else
                 {
-                    <Button Size="Size.Small"
+                    <MtButton Size="Size.Small"
                             Variant="Variant.Outlined"
                             OnClick="DownloadUpdate"
                             Text="Download" />
@@ -73,7 +73,7 @@
         </MudAlert>
     }
 
-    <Button Text="Check for Updates"
+    <MtButton Text="Check for Updates"
             StartIcon="@Icons.Material.Filled.Refresh"
             Variant="Variant.Outlined"
             Disabled="@(_isChecking || !UpdateService.IsInstalled)"

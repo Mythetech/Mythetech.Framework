@@ -3,7 +3,7 @@
 @using MudBlazor
 @attribute [Stories("Components/Badge")]
 
-<Stories TComponent="Badge">
+<Stories TComponent="MtBadge">
 
     <ArgType For="_ => _.Color" Control="ControlType.Color" />
     <ArgType For="_ => _.Variant" Control="ControlType.Select" />
@@ -11,7 +11,7 @@
     <ArgType For="_ => _.Roundedness" Control="ControlType.Select" />
     <ArgType For="_ => _.Class" Control="ControlType.Default" />
 
-    <ProductStory TComponent="Badge">
+    <ProductStory TComponent="MtBadge">
         <Arguments>
             <Arg For="_ => _.Color" Value="Color.Primary" />
             <Arg For="_ => _.Variant" Value="Variant.Filled" />
@@ -25,8 +25,8 @@
         </Arguments>
 
         <Template>
-            <Badge @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")">
-            </Badge>
+            <MtBadge @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")">
+            </MtBadge>
         </Template>
     </ProductStory>
 </Stories>

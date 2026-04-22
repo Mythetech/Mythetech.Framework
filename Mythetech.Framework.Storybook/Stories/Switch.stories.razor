@@ -2,14 +2,14 @@
 @using MudBlazor
 @attribute [Stories("Components/Switch")]
 
-<Stories TComponent="Switch<bool>">
+<Stories TComponent="MtSwitch<bool>">
 
     <ArgType For="_ => _.Color" Control="ControlType.Color" />
     <ArgType For="_ => _.Label" Control="ControlType.Default" />
     <ArgType For="_ => _.ThumbIcon" Control="ControlType.Default" />
     <ArgType For="_ => _.ThumbOffIcon" Control="ControlType.Default" />
 
-    <ProductStory Name="Default" TComponent="Switch<bool>">
+    <ProductStory Name="Default" TComponent="MtSwitch<bool>">
         <Arguments>
             <Arg For="_ => _.Value" Value="true" />
             <Arg For="_ => _.Color" Value="Color.Primary" />
@@ -19,11 +19,11 @@
         </Arguments>
 
         <Template>
-            <Switch T="bool" @attributes="context.Args" />
+            <MtSwitch T="bool" @attributes="context.Args" />
         </Template>
     </ProductStory>
 
-    <ProductStory Name="With Icons" TComponent="Switch<bool>">
+    <ProductStory Name="With Icons" TComponent="MtSwitch<bool>">
         <Arguments>
             <Arg For="_ => _.Value" Value="true" />
             <Arg For="_ => _.Color" Value="Color.Success" />
@@ -34,11 +34,11 @@
         </Arguments>
 
         <Template>
-            <Switch T="bool" @attributes="context.Args" />
+            <MtSwitch T="bool" @attributes="context.Args" />
         </Template>
     </ProductStory>
 
-    <ProductStory Name="Disabled" TComponent="Switch<bool>">
+    <ProductStory Name="Disabled" TComponent="MtSwitch<bool>">
         <Arguments>
             <Arg For="_ => _.Value" Value="false" />
             <Arg For="_ => _.Color" Value="Color.Primary" />
@@ -47,23 +47,23 @@
         </Arguments>
 
         <Template>
-            <Switch T="bool" @attributes="context.Args" />
+            <MtSwitch T="bool" @attributes="context.Args" />
         </Template>
     </ProductStory>
 
-    <ProductStory Name="Color Variants" TComponent="Switch<bool>">
+    <ProductStory Name="Color Variants" TComponent="MtSwitch<bool>">
         <Arguments>
             <Arg For="_ => _.Value" Value="true" />
         </Arguments>
 
         <Template>
             <div style="display: flex; flex-direction: column; gap: 16px;">
-                <Switch T="bool" Value="true" Color="Color.Primary" Label="Primary" />
-                <Switch T="bool" Value="true" Color="Color.Secondary" Label="Secondary" />
-                <Switch T="bool" Value="true" Color="Color.Success" Label="Success" />
-                <Switch T="bool" Value="true" Color="Color.Warning" Label="Warning" />
-                <Switch T="bool" Value="true" Color="Color.Error" Label="Error" />
-                <Switch T="bool" Value="true" Color="Color.Info" Label="Info" />
+                <MtSwitch T="bool" Value="true" Color="Color.Primary" Label="Primary" />
+                <MtSwitch T="bool" Value="true" Color="Color.Secondary" Label="Secondary" />
+                <MtSwitch T="bool" Value="true" Color="Color.Success" Label="Success" />
+                <MtSwitch T="bool" Value="true" Color="Color.Warning" Label="Warning" />
+                <MtSwitch T="bool" Value="true" Color="Color.Error" Label="Error" />
+                <MtSwitch T="bool" Value="true" Color="Color.Info" Label="Info" />
             </div>
         </Template>
     </ProductStory>

@@ -62,12 +62,12 @@
                 
                 <MudStack Spacing="2">
                     <MudText Typo="Typo.body2" Color="Color.Secondary">Status</MudText>
-                    <Badge Size="Size.Small" 
+                    <MtBadge Size="Size.Small"
                            Color="@(Plugin.IsEnabled ? Color.Success : Color.Error)"
                            Style="width: 10%;"
                              Variant="Variant.Filled">
                         @(Plugin.IsEnabled ? "Enabled" : "Disabled")
-                    </Badge>
+                    </MtBadge>
                 </MudStack>
                 
                 <MudStack Spacing="2">
@@ -102,7 +102,7 @@
         }
     </DialogContent>
     <DialogActions>
-        <Button Text="Close" OnClick="Close" Variant="Variant.Text" />
+        <MtButton Text="Close" OnClick="Close" Variant="Variant.Text" />
     </DialogActions>
 </MudDialog>
 

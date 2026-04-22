@@ -82,7 +82,7 @@
                                     </MudText>
                                 }
                             </MudStack>
-                            <Switch T="bool"
+                            <MtSwitch T="bool"
                                        Value="@McpState.IsToolEnabled(tool.Name)"
                                        ValueChanged="@(async v => await McpState.SetToolEnabledAsync(tool.Name, v))"
                                        Color="Color.Primary"
@@ -94,7 +94,7 @@
         }
     </DialogContent>
     <DialogActions>
-        <Button Text="Close" OnClick="Close" Variant="Variant.Text" />
+        <MtButton Text="Close" OnClick="Close" Variant="Variant.Text" />
     </DialogActions>
 </MudDialog>
 

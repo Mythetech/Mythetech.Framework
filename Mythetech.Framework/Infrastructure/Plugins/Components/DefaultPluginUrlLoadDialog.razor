@@ -44,8 +44,8 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <Button Text="Cancel" OnClick="Cancel" Disabled="_isLoading" Variant="Variant.Text" />
-        <Button Color="Color.Primary"
+        <MtButton Text="Cancel" OnClick="Cancel" Disabled="_isLoading" Variant="Variant.Text" />
+        <MtButton Color="Color.Primary"
                 Variant="Variant.Filled"
                 OnClick="DownloadAndLoadPlugin"
                 Disabled="@(!IsValid || _isLoading)">
@@ -56,7 +56,7 @@
                 }
                 Import
             </ChildContent>
-        </Button>
+        </MtButton>
     </DialogActions>
 </MudDialog>
 

@@ -2,12 +2,12 @@
 @using Mythetech.Framework.Enums
 @attribute [Stories("Components/IconButton")]
 
-<Stories TComponent="IconButton">
+<Stories TComponent="MtIconButton">
 
     <ArgType For="_ => _.Color" Control="ControlType.Color" />
     <ArgType For="_ => _.Class" Control="ControlType.Default" />
 
-    <ProductStory TComponent="IconButton">
+    <ProductStory TComponent="MtIconButton">
         <Arguments>
             <Arg For="_ => _.Color" Value="Color.Primary" />
             <Arg For="_ => _.Variant" Value="Variant.Filled" />
@@ -20,8 +20,8 @@
         </Arguments>
 
         <Template>
-            <IconButton @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")">
-            </IconButton>
+            <MtIconButton @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")">
+            </MtIconButton>
         </Template>
     </ProductStory>
 </Stories>

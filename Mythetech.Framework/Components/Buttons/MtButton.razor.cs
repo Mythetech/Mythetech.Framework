@@ -8,7 +8,7 @@ namespace Mythetech.Framework.Components.Buttons;
 /// <summary>
 /// Custom Button component wrapping MudButton with framework defaults.
 /// </summary>
-public partial class Button : MudComponentBase
+public partial class MtButton : MudComponentBase
 {
     /// <summary>
     /// Text to display in the button. If ChildContent is provided, it takes precedence.

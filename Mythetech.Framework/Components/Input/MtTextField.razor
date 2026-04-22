@@ -1,0 +1,75 @@
+@namespace Mythetech.Framework.Components.Input
+@typeparam T
+@using MudBlazor
+
+<div class="mt-text-field @_rootClass @Class" style="@Style">
+    @if (Adornment == MudBlazor.Adornment.Start && !string.IsNullOrEmpty(AdornmentIcon))
+    {
+        <button class="mt-tf-adornment mt-tf-adornment-start" tabindex="-1" @onclick="OnAdornmentClick" type="button" disabled="@(!OnAdornmentClick.HasDelegate)">
+            <MudIcon Icon="@AdornmentIcon" Size="Size.Small" Color="@AdornmentColor" />
+        </button>
+    }
+
+    @if (Lines > 1)
+    {
+        <textarea @ref="_elementRef"
+                  class="mt-tf-input"
+                  rows="@Lines"
+                  placeholder="@Placeholder"
+                  disabled="@Disabled"
+                  readonly="@ReadOnly"
+                  value="@_text"
+                  @oninput="OnInputAsync"
+                  @onchange="OnChangeAsync"
+                  @onkeydown="OnKeyDown"
+                  @onfocus="OnFocusInternal"
+                  @onblur="OnBlurInternal"
+                  aria-invalid="@Error.ToString().ToLowerInvariant()"
+                  @attributes="UserAttributes" />
+    }
+    else
+    {
+        <input @ref="_elementRef"
+               class="mt-tf-input"
+               type="@_inputTypeString"
+               placeholder="@Placeholder"
+               size="@_inputSize"
+               disabled="@Disabled"
+               readonly="@ReadOnly"
+               value="@_text"
+               @oninput="OnInputAsync"
+               @onchange="OnChangeAsync"
+               @onkeydown="OnKeyDown"
+               @onfocus="OnFocusInternal"
+               @onblur="OnBlurInternal"
+               aria-invalid="@Error.ToString().ToLowerInvariant()"
+               @attributes="UserAttributes" />
+    }
+
+    @if (Clearable && !string.IsNullOrEmpty(_text))
+    {
+        <button class="mt-tf-adornment mt-tf-clear" tabindex="-1" @onclick="HandleClearAsync" type="button">
+            <MudIcon Icon="@Icons.Material.Rounded.Close" Size="Size.Small" />
+        </button>
+    }
+
+    @if (Adornment == MudBlazor.Adornment.End && !string.IsNullOrEmpty(AdornmentIcon))
+    {
+        <button class="mt-tf-adornment mt-tf-adornment-end" tabindex="-1" @onclick="OnAdornmentClick" type="button" disabled="@(!OnAdornmentClick.HasDelegate)">
+            <MudIcon Icon="@AdornmentIcon" Size="Size.Small" Color="@AdornmentColor" />
+        </button>
+    }
+
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <fieldset class="mt-tf-fieldset" aria-hidden="true">
+            <legend class="mt-tf-legend"><span>@Label</span></legend>
+        </fieldset>
+        <label class="mt-tf-label">@Label</label>
+    }
+
+    @if (Error && !string.IsNullOrEmpty(ErrorText))
+    {
+        <div class="mt-tf-error">@ErrorText</div>
+    }
+</div>
