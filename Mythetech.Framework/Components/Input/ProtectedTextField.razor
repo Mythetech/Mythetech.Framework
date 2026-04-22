@@ -1,19 +1,34 @@
 @using MudBlazor
 
-<MudTextField
-    Margin="@(Dense ? Margin.Dense : Margin.Normal)"
-    T="string"
-    Class="mud-width-full"
-    Value="@Value"
-    ValueChanged="@ValueChanged"
-    Label="@Label"
-    Variant="Variant.Filled"
-    InputType="@_passwordInput"
-    Adornment="Adornment.End"
-    AdornmentIcon="@_passwordInputIcon"
-    IconSize="Size.Small"
-    OnAdornmentClick="ToggleMask"
-    AdornmentAriaLabel="Show Password" />
+@if (Dense)
+{
+    <MtTextField T="string"
+                 Value="@Value"
+                 ValueChanged="@ValueChanged"
+                 Label="@Label"
+                 InputType="@_passwordInput"
+                 Adornment="Adornment.End"
+                 AdornmentIcon="@_passwordInputIcon"
+                 AdornmentColor="Color.Default"
+                 OnAdornmentClick="ToggleMask"
+                 Class="mud-width-full" />
+}
+else
+{
+    <MudTextField
+        T="string"
+        Class="mud-width-full"
+        Value="@Value"
+        ValueChanged="@ValueChanged"
+        Label="@Label"
+        Variant="Variant.Filled"
+        InputType="@_passwordInput"
+        Adornment="Adornment.End"
+        AdornmentIcon="@_passwordInputIcon"
+        IconSize="Size.Small"
+        OnAdornmentClick="ToggleMask"
+        AdornmentAriaLabel="Show Password" />
+}
 
 @code {
     [Parameter]

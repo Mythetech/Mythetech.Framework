@@ -1,0 +1,93 @@
+@namespace Mythetech.Framework.Components.Input
+@typeparam T
+@using MudBlazor
+
+<div class="mt-sel-root" @attributes="UserAttributes">
+    <div @ref="_rootRef"
+         class="mt-select @_rootClass @Class"
+         style="@Style"
+         tabindex="0"
+         @onclick="ToggleDropdown"
+         @onkeydown="HandleKeyDownAsync"
+         @onkeydown:preventDefault="@_isOpen"
+         @onfocus="OnFocusInternal"
+         @onblur="OnBlurInternal">
+
+        @if (Adornment == MudBlazor.Adornment.Start && !string.IsNullOrEmpty(AdornmentIcon))
+        {
+            <span class="mt-sel-adornment mt-sel-adornment-start">
+                <MudIcon Icon="@AdornmentIcon" Size="Size.Small" Color="@AdornmentColor" />
+            </span>
+        }
+
+        <span class="mt-sel-display">
+            @if (_selectedItem != null)
+            {
+                @if (ToStringFunc != null)
+                {
+                    @ToStringFunc(_selectedItem.Value)
+                }
+                else if (_selectedItem.ChildContent != null)
+                {
+                    @_selectedItem.ChildContent
+                }
+                else
+                {
+                    @_selectedItem.DisplayText
+                }
+            }
+            else if (!string.IsNullOrEmpty(Placeholder))
+            {
+                <span class="mt-sel-placeholder">@Placeholder</span>
+            }
+        </span>
+
+        <span class="mt-sel-chevron">
+            <MudIcon Icon="@Icons.Material.Rounded.ArrowDropDown" Size="Size.Small" />
+        </span>
+
+        @if (!string.IsNullOrEmpty(Label))
+        {
+            <fieldset class="mt-sel-fieldset" aria-hidden="true">
+                <legend class="mt-sel-legend"><span>@Label</span></legend>
+            </fieldset>
+            <label class="mt-sel-label">@Label</label>
+        }
+    </div>
+
+    <CascadingValue Value="this" IsFixed="true">
+        <div style="display:none">
+            @ChildContent
+        </div>
+    </CascadingValue>
+
+    <MudPopover Open="@_isOpen"
+                AnchorOrigin="Origin.BottomLeft"
+                TransformOrigin="Origin.TopLeft"
+                RelativeWidth="DropdownWidth.Relative"
+                Class="@($"mt-sel-popover {PopoverClass}")">
+        <div class="mt-sel-list @_computedListClass">
+            @foreach (var item in _items)
+            {
+                var capturedItem = item;
+                <div class="mt-sel-item @(IsSelected(capturedItem) ? "mt-sel-item-selected" : "") @(capturedItem == _highlightedItem ? "mt-sel-item-highlighted" : "") @(capturedItem.Disabled ? "mt-sel-item-disabled" : "")"
+                     @onclick="() => SelectItemAsync(capturedItem)"
+                     @onclick:stopPropagation="true">
+                    @if (capturedItem.ChildContent != null)
+                    {
+                        @capturedItem.ChildContent
+                    }
+                    else
+                    {
+                        @capturedItem.DisplayText
+                    }
+                </div>
+            }
+        </div>
+    </MudPopover>
+</div>
+
+@if (_isOpen)
+{
+    <MudOverlay Visible="true" OnClick="CloseDropdown" LockScroll="false" />
+}

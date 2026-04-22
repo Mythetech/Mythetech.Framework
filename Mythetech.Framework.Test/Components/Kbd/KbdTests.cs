@@ -4,7 +4,7 @@ using MudBlazor.Services;
 using Mythetech.Framework.Components.Kbd;
 using NSubstitute;
 using Shouldly;
-using KbdComponent = Mythetech.Framework.Components.Kbd.Kbd;
+using KbdComponent = Mythetech.Framework.Components.Kbd.MtKbd;
 
 namespace Mythetech.Framework.Test.Components.Kbd;
 

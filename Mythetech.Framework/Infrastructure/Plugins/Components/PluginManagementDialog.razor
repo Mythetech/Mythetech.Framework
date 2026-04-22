@@ -46,11 +46,11 @@
                             <MudTd DataLabel="Developer">@context.Manifest.Developer</MudTd>
                             <MudTd DataLabel="Version">@context.Manifest.Version</MudTd>
                             <MudTd DataLabel="Status">
-                                <Badge Size="Size.Small" 
+                                <MtBadge Size="Size.Small"
                                        Color="@(context.IsEnabled ? Color.Success : Color.Error)"
                                        Variant="Variant.Filled">
                                     @(context.IsEnabled ? "Enabled" : "Disabled")
-                                </Badge>
+                                </MtBadge>
                             </MudTd>
                             <MudTd DataLabel="Actions">
                                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Variant="Variant.Text">
@@ -72,7 +72,7 @@
                 </Tab>
                 <Tab Name="@_availableTabName">
                     <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
-                        <Switch T="bool"
+                        <MtSwitch T="bool"
                                 Value="_showPreviewPlugins"
                                 Label="Show preview plugins"
                                 Size="Size.Small"
@@ -106,12 +106,12 @@
                                     }
                                     @if (isInstalled)
                                     {
-                                        <Badge Size="Size.Small" Color="Color.Info">Installed</Badge>
+                                        <MtBadge Size="Size.Small" Color="Color.Info">Installed</MtBadge>
                                     }
                                     else if (!supportsPlatform)
                                     {
                                         <MudTooltip Text="@GetPlatformNotSupportedMessage(context)">
-                                            <Button Size="Size.Small"
+                                            <MtButton Size="Size.Small"
                                                     Variant="Variant.Filled"
                                                     Color="Color.Default"
                                                     StartIcon="@Icons.Material.Filled.Block"
@@ -121,7 +121,7 @@
                                     }
                                     else if (isUpgrade)
                                     {
-                                        <Button Size="Size.Small"
+                                        <MtButton Size="Size.Small"
                                                 Variant="Variant.Filled"
                                                 Color="Color.Warning"
                                                 StartIcon="@Icons.Material.Filled.Upgrade"
@@ -131,7 +131,7 @@
                                     }
                                     else
                                     {
-                                        <Button Size="Size.Small"
+                                        <MtButton Size="Size.Small"
                                                 Variant="Variant.Filled"
                                                 Color="Color.Primary"
                                                 StartIcon="@Icons.Material.Filled.Download"
@@ -148,7 +148,7 @@
         }
     </DialogContent>
     <DialogActions>
-        <Button Text="Close" OnClick="Close" Variant="Variant.Text" />
+        <MtButton Text="Close" OnClick="Close" Variant="Variant.Text" />
     </DialogActions>
 </MudDialog>
 

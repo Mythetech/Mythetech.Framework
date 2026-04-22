@@ -11,7 +11,7 @@ namespace Mythetech.Framework.Components.Switch;
 /// Switch component with Material Design 3 specifications.
 /// </summary>
 /// <typeparam name="T">The value type (typically bool).</typeparam>
-public partial class Switch<T> : MudBooleanInput<T>
+public partial class MtSwitch<T> : MudBooleanInput<T>
 {
     /// <inheritdoc />
     protected override string? Classname =>

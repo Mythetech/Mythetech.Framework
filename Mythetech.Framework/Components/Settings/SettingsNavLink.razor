@@ -2,7 +2,7 @@
 @using Mythetech.Framework.Components.Buttons
 @namespace Mythetech.Framework.Components.Settings
 
-<Button Variant="Variant.Text"
+<MtButton Variant="Variant.Text"
         Color="@(IsActive ? Color.Primary : Color.Default)"
         Class="@($"mf-settings-nav-item justify-start {(IsActive ? "active" : "")}")"
         FullWidth="true"
@@ -18,7 +18,7 @@
             </MudChip>
         }
     </ChildContent>
-</Button>
+</MtButton>
 
 @code {
     /// <summary>
