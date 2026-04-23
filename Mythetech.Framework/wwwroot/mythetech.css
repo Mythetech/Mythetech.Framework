@@ -295,7 +295,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    background: var(--mud-palette-background-gray);
+    background: transparent;
 }
 
 .mf-settings-title {
