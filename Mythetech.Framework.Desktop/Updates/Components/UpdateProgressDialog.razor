@@ -58,16 +58,16 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <Button Text="Later" Variant="Variant.Text" OnClick="Close" />
+        <MtButton Text="Later" Variant="Variant.Text" OnClick="Close" />
         @if (_update?.IsDownloaded == true)
         {
-            <Button Text="Restart Now"
+            <MtButton Text="Restart Now"
                     Color="Color.Primary"
                     OnClick="RestartAndUpdate" />
         }
         else if (!_isDownloading && _update is not null)
         {
-            <Button Text="Download"
+            <MtButton Text="Download"
                     Color="Color.Primary"
                     OnClick="Download" />
         }

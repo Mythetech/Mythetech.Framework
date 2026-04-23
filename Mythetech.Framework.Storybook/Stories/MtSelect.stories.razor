@@ -1,0 +1,74 @@
+@using Mythetech.Framework.Components.Input
+@using MudBlazor
+@attribute [Stories("Components/Select")]
+
+<Stories TComponent="MtSelect<string>">
+
+    <ArgType For="_ => _.Label" Control="ControlType.Default" />
+    <ArgType For="_ => _.Placeholder" Control="ControlType.Default" />
+
+    <ProductStory Name="Default" TComponent="MtSelect<string>">
+        <Arguments>
+            <Arg For="_ => _.Label" Value="@("Fruit")" />
+            <Arg For="_ => _.Placeholder" Value="@("Select a fruit")" />
+        </Arguments>
+
+        <Template>
+            <MtSelect T="string" @attributes="context.Args">
+                <MtSelectItem T="string" Value="@("Apple")">Apple</MtSelectItem>
+                <MtSelectItem T="string" Value="@("Banana")">Banana</MtSelectItem>
+                <MtSelectItem T="string" Value="@("Cherry")">Cherry</MtSelectItem>
+                <MtSelectItem T="string" Value="@("Dragonfruit")">Dragonfruit</MtSelectItem>
+            </MtSelect>
+        </Template>
+    </ProductStory>
+
+    <ProductStory Name="With Adornment" TComponent="MtSelect<string>">
+        <Arguments>
+            <Arg For="_ => _.Label" Value="@("Language")" />
+            <Arg For="_ => _.Adornment" Value="Adornment.Start" />
+            <Arg For="_ => _.AdornmentIcon" Value="@Icons.Material.Filled.Language" />
+        </Arguments>
+
+        <Template>
+            <MtSelect T="string" @attributes="context.Args">
+                <MtSelectItem T="string" Value="@("en")">English</MtSelectItem>
+                <MtSelectItem T="string" Value="@("es")">Spanish</MtSelectItem>
+                <MtSelectItem T="string" Value="@("fr")">French</MtSelectItem>
+                <MtSelectItem T="string" Value="@("de")">German</MtSelectItem>
+            </MtSelect>
+        </Template>
+    </ProductStory>
+
+    <ProductStory Name="With Disabled Items" TComponent="MtSelect<string>">
+        <Arguments>
+            <Arg For="_ => _.Label" Value="@("Plan")" />
+            <Arg For="_ => _.Placeholder" Value="@("Choose a plan")" />
+        </Arguments>
+
+        <Template>
+            <MtSelect T="string" @attributes="context.Args">
+                <MtSelectItem T="string" Value="@("free")">Free</MtSelectItem>
+                <MtSelectItem T="string" Value="@("pro")">Pro</MtSelectItem>
+                <MtSelectItem T="string" Value="@("enterprise")" Disabled="true">Enterprise (Coming Soon)</MtSelectItem>
+            </MtSelect>
+        </Template>
+    </ProductStory>
+
+    <ProductStory Name="Disabled" TComponent="MtSelect<string>">
+        <Arguments>
+            <Arg For="_ => _.Label" Value="@("Region")" />
+            <Arg For="_ => _.Value" Value="@("us-east")" />
+            <Arg For="_ => _.Disabled" Value="true" />
+        </Arguments>
+
+        <Template>
+            <MtSelect T="string" @attributes="context.Args">
+                <MtSelectItem T="string" Value="@("us-east")">US East</MtSelectItem>
+                <MtSelectItem T="string" Value="@("us-west")">US West</MtSelectItem>
+                <MtSelectItem T="string" Value="@("eu-west")">EU West</MtSelectItem>
+            </MtSelect>
+        </Template>
+    </ProductStory>
+
+</Stories>

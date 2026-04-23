@@ -21,7 +21,7 @@ public class ButtonTests : TestContext
     public void Button_RendersWithText()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Click Me"));
 
         // Assert
@@ -33,7 +33,7 @@ public class ButtonTests : TestContext
     {
         // Arrange
         var clicked = false;
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Click Me")
             .Add(p => p.OnClick, EventCallback.Factory.Create<MouseEventArgs>(this, _ => clicked = true)));
 
@@ -48,7 +48,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesFilledVariant_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Default"));
 
         // Assert
@@ -60,7 +60,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesOutlinedVariant()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Outlined")
             .Add(p => p.Variant, Variant.Outlined));
 
@@ -73,7 +73,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesTextVariant()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Text")
             .Add(p => p.Variant, Variant.Text));
 
@@ -86,7 +86,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesPrimaryColor_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Primary"));
 
         // Assert
@@ -98,7 +98,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesCustomColor()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Success")
             .Add(p => p.Color, Color.Success));
 
@@ -111,7 +111,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesRoundednessClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Rounded")
             .Add(p => p.Roundedness, Roundedness.Pill));
 
@@ -124,7 +124,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesCustomClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Custom")
             .Add(p => p.Class, "my-custom-class"));
 
@@ -137,7 +137,7 @@ public class ButtonTests : TestContext
     public void Button_AppliesCustomStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<Button>(parameters => parameters
+        var cut = RenderComponent<MtButton>(parameters => parameters
             .Add(p => p.Text, "Styled")
             .Add(p => p.Style, "background-color: red;"));
 
