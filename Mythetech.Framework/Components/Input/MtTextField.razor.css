@@ -1,0 +1,130 @@
+.mt-text-field {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--mud-palette-background);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    padding: 0 12px;
+    min-height: 36px;
+    transition: border-color 0.15s ease;
+}
+
+.mt-text-field.mt-tf-focused {
+    border-color: var(--mud-palette-primary);
+}
+
+.mt-text-field.mt-tf-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.mt-text-field.mt-tf-error-state {
+    border-color: var(--mud-palette-error);
+}
+
+.mt-tf-input {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    font-family: inherit;
+    background: transparent;
+    color: var(--mud-palette-text-primary);
+    border: none;
+    outline: none;
+    resize: none;
+    line-height: 1.4;
+    min-width: 0;
+}
+
+.mt-tf-input::placeholder {
+    color: var(--mud-palette-text-disabled);
+}
+
+.mt-tf-adornment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--mud-palette-text-secondary);
+    cursor: default;
+    flex-shrink: 0;
+}
+
+.mt-tf-adornment:not(:disabled) {
+    cursor: pointer;
+}
+
+.mt-tf-clear {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+}
+
+.mt-tf-clear:hover {
+    opacity: 1;
+}
+
+/* Outlined label - always floated on the border */
+.mt-text-field.mt-tf-has-label {
+    margin-top: 8px;
+    border-color: transparent;
+}
+
+.mt-tf-fieldset {
+    position: absolute;
+    inset: -8px 0 0;
+    margin: 0;
+    padding: 0 8px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.mt-text-field.mt-tf-focused .mt-tf-fieldset {
+    border-color: var(--mud-palette-primary);
+}
+
+.mt-text-field.mt-tf-error-state .mt-tf-fieldset {
+    border-color: var(--mud-palette-error);
+}
+
+.mt-tf-legend {
+    visibility: hidden;
+    padding: 0 4px;
+    font-size: 0.75em;
+    white-space: nowrap;
+}
+
+.mt-tf-label {
+    position: absolute;
+    left: 12px;
+    top: -8px;
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    pointer-events: none;
+    padding: 0 4px;
+    background: transparent;
+}
+
+.mt-text-field.mt-tf-focused .mt-tf-label {
+    color: var(--mud-palette-primary);
+}
+
+.mt-text-field.mt-tf-error-state .mt-tf-label {
+    color: var(--mud-palette-error);
+}
+
+/* Error text below the field */
+.mt-tf-error {
+    position: absolute;
+    bottom: -18px;
+    left: 12px;
+    font-size: 11px;
+    color: var(--mud-palette-error);
+    white-space: nowrap;
+}

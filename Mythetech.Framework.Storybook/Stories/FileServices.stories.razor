@@ -21,17 +21,17 @@
                             <MudText Typo="Typo.h6" Class="mb-3">Open Files</MudText>
                             
                             <MudStack Spacing="2">
-                                <Button Text="Open Single File" 
+                                <MtButton Text="Open Single File" 
                                         Variant="Variant.Filled" 
                                         Color="Color.Primary"
                                         OnClick="@OpenSingleFile" />
                                         
-                                <Button Text="Open Multiple Files" 
+                                <MtButton Text="Open Multiple Files" 
                                         Variant="Variant.Outlined" 
                                         Color="Color.Primary"
                                         OnClick="@OpenMultipleFiles" />
                                         
-                                <Button Text="Open with Filter (Images)" 
+                                <MtButton Text="Open with Filter (Images)" 
                                         Variant="Variant.Outlined" 
                                         Color="Color.Secondary"
                                         OnClick="@OpenWithFilter" />
@@ -44,7 +44,7 @@
                             <MudText Typo="Typo.h6" Class="mb-3">Open Folder</MudText>
                             
                             <MudStack Spacing="2">
-                                <Button Text="Select Folder" 
+                                <MtButton Text="Select Folder" 
                                         Variant="Variant.Filled" 
                                         Color="Color.Tertiary"
                                         OnClick="@OpenFolder" />
@@ -66,7 +66,7 @@
                                               Variant="Variant.Outlined"
                                               Lines="3" />
                                               
-                                <Button Text="Save File" 
+                                <MtButton Text="Save File" 
                                         Variant="Variant.Filled" 
                                         Color="Color.Success"
                                         OnClick="@SaveFile" />
