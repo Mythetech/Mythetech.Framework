@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using Mythetech.Framework.Desktop;
+using Mythetech.Framework.Desktop.Storage.LiteDb;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Infrastructure.FeatureFlags;
 using Mythetech.Framework.Infrastructure.MessageBus;

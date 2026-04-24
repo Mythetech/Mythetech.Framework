@@ -9,9 +9,8 @@ using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Shell;
 using Mythetech.Framework.WebAssembly.Environment;
-using Mythetech.Framework.WebAssembly.Plugins;
-using Mythetech.Framework.WebAssembly.Settings;
 using Mythetech.Framework.WebAssembly.Shell;
+using Mythetech.Framework.WebAssembly.Storage.LocalStorage;
 
 namespace Mythetech.Framework.WebAssembly;
 
@@ -58,9 +57,7 @@ public static class WebAssemblyRegistrationExtensions
     /// </summary>
     public static IServiceCollection AddPluginStorage(this IServiceCollection services)
     {
-        services.AddSingleton<IPluginStorageFactory, LocalStoragePluginStorageFactory>();
-        
-        return services;
+        return services.AddLocalStoragePluginStorage();
     }
 
     /// <summary>
@@ -112,8 +109,7 @@ public static class WebAssemblyRegistrationExtensions
     /// </summary>
     public static IServiceCollection AddWebAssemblySettingsStorage(this IServiceCollection services)
     {
-        services.AddScoped<ISettingsStorage, LocalStorageSettingsStorage>();
-        return services;
+        return services.AddLocalStorageSettingsStorage();
     }
 
     /// <summary>
@@ -122,8 +118,7 @@ public static class WebAssemblyRegistrationExtensions
     /// </summary>
     public static IServiceCollection AddPluginStateProvider(this IServiceCollection services)
     {
-        services.AddScoped<IPluginStateProvider, LocalStoragePluginStateProvider>();
-        return services;
+        return services.AddLocalStoragePluginStateProvider();
     }
 
     /// <summary>
