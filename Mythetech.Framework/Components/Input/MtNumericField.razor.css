@@ -1,4 +1,4 @@
-.mt-text-field {
+.mt-numeric-field {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -11,20 +11,20 @@
     transition: border-color 0.15s ease;
 }
 
-.mt-text-field.mt-tf-focused {
+.mt-numeric-field.mt-nf-focused {
     border-color: var(--mud-palette-primary);
 }
 
-.mt-text-field.mt-tf-disabled {
+.mt-numeric-field.mt-nf-disabled {
     opacity: 0.6;
     pointer-events: none;
 }
 
-.mt-text-field.mt-tf-error-state {
+.mt-numeric-field.mt-nf-error-state {
     border-color: var(--mud-palette-error);
 }
 
-.mt-tf-input {
+.mt-nf-input {
     flex: 1;
     padding: 8px 0;
     font-size: 13px;
@@ -38,21 +38,11 @@
     min-width: 0;
 }
 
-.mt-tf-input::placeholder {
+.mt-nf-input::placeholder {
     color: var(--mud-palette-text-disabled);
 }
 
-.mt-tf-input[type="number"] {
-    -moz-appearance: textfield;
-}
-
-.mt-tf-input[type="number"]::-webkit-outer-spin-button,
-.mt-tf-input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.mt-tf-adornment {
+.mt-nf-adornment {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -64,27 +54,60 @@
     flex-shrink: 0;
 }
 
-.mt-tf-adornment:not(:disabled) {
+.mt-nf-adornment:not(:disabled) {
     cursor: pointer;
 }
 
-.mt-tf-clear {
+.mt-nf-clear {
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.15s ease;
 }
 
-.mt-tf-clear:hover {
+.mt-nf-clear:hover {
     opacity: 1;
 }
 
+.mt-nf-spinners {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin-right: -4px;
+}
+
+.mt-nf-spinner-up,
+.mt-nf-spinner-down {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+    height: 18px;
+    width: 24px;
+    cursor: pointer;
+    color: var(--mud-palette-text-secondary);
+    transition: color 0.15s ease;
+}
+
+.mt-nf-spinner-up:hover,
+.mt-nf-spinner-down:hover {
+    color: var(--mud-palette-text-primary);
+}
+
+.mt-nf-spinner-up:disabled,
+.mt-nf-spinner-down:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
 /* Outlined label - always floated on the border */
-.mt-text-field.mt-tf-has-label {
+.mt-numeric-field.mt-nf-has-label {
     margin-top: 8px;
     border-color: transparent;
 }
 
-.mt-tf-fieldset {
+.mt-nf-fieldset {
     position: absolute;
     inset: -8px 0 0;
     margin: 0;
@@ -95,22 +118,22 @@
     overflow: hidden;
 }
 
-.mt-text-field.mt-tf-focused .mt-tf-fieldset {
+.mt-numeric-field.mt-nf-focused .mt-nf-fieldset {
     border-color: var(--mud-palette-primary);
 }
 
-.mt-text-field.mt-tf-error-state .mt-tf-fieldset {
+.mt-numeric-field.mt-nf-error-state .mt-nf-fieldset {
     border-color: var(--mud-palette-error);
 }
 
-.mt-tf-legend {
+.mt-nf-legend {
     visibility: hidden;
     padding: 0 4px;
     font-size: 0.75em;
     white-space: nowrap;
 }
 
-.mt-tf-label {
+.mt-nf-label {
     position: absolute;
     left: 12px;
     top: -8px;
@@ -121,16 +144,16 @@
     background: transparent;
 }
 
-.mt-text-field.mt-tf-focused .mt-tf-label {
+.mt-numeric-field.mt-nf-focused .mt-nf-label {
     color: var(--mud-palette-primary);
 }
 
-.mt-text-field.mt-tf-error-state .mt-tf-label {
+.mt-numeric-field.mt-nf-error-state .mt-nf-label {
     color: var(--mud-palette-error);
 }
 
 /* Error text below the field */
-.mt-tf-error {
+.mt-nf-error {
     position: absolute;
     bottom: -18px;
     left: 12px;
