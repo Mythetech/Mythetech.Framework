@@ -3,23 +3,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure.Plugins;
 
-namespace Mythetech.Framework.WebAssembly.Plugins;
+namespace Mythetech.Framework.WebAssembly.Storage.LocalStorage;
 
-/// <summary>
-/// localStorage-based plugin state provider for WebAssembly applications.
-/// Persists which plugins are disabled across browser sessions.
-/// </summary>
 public class LocalStoragePluginStateProvider : IPluginStateProvider
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<LocalStoragePluginStateProvider>? _logger;
     private const string StorageKey = "plugin:disabled";
 
-    /// <summary>
-    /// Creates a new localStorage plugin state provider.
-    /// </summary>
-    /// <param name="jsRuntime">JS runtime for interop</param>
-    /// <param name="logger">Optional logger for error reporting</param>
     public LocalStoragePluginStateProvider(IJSRuntime jsRuntime, ILogger<LocalStoragePluginStateProvider>? logger = null)
     {
         _jsRuntime = jsRuntime;

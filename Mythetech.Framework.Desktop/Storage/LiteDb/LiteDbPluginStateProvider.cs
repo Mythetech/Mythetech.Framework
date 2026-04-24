@@ -3,12 +3,8 @@ using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Plugins;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-namespace Mythetech.Framework.Desktop;
+namespace Mythetech.Framework.Desktop.Storage.LiteDb;
 
-/// <summary>
-/// LiteDB-based plugin state provider for Desktop applications.
-/// Persists which plugins are disabled across application restarts.
-/// </summary>
 public class LiteDbPluginStateProvider : IPluginStateProvider, IDisposable
 {
     private readonly Lazy<ILiteDatabase?> _database;
@@ -16,12 +12,6 @@ public class LiteDbPluginStateProvider : IPluginStateProvider, IDisposable
     private const string CollectionName = "plugin_state";
     private const string DocumentId = "disabled_plugins";
 
-    /// <summary>
-    /// Creates a new LiteDB plugin state provider.
-    /// Uses lazy initialization to defer database creation until first use.
-    /// </summary>
-    /// <param name="databasePath">Path to the LiteDB file</param>
-    /// <param name="logger">Optional logger for error reporting</param>
     public LiteDbPluginStateProvider(string databasePath, ILogger<LiteDbPluginStateProvider>? logger = null)
     {
         _logger = logger;
@@ -39,11 +29,6 @@ public class LiteDbPluginStateProvider : IPluginStateProvider, IDisposable
         });
     }
 
-    /// <summary>
-    /// Creates a new LiteDB plugin state provider with an existing database.
-    /// </summary>
-    /// <param name="database">An existing LiteDB database instance</param>
-    /// <param name="logger">Optional logger for error reporting</param>
     public LiteDbPluginStateProvider(ILiteDatabase database, ILogger<LiteDbPluginStateProvider>? logger = null)
     {
         _logger = logger;
@@ -125,24 +110,12 @@ public class LiteDbPluginStateProvider : IPluginStateProvider, IDisposable
     }
 }
 
-/// <summary>
-/// Entry stored in LiteDB for plugin state persistence.
-/// </summary>
 internal class PluginStateEntry
 {
-    /// <summary>
-    /// The document ID.
-    /// </summary>
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
-    /// <summary>
-    /// The JSON-serialized set of disabled plugin IDs.
-    /// </summary>
     public string DisabledPluginsJson { get; set; } = string.Empty;
 
-    /// <summary>
-    /// When the state was last modified.
-    /// </summary>
     public DateTime LastModified { get; set; }
 }

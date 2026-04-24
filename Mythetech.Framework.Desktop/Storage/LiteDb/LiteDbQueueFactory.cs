@@ -3,12 +3,8 @@ using LiteDB;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Queue;
 
-namespace Mythetech.Framework.Desktop.Queue;
+namespace Mythetech.Framework.Desktop.Storage.LiteDb;
 
-/// <summary>
-/// Factory for creating LiteDB-backed queue instances.
-/// Queues are stored in a single database file with separate collections per queue name.
-/// </summary>
 public class LiteDbQueueFactory : IQueueFactory, IDisposable
 {
     private readonly Lazy<ILiteDatabase?> _database;
@@ -16,12 +12,6 @@ public class LiteDbQueueFactory : IQueueFactory, IDisposable
     private readonly ILoggerFactory? _loggerFactory;
     private readonly ILogger<LiteDbQueueFactory>? _logger;
 
-    /// <summary>
-    /// Creates a new LiteDB queue factory.
-    /// Uses lazy initialization to defer database creation until first use.
-    /// </summary>
-    /// <param name="databasePath">Path to the LiteDB file.</param>
-    /// <param name="loggerFactory">Optional logger factory for creating queue loggers.</param>
     public LiteDbQueueFactory(string databasePath, ILoggerFactory? loggerFactory = null)
     {
         _loggerFactory = loggerFactory;
@@ -41,11 +31,6 @@ public class LiteDbQueueFactory : IQueueFactory, IDisposable
         });
     }
 
-    /// <summary>
-    /// Creates a new LiteDB queue factory with an existing database.
-    /// </summary>
-    /// <param name="database">An existing LiteDB database instance.</param>
-    /// <param name="loggerFactory">Optional logger factory for creating queue loggers.</param>
     public LiteDbQueueFactory(ILiteDatabase database, ILoggerFactory? loggerFactory = null)
     {
         _loggerFactory = loggerFactory;
@@ -68,7 +53,6 @@ public class LiteDbQueueFactory : IQueueFactory, IDisposable
             return null;
         }
 
-        // Normalize queue name for collection name (replace dots with underscores)
         var collectionName = $"queue_{queueName.Replace(".", "_")}";
         var cacheKey = $"{collectionName}_{typeof(T).FullName}";
 
@@ -122,13 +106,11 @@ public class LiteDbQueueFactory : IQueueFactory, IDisposable
         {
             var collectionName = $"queue_{queueName.Replace(".", "_")}";
 
-
             var keysToRemove = _queues.Keys.Where(k => k.StartsWith(collectionName + "_")).ToList();
             foreach (var key in keysToRemove)
             {
                 _queues.TryRemove(key, out _);
             }
-
 
             var result = db.DropCollection(collectionName);
             _logger?.LogDebug("Deleted queue {QueueName}: {Result}", queueName, result);

@@ -6,7 +6,7 @@
 
 - **Mythetech.Framework** — Core framework library with components, settings, plugins, and message bus
 - **Mythetech.Framework.WebAssembly** — WebAssembly-specific implementations
-- **Mythetech.Framework.Desktop** — Desktop (Photino) specific implementations
+- **Mythetech.Framework.Desktop** — Desktop specific implementations
 - **Mythetech.Framework.Storybook** — Component showcase and testing
 - **Mythetech.Framework.Test** — Unit tests
 - **samples/** — Sample applications demonstrating framework usage
