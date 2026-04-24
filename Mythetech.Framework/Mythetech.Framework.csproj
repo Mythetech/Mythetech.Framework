@@ -7,7 +7,7 @@
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <PackageId>Mythetech.Framework</PackageId>
-        <VersionPrefix>0.14.1</VersionPrefix>
+        <VersionPrefix>0.15.0</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Description>Base component library for Mythetech applications</Description>
         <PackageTags>blazor;components;ui;framework;cross-platform;desktop;webassembly;photino;hermes</PackageTags>

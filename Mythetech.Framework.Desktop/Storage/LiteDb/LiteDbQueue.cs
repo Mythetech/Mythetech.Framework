@@ -3,13 +3,8 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Queue;
 
-namespace Mythetech.Framework.Desktop.Queue;
+namespace Mythetech.Framework.Desktop.Storage.LiteDb;
 
-/// <summary>
-/// LiteDB-based queue implementation for Desktop applications.
-/// Provides persistent queue storage with retry semantics.
-/// </summary>
-/// <typeparam name="T">The type of items in the queue.</typeparam>
 public class LiteDbQueue<T> : IQueue<T> where T : class
 {
     private readonly ILiteDatabase _database;
@@ -17,12 +12,6 @@ public class LiteDbQueue<T> : IQueue<T> where T : class
     private readonly ILogger? _logger;
     private readonly object _lock = new();
 
-    /// <summary>
-    /// Creates a new LiteDB queue instance.
-    /// </summary>
-    /// <param name="database">The LiteDB database instance.</param>
-    /// <param name="collectionName">Name of the collection to use for this queue.</param>
-    /// <param name="logger">Optional logger for error reporting.</param>
     public LiteDbQueue(ILiteDatabase database, string collectionName, ILogger? logger = null)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
