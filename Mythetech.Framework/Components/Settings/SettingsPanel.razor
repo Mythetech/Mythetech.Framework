@@ -3,6 +3,7 @@
 @using Mythetech.Framework.Infrastructure.Settings
 @using Mythetech.Framework.Infrastructure.FeatureFlags
 @using Mythetech.Framework.Components.FeatureFlags
+@using System.Reflection
 @using Microsoft.JSInterop
 @inject ISettingsProvider SettingsProvider
 @inject IJSRuntime JS
@@ -190,7 +191,7 @@
     {
         @ContentPrefix
 
-        foreach (var settings in SettingsProvider.GetAllSettings())
+        foreach (var settings in SettingsProvider.GetAllSettings().Where(HasVisibleContent))
         {
             if (settings is FeatureFlagsSettingsBase flagSettings)
             {
@@ -220,7 +221,7 @@
         if (string.IsNullOrEmpty(ActiveSection))
         {
             ActiveSection = InitialSection ??
-                SettingsProvider.GetAllSettings().FirstOrDefault()?.SettingsId ?? "";
+                SettingsProvider.GetAllSettings().Where(HasVisibleContent).FirstOrDefault()?.SettingsId ?? "";
         }
     }
 
@@ -237,6 +238,7 @@
 
                 // Get all section IDs for scroll-spy (framework + custom)
                 var sectionIds = SettingsProvider.GetAllSettings()
+                    .Where(HasVisibleContent)
                     .Select(s => s.SettingsId)
                     .Concat(AdditionalSectionIds)
                     .ToArray();
@@ -401,9 +403,26 @@
 
     private IEnumerable<SettingsBase> GetFilteredSettings()
     {
-        var all = SettingsProvider.GetAllSettings();
+        var all = SettingsProvider.GetAllSettings().Where(HasVisibleContent);
         if (!HasSearchTerm) return all;
         return all.Where(s => _matchingSettingsIds.Contains(s.SettingsId));
+    }
+
+    private static bool HasVisibleContent(SettingsBase settings)
+    {
+        if (!settings.ShowInPanel)
+            return false;
+
+        if (settings.BeginningContent != null || settings.EndingContent != null)
+            return true;
+
+        return settings.GetType()
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Any(p =>
+            {
+                var attr = p.GetCustomAttribute<SettingAttribute>();
+                return attr != null && !attr.Hide;
+            });
     }
 
     private int GetMatchCountForSection(string sectionId)

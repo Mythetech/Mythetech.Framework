@@ -36,6 +36,12 @@ public abstract class SettingsBase
     public virtual int Order => 50;
 
     /// <summary>
+    /// Whether this settings section appears in the settings panel navigation and content.
+    /// Override to false for settings that are managed programmatically (e.g., consent tracking).
+    /// </summary>
+    public virtual bool ShowInPanel => true;
+
+    /// <summary>
     /// Tracks whether this settings model has unsaved changes.
     /// Set to true when properties are modified, reset to false after persistence.
     /// </summary>

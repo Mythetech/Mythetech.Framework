@@ -1,0 +1,64 @@
+@namespace Mythetech.Framework.Components.Input
+@typeparam T where T : struct, IComparable<T>
+@using MudBlazor
+
+<div class="mt-numeric-field @_rootClass @Class" style="@Style">
+    @if (Adornment == MudBlazor.Adornment.Start && !string.IsNullOrEmpty(AdornmentIcon))
+    {
+        <button class="mt-nf-adornment mt-nf-adornment-start" tabindex="-1" @onclick="OnAdornmentClick" type="button" disabled="@(!OnAdornmentClick.HasDelegate)">
+            <MudIcon Icon="@AdornmentIcon" Size="Size.Small" Color="@AdornmentColor" />
+        </button>
+    }
+
+    <input @ref="_elementRef"
+           class="mt-nf-input"
+           type="text"
+           inputmode="decimal"
+           placeholder="@Placeholder"
+           disabled="@Disabled"
+           readonly="@ReadOnly"
+           value="@_inputText"
+           @oninput="OnInputAsync"
+           @onchange="OnChangeAsync"
+           @onkeydown="HandleKeyDownAsync"
+           @onfocus="OnFocusInternal"
+           @onblur="OnBlurInternal"
+           aria-invalid="@Error.ToString().ToLowerInvariant()"
+           @attributes="UserAttributes" />
+
+    @if (Clearable && Value.HasValue)
+    {
+        <button class="mt-nf-adornment mt-nf-clear" tabindex="-1" @onclick="HandleClearAsync" type="button">
+            <MudIcon Icon="@Icons.Material.Rounded.Close" Size="Size.Small" />
+        </button>
+    }
+
+    @if (Adornment == MudBlazor.Adornment.End && !string.IsNullOrEmpty(AdornmentIcon))
+    {
+        <button class="mt-nf-adornment mt-nf-adornment-end" tabindex="-1" @onclick="OnAdornmentClick" type="button" disabled="@(!OnAdornmentClick.HasDelegate)">
+            <MudIcon Icon="@AdornmentIcon" Size="Size.Small" Color="@AdornmentColor" />
+        </button>
+    }
+
+    <div class="mt-nf-spinners">
+        <button class="mt-nf-spinner-up" tabindex="-1" @onclick="IncrementAsync" type="button" disabled="@(Disabled || ReadOnly || IsAtMax)">
+            <MudIcon Icon="@Icons.Material.Rounded.KeyboardArrowUp" Size="Size.Small" />
+        </button>
+        <button class="mt-nf-spinner-down" tabindex="-1" @onclick="DecrementAsync" type="button" disabled="@(Disabled || ReadOnly || IsAtMin)">
+            <MudIcon Icon="@Icons.Material.Rounded.KeyboardArrowDown" Size="Size.Small" />
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <fieldset class="mt-nf-fieldset" aria-hidden="true">
+            <legend class="mt-nf-legend"><span>@Label</span></legend>
+        </fieldset>
+        <label class="mt-nf-label">@Label</label>
+    }
+
+    @if (Error && !string.IsNullOrEmpty(ErrorText))
+    {
+        <div class="mt-nf-error">@ErrorText</div>
+    }
+</div>
