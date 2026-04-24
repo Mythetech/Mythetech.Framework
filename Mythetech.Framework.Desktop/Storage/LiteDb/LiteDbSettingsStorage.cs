@@ -2,25 +2,14 @@ using LiteDB;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Settings;
 
-namespace Mythetech.Framework.Desktop.Settings;
+namespace Mythetech.Framework.Desktop.Storage.LiteDb;
 
-/// <summary>
-/// LiteDB-based settings storage for Desktop applications.
-/// Uses a separate database file from plugin storage to keep app settings
-/// isolated from plugin data.
-/// </summary>
 public class LiteDbSettingsStorage : ISettingsStorage, IDisposable
 {
     private readonly Lazy<ILiteDatabase?> _database;
     private readonly ILogger<LiteDbSettingsStorage>? _logger;
     private const string CollectionName = "settings";
 
-    /// <summary>
-    /// Creates a new LiteDB settings storage instance.
-    /// Uses lazy initialization to defer database creation until first use.
-    /// </summary>
-    /// <param name="databasePath">Path to the LiteDB file</param>
-    /// <param name="logger">Optional logger for error reporting</param>
     public LiteDbSettingsStorage(string databasePath, ILogger<LiteDbSettingsStorage>? logger = null)
     {
         _logger = logger;
@@ -38,11 +27,6 @@ public class LiteDbSettingsStorage : ISettingsStorage, IDisposable
         });
     }
 
-    /// <summary>
-    /// Creates a new LiteDB settings storage instance with an existing database.
-    /// </summary>
-    /// <param name="database">An existing LiteDB database instance</param>
-    /// <param name="logger">Optional logger for error reporting</param>
     public LiteDbSettingsStorage(ILiteDatabase database, ILogger<LiteDbSettingsStorage>? logger = null)
     {
         _logger = logger;
@@ -142,24 +126,12 @@ public class LiteDbSettingsStorage : ISettingsStorage, IDisposable
     }
 }
 
-/// <summary>
-/// Entry stored in LiteDB for settings persistence.
-/// </summary>
 internal class SettingsStorageEntry
 {
-    /// <summary>
-    /// The settings domain ID (used as the document ID).
-    /// </summary>
     [BsonId]
     public string SettingsId { get; set; } = string.Empty;
 
-    /// <summary>
-    /// The JSON-serialized settings data.
-    /// </summary>
     public string JsonData { get; set; } = string.Empty;
 
-    /// <summary>
-    /// When the settings were last modified.
-    /// </summary>
     public DateTime LastModified { get; set; }
 }

@@ -2,24 +2,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure.Settings;
 
-namespace Mythetech.Framework.WebAssembly.Settings;
+namespace Mythetech.Framework.WebAssembly.Storage.LocalStorage;
 
-/// <summary>
-/// localStorage-based settings storage for WebAssembly applications.
-/// Uses a different key prefix from plugin storage to keep app settings
-/// isolated from plugin data.
-/// </summary>
 public class LocalStorageSettingsStorage : ISettingsStorage
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<LocalStorageSettingsStorage>? _logger;
     private const string KeyPrefix = "settings:";
 
-    /// <summary>
-    /// Creates a new localStorage settings storage instance.
-    /// </summary>
-    /// <param name="jsRuntime">JS runtime for interop</param>
-    /// <param name="logger">Optional logger for diagnostics</param>
     public LocalStorageSettingsStorage(IJSRuntime jsRuntime, ILogger<LocalStorageSettingsStorage>? logger = null)
     {
         _jsRuntime = jsRuntime;
@@ -47,14 +37,12 @@ public class LocalStorageSettingsStorage : ISettingsStorage
 
         try
         {
-            // Iterate through localStorage keys without using eval
-            // localStorage.key(i) returns null when index is out of bounds
             for (var i = 0; ; i++)
             {
                 var key = await _jsRuntime.InvokeAsync<string?>("localStorage.key", i);
                 if (key == null)
                 {
-                    break; // No more keys
+                    break;
                 }
 
                 if (key.StartsWith(KeyPrefix))
@@ -70,7 +58,6 @@ public class LocalStorageSettingsStorage : ISettingsStorage
         }
         catch (Exception ex)
         {
-            // JS interop may fail in certain contexts (e.g., SSR, prerendering)
             _logger?.LogDebug(ex, "Failed to load settings from localStorage");
         }
 

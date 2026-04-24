@@ -27,6 +27,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Mythetech.Framework\Mythetech.Framework.csproj" />
       <ProjectReference Include="..\Mythetech.Framework.Desktop\Mythetech.Framework.Desktop.csproj" />
+      <ProjectReference Include="..\Mythetech.Framework.WebAssembly\Mythetech.Framework.WebAssembly.csproj" />
       <ProjectReference Include="..\Mythetech.Framework.AI.Generator\Mythetech.Framework.AI.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
     </ItemGroup>
 
