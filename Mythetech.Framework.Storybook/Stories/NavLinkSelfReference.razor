@@ -1,0 +1,5 @@
+@using Mythetech.Framework.Components.Navigation
+@using MudBlazor
+@inject NavigationManager NavigationManager
+
+<MtNavLink Href="@NavigationManager.Uri" Icon="@Icons.Material.Rounded.MenuBook" Text="This Story" Match="NavLinkMatch.All" />
