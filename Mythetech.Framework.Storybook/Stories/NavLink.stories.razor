@@ -1,0 +1,66 @@
+@using Mythetech.Framework.Components.Navigation
+@using MudBlazor
+@attribute [Stories("Components/NavLink")]
+
+<Stories TComponent="MtNavLink">
+
+    <ArgType For="_ => _.Class" Control="ControlType.Default" />
+
+    <ProductStory TComponent="MtNavLink">
+        <Arguments>
+            <Arg For="_ => _.Href" Value="@("/")" />
+            <Arg For="_ => _.Icon" Value="@(Icons.Material.Rounded.Home)" />
+            <Arg For="_ => _.Text" Value="@("Home")" />
+            <Arg For="_ => _.Match" Value="NavLinkMatch.All" />
+            <Arg For="_ => _.IsCollapsed" Value="false" />
+            <Arg For="_ => _.Class" Value="@("")" />
+        </Arguments>
+
+        <Template>
+            <div style="width: 240px;">
+                <NavLinkSelfReference />
+                <MtNavLink @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")" />
+            </div>
+        </Template>
+    </ProductStory>
+
+    <Story Name="Collapsed" Layout="typeof(DefaultMudLayout)">
+        <Arguments>
+            <Arg For="_ => _.Href" Value="@("/")" />
+            <Arg For="_ => _.Icon" Value="@(Icons.Material.Rounded.Home)" />
+            <Arg For="_ => _.Text" Value="@("Home")" />
+            <Arg For="_ => _.Match" Value="NavLinkMatch.All" />
+            <Arg For="_ => _.IsCollapsed" Value="true" />
+            <Arg For="_ => _.Class" Value="@("")" />
+        </Arguments>
+
+        <Template>
+            <div style="width: 64px;">
+                <MtNavLink @attributes="context.Args" Class="@(context.Args["Class"]?.ToString() ?? "")" />
+            </div>
+        </Template>
+    </Story>
+
+    <Story Name="Navigation Group" Layout="typeof(DefaultMudLayout)">
+        <Arguments>
+            <Arg For="_ => _.Href" Value="@("/")" />
+            <Arg For="_ => _.Icon" Value="@(Icons.Material.Rounded.Home)" />
+            <Arg For="_ => _.Text" Value="@("Home")" />
+            <Arg For="_ => _.Match" Value="NavLinkMatch.All" />
+            <Arg For="_ => _.IsCollapsed" Value="false" />
+            <Arg For="_ => _.Class" Value="@("")" />
+        </Arguments>
+
+        <Template>
+            <div style="width: 240px;">
+                <MtNavLink Href="iframe.html?viewMode=story&id=components-navlink--navigation-group&args=Href:%252F;Icon:%253Cpath%2520d%253D%2522M0%25200h24v24H0V0z%2522%2520fill%253D%2522none%2522%252F%253E%253Cpath%2520d%253D%2522M10%252019v-5h4v5c0%2520.55.45%25201%25201%25201h3c.55%25200%25201-.45%25201-1v-7h1.7c.46%25200%2520.68-.57.33-.87L12.67%25203.6c-.38-.34-.96-.34-1.34%25200l-8.36%25207.53c-.34.3-.13.87.33.87H5v7c0%2520.55.45%25201%25201%25201h3c.55%25200%25201-.45%25201-1z%2522%252F%253E;Text:Home;Match:All;IsCollapsed:False;Class:&globals=backgrounds.grid:;backgrounds.value:transparent;outline:" Icon="@Icons.Material.Rounded.MenuBook" Text="NavLink Docs"
+                    Match="NavLinkMatch.Prefix" />
+                <MtNavLink Href="/" Icon="@Icons.Material.Rounded.Home" Text="Home" Match="NavLinkMatch.All" />
+                <MtNavLink Href="/dashboard" Icon="@Icons.Material.Rounded.Dashboard" Text="Dashboard" />
+                <MtNavLink Href="/settings" Icon="@Icons.Material.Rounded.Settings" Text="Settings" />
+                <MtNavLink Href="/reports" Icon="@Icons.Material.Rounded.BarChart" Text="Reports" />
+            </div>
+        </Template>
+    </Story>
+
+</Stories>

@@ -1,0 +1,51 @@
+.mt-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: var(--mud-palette-text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-family: inherit;
+    transition: background-color 150ms ease, color 150ms ease;
+    margin-bottom: 2px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.mt-nav-link:hover {
+    background: color-mix(in srgb, var(--mud-palette-primary) 8%, transparent);
+}
+
+.mt-nav-link.active {
+    background: color-mix(in srgb, var(--mud-palette-primary) 15%, transparent);
+    color: var(--mud-palette-primary);
+}
+
+.mt-nav-link.active:hover {
+    background: color-mix(in srgb, var(--mud-palette-primary) 20%, transparent);
+}
+
+.mt-nav-link.collapsed {
+    justify-content: center;
+    padding: 8px;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 4px auto;
+}
+
+::deep .nav-icon {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+}
+
+.mt-nav-link.active ::deep .nav-icon {
+    color: var(--mud-palette-primary);
+}
+
+.nav-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
