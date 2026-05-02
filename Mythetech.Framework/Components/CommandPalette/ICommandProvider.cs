@@ -9,5 +9,7 @@ namespace Mythetech.Framework.Components.CommandPalette;
 public interface ICommandProvider
 {
     /// <summary>Returns the commands this provider supplies to the palette.</summary>
-    ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(CancellationToken ct);
+    /// <param name="query">The raw user query. Providers can use this to filter by prefix conventions (e.g. ">" for commands-only).</param>
+    /// <param name="ct">Cancellation token.</param>
+    ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(string query, CancellationToken ct);
 }

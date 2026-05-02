@@ -4,30 +4,29 @@
 @inject CommandPaletteService Palette
 @inject IDialogService DialogService
 
-@*
-    Headless mount point for the command palette and global hotkeys.
-    Drop a single <CommandPaletteHost /> into MainLayout and the global
-    Ctrl+K / Cmd+K shortcut becomes available app-wide.
-
-    Two MudHotkey instances per shortcut are required because MudHotkey
-    treats KeyModifiers as logical AND, not OR — there's no single binding
-    that means "Ctrl OR Meta".
-*@
-
-<MudHotkey Key="JsKey.KeyK"
-           KeyModifiers="@_ctrlOnly"
-           OnHotkeyPressed="OpenPaletteAsync" />
-<MudHotkey Key="JsKey.KeyK"
-           KeyModifiers="@_metaOnly"
-           OnHotkeyPressed="OpenPaletteAsync" />
+@if (!DisableBuiltInHotkey)
+{
+    <MudHotkey Key="JsKey.KeyK"
+               KeyModifiers="@_ctrlOnly"
+               OnHotkeyPressed="OpenPaletteAsync" />
+    <MudHotkey Key="JsKey.KeyK"
+               KeyModifiers="@_metaOnly"
+               OnHotkeyPressed="OpenPaletteAsync" />
+}
 
 @code {
     /// <summary>
     /// CSS class applied to the dialog backdrop.
     /// Defaults to "mythetech-dialog" which provides a backdrop blur effect.
-    /// Consuming apps can override with their own class (e.g., "iris-dialog").
+    /// Consuming apps can override with their own class (e.g., "horizon-dialog").
     /// </summary>
     [Parameter] public string BackgroundClass { get; set; } = "mythetech-dialog";
+
+    /// <summary>
+    /// When true, the built-in Ctrl+K / Cmd+K MudHotkey bindings are not rendered.
+    /// The consuming app is responsible for calling <see cref="OpenPaletteAsync"/> from its own key handler.
+    /// </summary>
+    [Parameter] public bool DisableBuiltInHotkey { get; set; } = false;
 
     private static readonly IEnumerable<JsKeyModifier> _ctrlOnly = new[] { JsKeyModifier.ControlLeft };
     private static readonly IEnumerable<JsKeyModifier> _metaOnly = new[] { JsKeyModifier.MetaLeft };
@@ -43,7 +42,10 @@
         BackgroundClass = BackgroundClass,
     };
 
-    private async Task OpenPaletteAsync()
+    /// <summary>
+    /// Opens the command palette dialog. No-op if the palette is already open.
+    /// </summary>
+    public async Task OpenPaletteAsync()
     {
         if (Palette.IsOpen)
         {
