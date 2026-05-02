@@ -129,13 +129,13 @@ public class CommandPaletteServiceTests
     {
         private readonly IReadOnlyList<PaletteCommand> _commands;
         public FakeCommandProvider(params PaletteCommand[] commands) => _commands = commands;
-        public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(CancellationToken ct)
+        public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(string query, CancellationToken ct)
             => ValueTask.FromResult(_commands);
     }
 
     private sealed class ThrowingCommandProvider : ICommandProvider
     {
-        public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(CancellationToken ct)
+        public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(string query, CancellationToken ct)
             => throw new InvalidOperationException("provider exploded");
     }
 }

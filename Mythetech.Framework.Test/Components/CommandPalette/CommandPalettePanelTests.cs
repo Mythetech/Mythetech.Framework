@@ -239,7 +239,7 @@ public class CommandPalettePanelTests : TestContext
     {
         private readonly IReadOnlyList<PaletteCommand> _commands;
         public TestCommandProvider(params PaletteCommand[] commands) => _commands = commands;
-        public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(CancellationToken ct)
+        public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(string query, CancellationToken ct)
             => ValueTask.FromResult(_commands);
     }
 }
