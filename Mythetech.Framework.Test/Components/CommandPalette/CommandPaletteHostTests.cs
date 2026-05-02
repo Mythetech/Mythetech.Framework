@@ -90,4 +90,43 @@ public class CommandPaletteHostTests : TestContext
             Arg.Any<string>(),
             Arg.Any<DialogOptions>());
     }
+
+    [Fact(DisplayName = "DisableBuiltInHotkey suppresses MudHotkey components")]
+    public void DisableBuiltInHotkey_suppresses_hotkeys()
+    {
+        var cut = RenderComponent<CommandPaletteHost>(p =>
+            p.Add(x => x.DisableBuiltInHotkey, true));
+
+        var hotkeys = cut.FindComponents<MudHotkey>();
+        hotkeys.Count.ShouldBe(0);
+    }
+
+    [Fact(DisplayName = "OpenPaletteAsync opens dialog when not already open")]
+    public async Task OpenPaletteAsync_opens_dialog()
+    {
+        var cut = RenderComponent<CommandPaletteHost>(p =>
+            p.Add(x => x.DisableBuiltInHotkey, true));
+
+        await cut.InvokeAsync(() => cut.Instance.OpenPaletteAsync());
+
+        await _dialogService.Received(1).ShowAsync(
+            typeof(CommandPaletteDialog),
+            Arg.Any<string>(),
+            Arg.Any<DialogOptions>());
+    }
+
+    [Fact(DisplayName = "OpenPaletteAsync is no-op when palette is already open")]
+    public async Task OpenPaletteAsync_noop_when_already_open()
+    {
+        _paletteService.MarkOpened();
+        var cut = RenderComponent<CommandPaletteHost>(p =>
+            p.Add(x => x.DisableBuiltInHotkey, true));
+
+        await cut.InvokeAsync(() => cut.Instance.OpenPaletteAsync());
+
+        await _dialogService.DidNotReceive().ShowAsync(
+            typeof(CommandPaletteDialog),
+            Arg.Any<string>(),
+            Arg.Any<DialogOptions>());
+    }
 }
