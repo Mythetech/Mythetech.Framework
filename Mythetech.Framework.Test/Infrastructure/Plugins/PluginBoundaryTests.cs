@@ -140,6 +140,132 @@ public class PluginBoundaryTests
 
     #endregion
 
+    #region RemovePlugin Cleanup Tests
+
+    [Fact(DisplayName = "RemovePluginAsync clears in-memory state store")]
+    public async Task RemovePlugin_ClearsStateStore()
+    {
+        var plugin = CreateMockPlugin("plugin.remove", typeof(PluginAType).Assembly);
+        await _pluginState.RegisterPluginAsync(plugin);
+        _pluginState.SetStateStore(_stateStore);
+
+        _stateStore.Set("plugin.remove", "data", "some value");
+        _stateStore.Get<string>("plugin.remove", "data").ShouldBe("some value");
+
+        await _pluginState.RemovePluginAsync("plugin.remove");
+
+        _stateStore.Get<string>("plugin.remove", "data").ShouldBeNull();
+    }
+
+    [Fact(DisplayName = "RemovePluginAsync calls DeletePluginDataAsync on storage factory")]
+    public async Task RemovePlugin_DeletesStorageData()
+    {
+        var plugin = CreateMockPlugin("plugin.remove", typeof(PluginAType).Assembly);
+        await _pluginState.RegisterPluginAsync(plugin);
+
+        var storageFactory = Substitute.For<IPluginStorageFactory>();
+        _pluginState.SetStorageFactory(storageFactory);
+
+        await _pluginState.RemovePluginAsync("plugin.remove");
+
+        await storageFactory.Received(1).DeletePluginDataAsync("plugin.remove");
+    }
+
+    [Fact(DisplayName = "RemovePluginAsync deletes plugin directory from disk")]
+    public async Task RemovePlugin_DeletesPluginDirectory()
+    {
+        var pluginsRoot = Path.Combine(Path.GetTempPath(), $"plugins_test_{Guid.NewGuid()}");
+        var pluginDir = Path.Combine(pluginsRoot, "TestPlugin");
+        Directory.CreateDirectory(pluginDir);
+        var dllPath = Path.Combine(pluginDir, "TestPlugin.dll");
+        await File.WriteAllTextAsync(dllPath, "fake");
+
+        var plugin = CreateMockPluginWithSource("plugin.remove", typeof(PluginAType).Assembly, dllPath);
+        await _pluginState.RegisterPluginAsync(plugin);
+        _pluginState.SetPluginDirectory(pluginsRoot);
+
+        await _pluginState.RemovePluginAsync("plugin.remove");
+
+        Directory.Exists(pluginDir).ShouldBeFalse();
+
+        if (Directory.Exists(pluginsRoot))
+            Directory.Delete(pluginsRoot, true);
+    }
+
+    [Fact(DisplayName = "RemovePluginAsync does not delete plugins root directory")]
+    public async Task RemovePlugin_DoesNotDeletePluginsRoot()
+    {
+        var pluginsRoot = Path.Combine(Path.GetTempPath(), $"plugins_test_{Guid.NewGuid()}");
+        Directory.CreateDirectory(pluginsRoot);
+        var dllPath = Path.Combine(pluginsRoot, "RootPlugin.dll");
+        await File.WriteAllTextAsync(dllPath, "fake");
+
+        var plugin = CreateMockPluginWithSource("plugin.root", typeof(PluginAType).Assembly, dllPath);
+        await _pluginState.RegisterPluginAsync(plugin);
+        _pluginState.SetPluginDirectory(pluginsRoot);
+
+        await _pluginState.RemovePluginAsync("plugin.root");
+
+        Directory.Exists(pluginsRoot).ShouldBeTrue();
+
+        Directory.Delete(pluginsRoot, true);
+    }
+
+    [Fact(DisplayName = "RemovePluginAsync does not delete directory outside plugins root")]
+    public async Task RemovePlugin_DoesNotDeleteOutsideRoot()
+    {
+        var pluginsRoot = Path.Combine(Path.GetTempPath(), $"plugins_test_{Guid.NewGuid()}");
+        var outsideDir = Path.Combine(Path.GetTempPath(), $"outside_test_{Guid.NewGuid()}");
+        Directory.CreateDirectory(pluginsRoot);
+        Directory.CreateDirectory(outsideDir);
+        var dllPath = Path.Combine(outsideDir, "Outside.dll");
+        await File.WriteAllTextAsync(dllPath, "fake");
+
+        var plugin = CreateMockPluginWithSource("plugin.outside", typeof(PluginAType).Assembly, dllPath);
+        await _pluginState.RegisterPluginAsync(plugin);
+        _pluginState.SetPluginDirectory(pluginsRoot);
+
+        await _pluginState.RemovePluginAsync("plugin.outside");
+
+        Directory.Exists(outsideDir).ShouldBeTrue();
+
+        Directory.Delete(pluginsRoot, true);
+        Directory.Delete(outsideDir, true);
+    }
+
+    [Fact(DisplayName = "RemovePluginAsync does not affect other plugin's state")]
+    public async Task RemovePlugin_DoesNotAffectOtherPluginState()
+    {
+        var pluginA = CreateMockPlugin("plugin.a", typeof(PluginAType).Assembly);
+        var pluginB = CreateMockPlugin("plugin.b", typeof(PluginBType).Assembly);
+        await _pluginState.RegisterPluginAsync(pluginA);
+        await _pluginState.RegisterPluginAsync(pluginB);
+        _pluginState.SetStateStore(_stateStore);
+
+        _stateStore.Set("plugin.a", "data", "A's data");
+        _stateStore.Set("plugin.b", "data", "B's data");
+
+        await _pluginState.RemovePluginAsync("plugin.a");
+
+        _stateStore.Get<string>("plugin.a", "data").ShouldBeNull();
+        _stateStore.Get<string>("plugin.b", "data").ShouldBe("B's data");
+    }
+
+    [Fact(DisplayName = "RemovePluginAsync succeeds without storage factory or state store")]
+    public async Task RemovePlugin_SucceedsWithoutOptionalServices()
+    {
+        var state = new PluginState();
+        var plugin = CreateMockPlugin("plugin.minimal", typeof(PluginAType).Assembly);
+        await state.RegisterPluginAsync(plugin);
+
+        var result = await state.RemovePluginAsync("plugin.minimal");
+
+        result.ShouldBeTrue();
+        state.Plugins.ShouldBeEmpty();
+    }
+
+    #endregion
+
     #region PluginState Registration Tests
 
     [Fact(DisplayName = "Cannot register plugin with duplicate ID")]
@@ -197,18 +323,24 @@ public class PluginBoundaryTests
 
     private static PluginInfo CreateMockPlugin(string id, Assembly assembly)
     {
+        return CreateMockPluginWithSource(id, assembly, sourcePath: null);
+    }
+
+    private static PluginInfo CreateMockPluginWithSource(string id, Assembly assembly, string? sourcePath)
+    {
         var manifest = Substitute.For<IPluginManifest>();
         manifest.Id.Returns(id);
         manifest.Name.Returns($"Test Plugin {id}");
         manifest.Version.Returns(new Version(1, 0, 0));
         manifest.Developer.Returns("Test Developer");
         manifest.Description.Returns("Test Description");
-        
+
         return new PluginInfo
         {
             Manifest = manifest,
             Assembly = assembly,
-            IsEnabled = true
+            IsEnabled = true,
+            SourcePath = sourcePath
         };
     }
 

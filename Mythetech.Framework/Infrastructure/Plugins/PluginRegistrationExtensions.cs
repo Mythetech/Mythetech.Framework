@@ -93,6 +93,8 @@ public static class PluginRegistrationExtensions
         pluginState.SetStateProvider(stateProvider);
         pluginState.SetMessageBus(messageBus);
         pluginState.SetPluginLoader(pluginLoader);
+        pluginState.SetStorageFactory(services.GetService<IPluginStorageFactory>());
+        pluginState.SetStateStore(services.GetRequiredService<PluginStateStore>());
 
         return services;
     }

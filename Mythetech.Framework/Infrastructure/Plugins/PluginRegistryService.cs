@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -33,9 +34,12 @@ public class PluginRegistryService : IPluginRegistryService
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
-            var registry = await httpClient.GetFromJsonAsync<PluginRegistry>(
-                _options.PluginRegistryUri,
-                cancellationToken);
+            var request = new HttpRequestMessage(HttpMethod.Get, _options.PluginRegistryUri);
+            request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var registry = await response.Content.ReadFromJsonAsync<PluginRegistry>(cancellationToken);
 
             if (registry is null)
             {

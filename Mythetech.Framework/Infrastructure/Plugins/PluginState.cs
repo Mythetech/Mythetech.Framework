@@ -13,6 +13,8 @@ public class PluginState : IDisposable
     private readonly List<PluginInfo> _plugins = [];
     private readonly Lock _pluginsLock = new();
     private IPluginStateProvider? _stateProvider;
+    private IPluginStorageFactory? _storageFactory;
+    private PluginStateStore? _stateStore;
     private IMessageBus? _messageBus;
     private ILogger<PluginState>? _logger;
     private PluginLoader? _pluginLoader;
@@ -307,7 +309,7 @@ public class PluginState : IDisposable
 
     /// <summary>
     /// Remove a plugin by its ID.
-    /// If the plugin has an associated LoadContext, the assembly will be unloaded.
+    /// Cleans up persistent storage data, unloads the assembly, and deletes plugin files from disk.
     /// </summary>
     /// <returns>True if the plugin was removed, false if not found</returns>
     public async Task<bool> RemovePluginAsync(string pluginId)
@@ -329,6 +331,21 @@ public class PluginState : IDisposable
             _plugins.Remove(plugin);
         }
 
+        if (_storageFactory is not null)
+        {
+            try
+            {
+                await _storageFactory.DeletePluginDataAsync(pluginId);
+                _logger?.LogDebug("Deleted persistent data for plugin {PluginId}", pluginId);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to delete persistent data for plugin {PluginId}", pluginId);
+            }
+        }
+
+        _stateStore?.ClearPlugin(pluginId);
+
         if (plugin.LoadContext is not null)
         {
             try
@@ -342,9 +359,46 @@ public class PluginState : IDisposable
             }
         }
 
+        DeletePluginFiles(plugin);
         NotifyStateChanged();
 
         return true;
+    }
+
+    private void DeletePluginFiles(PluginInfo plugin)
+    {
+        if (string.IsNullOrEmpty(plugin.SourcePath))
+            return;
+
+        try
+        {
+            var pluginDir = Path.GetDirectoryName(plugin.SourcePath);
+            if (string.IsNullOrEmpty(pluginDir))
+                return;
+
+            var pluginsRoot = PluginDirectory;
+            if (string.IsNullOrEmpty(pluginsRoot))
+                return;
+
+            var normalizedPluginDir = Path.GetFullPath(pluginDir);
+            var normalizedRoot = Path.GetFullPath(pluginsRoot);
+
+            if (string.Equals(normalizedPluginDir, normalizedRoot, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (!normalizedPluginDir.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (Directory.Exists(normalizedPluginDir))
+            {
+                Directory.Delete(normalizedPluginDir, recursive: true);
+                _logger?.LogDebug("Deleted plugin directory {PluginDir}", normalizedPluginDir);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to delete plugin files for {PluginId}", plugin.Manifest.Id);
+        }
     }
 
     /// <summary>
@@ -380,6 +434,24 @@ public class PluginState : IDisposable
     public void SetLogger(ILogger<PluginState>? logger)
     {
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Sets the storage factory for managing plugin persistent data.
+    /// </summary>
+    /// <param name="storageFactory">The storage factory to use.</param>
+    public void SetStorageFactory(IPluginStorageFactory? storageFactory)
+    {
+        _storageFactory = storageFactory;
+    }
+
+    /// <summary>
+    /// Sets the state store for managing plugin in-memory state.
+    /// </summary>
+    /// <param name="stateStore">The state store to use.</param>
+    public void SetStateStore(PluginStateStore? stateStore)
+    {
+        _stateStore = stateStore;
     }
 
     /// <summary>
