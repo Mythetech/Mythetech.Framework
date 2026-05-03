@@ -93,6 +93,30 @@ public class CommandPaletteServiceTests
         result.Commands.Select(c => c.Id).ToArray().ShouldBe(new[] { "a", "b" });
     }
 
+    [Fact(DisplayName = "> prefix is stripped before matching")]
+    public async Task Command_prefix_is_stripped_before_matching()
+    {
+        var sut = NewService(new FakeCommandProvider(
+            Cmd("a", "Build Solution"),
+            Cmd("b", "Open File")));
+
+        var result = await sut.GetCommandsAsync(">build", CancellationToken.None);
+
+        result.Commands.Select(c => c.Id).ToArray().ShouldBe(new[] { "a" });
+    }
+
+    [Fact(DisplayName = "> alone returns all commands")]
+    public async Task Command_prefix_alone_returns_all()
+    {
+        var sut = NewService(new FakeCommandProvider(
+            Cmd("a", "Apple"),
+            Cmd("b", "Banana")));
+
+        var result = await sut.GetCommandsAsync(">", CancellationToken.None);
+
+        result.Commands.Select(c => c.Id).ToArray().ShouldBe(new[] { "a", "b" });
+    }
+
     [Fact(DisplayName = "IsOpen flag round-trips via Open and Close")]
     public void IsOpen_flag_round_trips()
     {

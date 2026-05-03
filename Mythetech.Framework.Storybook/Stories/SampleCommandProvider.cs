@@ -9,7 +9,7 @@ namespace Mythetech.Framework.Storybook.Stories;
 public sealed class SampleCommandProvider : ICommandProvider
 {
     /// <inheritdoc />
-    public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(CancellationToken ct)
+    public ValueTask<IReadOnlyList<PaletteCommand>> GetCommandsAsync(string query, CancellationToken ct)
     {
         IReadOnlyList<PaletteCommand> commands = new PaletteCommand[]
         {

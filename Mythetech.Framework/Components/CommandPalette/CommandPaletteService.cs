@@ -71,7 +71,10 @@ public sealed class CommandPaletteService
             return commands;
         }
 
-        var trimmed = query.Trim();
+        var span = query.AsSpan().Trim();
+        ReadOnlySpan<char> trimmed = span.StartsWith(">")
+            ? span[1..].Trim()
+            : span;
 
         var ranked = new List<(int rank, int order, PaletteCommand command)>();
         for (var i = 0; i < commands.Count; i++)
@@ -98,27 +101,27 @@ public sealed class CommandPaletteService
     private const int RankDescriptionOrKeyword = 2;
     private const int NoMatch = int.MaxValue;
 
-    private static int Score(PaletteCommand cmd, string query)
+    private static int Score(PaletteCommand cmd, ReadOnlySpan<char> query)
     {
-        if (cmd.Title.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+        if (cmd.Title.AsSpan().StartsWith(query, StringComparison.OrdinalIgnoreCase))
         {
             return RankTitlePrefix;
         }
 
-        if (cmd.Title.Contains(query, StringComparison.OrdinalIgnoreCase))
+        if (cmd.Title.AsSpan().Contains(query, StringComparison.OrdinalIgnoreCase))
         {
             return RankTitleSubstring;
         }
 
         if (cmd.Description is not null &&
-            cmd.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
+            cmd.Description.AsSpan().Contains(query, StringComparison.OrdinalIgnoreCase))
         {
             return RankDescriptionOrKeyword;
         }
 
         foreach (var keyword in cmd.Keywords)
         {
-            if (keyword.Contains(query, StringComparison.OrdinalIgnoreCase))
+            if (keyword.AsSpan().Contains(query, StringComparison.OrdinalIgnoreCase))
             {
                 return RankDescriptionOrKeyword;
             }
