@@ -90,8 +90,9 @@ public sealed class CommandPaletteService
         }
 
         return ranked
-            .OrderBy(x => x.rank)
-            .ThenBy(x => x.order)
+            .OrderBy(x => x.order)
+            .GroupBy(x => x.command.Group)
+            .SelectMany(g => g.OrderBy(x => x.rank).ThenBy(x => x.order))
             .Select(x => x.command)
             .ToArray();
     }
