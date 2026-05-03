@@ -42,7 +42,7 @@
                     <div class="mf-cmd-palette-group" role="presentation">@cmd.Group</div>
                 }
                 <div role="option"
-                     id="@($"cmd-{cmd.Id}")"
+                     id="@($"cmd-{idx}")"
                      data-command-id="@cmd.Id"
                      class="@RowClass(idx)"
                      aria-selected="@(idx == _selectedIndex ? "true" : "false")"
@@ -100,7 +100,7 @@
     private string SelectedDescendantId =>
         _results.Count == 0 || _selectedIndex < 0 || _selectedIndex >= _results.Count
             ? string.Empty
-            : $"cmd-{_results[_selectedIndex].Id}";
+            : $"cmd-{_selectedIndex}";
 
     protected override async Task OnInitializedAsync()
     {
