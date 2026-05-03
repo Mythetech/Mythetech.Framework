@@ -3,6 +3,7 @@
 @using Mythetech.Framework.Components.Kbd
 @implements IDisposable
 @inject CommandPaletteService Palette
+@inject IScrollManager ScrollManager
 
 <div class="mf-cmd-palette-content pa-2"
      @onkeydown="OnKeyDownAsync"
@@ -167,6 +168,7 @@
                     _selectedIndex = (_selectedIndex + 1) % _results.Count;
                     UpdateInputAttributes();
                     StateHasChanged();
+                    await ScrollToSelectedAsync();
                 }
                 break;
             case "ArrowUp":
@@ -175,6 +177,7 @@
                     _selectedIndex = (_selectedIndex - 1 + _results.Count) % _results.Count;
                     UpdateInputAttributes();
                     StateHasChanged();
+                    await ScrollToSelectedAsync();
                 }
                 break;
             case "Home":
@@ -183,6 +186,7 @@
                     _selectedIndex = 0;
                     UpdateInputAttributes();
                     StateHasChanged();
+                    await ScrollToSelectedAsync();
                 }
                 break;
             case "End":
@@ -191,6 +195,7 @@
                     _selectedIndex = _results.Count - 1;
                     UpdateInputAttributes();
                     StateHasChanged();
+                    await ScrollToSelectedAsync();
                 }
                 break;
             case "Enter":
@@ -226,6 +231,12 @@
         {
             await OnInvoked.InvokeAsync(cmd.Id);
         }
+    }
+
+    private async Task ScrollToSelectedAsync()
+    {
+        if (!string.IsNullOrEmpty(SelectedDescendantId))
+            await ScrollManager.ScrollToListItemAsync(SelectedDescendantId);
     }
 
     private string RowClass(int idx) =>
