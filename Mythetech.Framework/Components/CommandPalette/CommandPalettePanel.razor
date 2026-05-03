@@ -236,7 +236,7 @@
     private async Task ScrollToSelectedAsync()
     {
         if (!string.IsNullOrEmpty(SelectedDescendantId))
-            await ScrollManager.ScrollToListItemAsync(SelectedDescendantId);
+            await ScrollManager.ScrollIntoViewAsync($"#{SelectedDescendantId}", ScrollBehavior.Auto);
     }
 
     private string RowClass(int idx) =>

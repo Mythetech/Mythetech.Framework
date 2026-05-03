@@ -101,6 +101,8 @@ public sealed class CommandPaletteService
     private const int RankDescriptionOrKeyword = 2;
     private const int NoMatch = int.MaxValue;
 
+    private const int MinDescriptionMatchLength = 3;
+
     private static int Score(PaletteCommand cmd, ReadOnlySpan<char> query)
     {
         if (cmd.Title.AsSpan().StartsWith(query, StringComparison.OrdinalIgnoreCase))
@@ -111,6 +113,11 @@ public sealed class CommandPaletteService
         if (cmd.Title.AsSpan().Contains(query, StringComparison.OrdinalIgnoreCase))
         {
             return RankTitleSubstring;
+        }
+
+        if (query.Length < MinDescriptionMatchLength)
+        {
+            return NoMatch;
         }
 
         if (cmd.Description is not null &&
