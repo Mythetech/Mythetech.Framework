@@ -50,7 +50,7 @@ public class CommandPalettePanelTests : TestContext
         var cut = Render();
 
         var input = cut.Find("input");
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-home");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-0");
 
         var options = cut.FindAll("[role='option']");
         options[0].ClassList.ShouldContain("mf-cmd-palette-row--selected");
@@ -87,13 +87,13 @@ public class CommandPalettePanelTests : TestContext
         var input = cut.Find("input");
 
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-messaging");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-1");
 
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-history");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-2");
 
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-home");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-0");
     }
 
     [Fact(DisplayName = "ArrowUp moves selection backward and wraps at start")]
@@ -103,10 +103,10 @@ public class CommandPalettePanelTests : TestContext
         var input = cut.Find("input");
 
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowUp" });
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-history");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-2");
 
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowUp" });
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-messaging");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-1");
     }
 
     [Fact(DisplayName = "Home key jumps selection to first command")]
@@ -119,7 +119,7 @@ public class CommandPalettePanelTests : TestContext
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "Home" });
 
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-home");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-0");
     }
 
     [Fact(DisplayName = "End key jumps selection to last command")]
@@ -130,7 +130,7 @@ public class CommandPalettePanelTests : TestContext
 
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "End" });
 
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-history");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-2");
     }
 
     [Fact(DisplayName = "Enter invokes the selected command and fires OnInvoked")]
@@ -166,11 +166,11 @@ public class CommandPalettePanelTests : TestContext
         var input = cut.Find("input");
 
         await input.KeyDownAsync(new KeyboardEventArgs { Key = "End" });
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-history");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-2");
 
         input.Input("h");
 
-        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-home");
+        input.GetAttribute("aria-activedescendant").ShouldBe("cmd-0");
     }
 
     [Fact(DisplayName = "Empty results render the empty-state message and Enter is a no-op")]
@@ -198,7 +198,7 @@ public class CommandPalettePanelTests : TestContext
         var historyRow = cut.FindAll("[role='option']")[2];
         historyRow.MouseOver();
 
-        cut.Find("input").GetAttribute("aria-activedescendant").ShouldBe("cmd-history");
+        cut.Find("input").GetAttribute("aria-activedescendant").ShouldBe("cmd-2");
     }
 
     [Fact(DisplayName = "Click on a row invokes that command and fires OnInvoked")]
