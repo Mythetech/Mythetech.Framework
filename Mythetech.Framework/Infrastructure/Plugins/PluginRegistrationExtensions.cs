@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Consumers;
@@ -89,12 +90,14 @@ public static class PluginRegistrationExtensions
         var pluginState = services.GetRequiredService<PluginState>();
         var stateProvider = services.GetService<IPluginStateProvider>();
         var pluginLoader = services.GetRequiredService<PluginLoader>();
+        var options = services.GetRequiredService<IOptions<PluginRegistryOptions>>();
 
         pluginState.SetStateProvider(stateProvider);
         pluginState.SetMessageBus(messageBus);
         pluginState.SetPluginLoader(pluginLoader);
         pluginState.SetStorageFactory(services.GetService<IPluginStorageFactory>());
         pluginState.SetStateStore(services.GetRequiredService<PluginStateStore>());
+        pluginState.SetOptions(options.Value);
 
         return services;
     }

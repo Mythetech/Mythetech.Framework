@@ -18,6 +18,7 @@ public class PluginState : IDisposable
     private IMessageBus? _messageBus;
     private ILogger<PluginState>? _logger;
     private PluginLoader? _pluginLoader;
+    private PluginRegistryOptions? _options;
     private bool _disposed;
     private bool _pluginsActive = true;
     private bool _pluginsLoaded;
@@ -464,6 +465,15 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Sets the registry options for resolving plugin directories.
+    /// </summary>
+    /// <param name="options">The registry options to use.</param>
+    public void SetOptions(PluginRegistryOptions? options)
+    {
+        _options = options;
+    }
+
+    /// <summary>
     /// Loads persisted plugin states from the state provider.
     /// Should be called after plugins are loaded.
     /// </summary>
@@ -510,6 +520,10 @@ public class PluginState : IDisposable
         }
 
         var fullPath = Path.GetFullPath(pluginDirectory ?? GetDefaultPluginDirectory());
+
+        try { Directory.CreateDirectory(fullPath); }
+        catch (Exception ex) { _logger?.LogDebug(ex, "Could not create plugin directory {Path}", fullPath); }
+
         SetPluginDirectory(fullPath);
 
         if (_messageBus != null)
@@ -532,9 +546,11 @@ public class PluginState : IDisposable
         }
     }
 
-    private static string GetDefaultPluginDirectory()
+    private string GetDefaultPluginDirectory()
     {
-        return Path.Combine(AppContext.BaseDirectory, "plugins");
+        var appName = _options?.AppName ?? "Mythetech";
+        var localAppData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(localAppData, appName, "plugins");
     }
 
     /// <summary>
