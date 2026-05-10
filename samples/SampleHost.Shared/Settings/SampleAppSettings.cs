@@ -1,4 +1,5 @@
 using MudBlazor;
+using Mythetech.Framework;
 using Mythetech.Framework.Infrastructure.Settings;
 
 namespace SampleHost.Shared.Settings;
@@ -16,7 +17,7 @@ public class SampleAppSettings : SettingsBase
     public override string DisplayName => "Application";
 
     /// <inheritdoc />
-    public override string Icon => Icons.Material.Filled.Apps;
+    public override string Icon => MythetechFrameworkIcons.Apps;
 
     /// <inheritdoc />
     public override int Order => 10;

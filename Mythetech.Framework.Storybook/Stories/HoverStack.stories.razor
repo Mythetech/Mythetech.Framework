@@ -12,14 +12,14 @@
                         @foreach (var item in _treeItems)
                         {
                             <HoverStack Row AlignItems="AlignItems.Center" Class="pa-2 rounded" Style="min-height: 40px;" Context="hover">
-                                <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Class="mr-2" />
+                                <MudIcon Icon="@MythetechFrameworkIcons.Round("folder")" Size="Size.Small" Class="mr-2" />
                                 <MudText Style="flex-grow: 1;">@item</MudText>
                                 @if (hover.IsHovering)
                                 {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                    <MudIconButton Icon="@MythetechFrameworkIcons.Round("edit")"
                                                    Size="Size.Small"
                                                    Color="Color.Default" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                    <MudIconButton Icon="@MythetechFrameworkIcons.Delete"
                                                    Size="Size.Small"
                                                    Color="Color.Error" />
                                 }
@@ -43,7 +43,7 @@
                 <MudPaper Class="pa-4" Elevation="1">
                     <HoverStack Class="pa-4 rounded" Style="background: var(--mud-palette-background-gray);" Context="parentHover">
                         <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.FolderOpen" />
+                            <MudIcon Icon="@MythetechFrameworkIcons.Round("folder_open")" />
                             <MudText>Parent Container</MudText>
                             @if (parentHover.IsHovering)
                             {
@@ -56,7 +56,7 @@
                             {
                                 <HoverStack Row AlignItems="AlignItems.Center" Class="pa-2 rounded"
                                             Style="background: var(--mud-palette-surface);" Context="childHover">
-                                    <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Size="Size.Small" Class="mr-2" />
+                                    <MudIcon Icon="@MythetechFrameworkIcons.Round("description")" Size="Size.Small" Class="mr-2" />
                                     <MudText Style="flex-grow: 1;">@child</MudText>
                                     @if (childHover.IsHovering)
                                     {
@@ -89,7 +89,7 @@
                                         Style="min-height: 40px; cursor: pointer;"
                                         Context="hover"
                                         OnClick="@(() => HandleItemClick(item))">
-                                <MudIcon Icon="@(item == _selectedItem ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
+                                <MudIcon Icon="@(item == _selectedItem ? MythetechFrameworkIcons.CheckCircle : MythetechFrameworkIcons.Round("radio_button_unchecked"))"
                                          Size="Size.Small"
                                          Class="mr-2"
                                          Color="@(item == _selectedItem ? Color.Primary : Color.Default)" />
@@ -146,7 +146,7 @@ The `HoverStack` component wraps `MudStack` and exposes hover state to child con
     <MudText>Item Name</MudText>
     @if (hover.IsHovering)
     {
-        <MudIconButton Icon=""@Icons.Material.Filled.Delete"" />
+        <MudIconButton Icon=""@MythetechFrameworkIcons.Delete"" />
     }
 </HoverStack>
 ```

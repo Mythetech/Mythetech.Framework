@@ -1,6 +1,7 @@
 @namespace Mythetech.Framework.Components.Input
 @typeparam T
 @using MudBlazor
+@using Mythetech.Framework
 
 <div class="mt-sel-root" @attributes="UserAttributes">
     <div @ref="_rootRef"
@@ -43,7 +44,7 @@
         </span>
 
         <span class="mt-sel-chevron">
-            <MudIcon Icon="@Icons.Material.Rounded.ArrowDropDown" Size="Size.Small" />
+            <MudIcon Icon="@MythetechFrameworkIcons.ArrowDropDown" Size="Size.Small" />
         </span>
 
         @if (!string.IsNullOrEmpty(Label))

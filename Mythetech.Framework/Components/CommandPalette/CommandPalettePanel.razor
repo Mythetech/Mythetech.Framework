@@ -1,5 +1,6 @@
 @namespace Mythetech.Framework.Components.CommandPalette
 @using MudBlazor
+@using Mythetech.Framework
 @using Mythetech.Framework.Components.Kbd
 @implements IDisposable
 @inject CommandPaletteService Palette
@@ -17,7 +18,7 @@
                   Margin="Margin.Dense"
                   FullWidth="true"
                   Adornment="Adornment.Start"
-                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  AdornmentIcon="@MythetechFrameworkIcons.Search"
                   UserAttributes="@_inputAttributes" />
 
     @if (_results.Count == 0)

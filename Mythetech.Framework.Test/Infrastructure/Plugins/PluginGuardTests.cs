@@ -2,6 +2,7 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
 using MudBlazor.Services;
+using Mythetech.Framework;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Plugins.Components;
 using NSubstitute;
@@ -45,7 +46,7 @@ public class PluginGuardTests : TestContext
         {
             ComponentType = typeof(TestComponent),
             Title = "Test Component",
-            Icon = Icons.Material.Filled.Extension,
+            Icon = MythetechFrameworkIcons.Extension,
             Order = 1
         };
     }

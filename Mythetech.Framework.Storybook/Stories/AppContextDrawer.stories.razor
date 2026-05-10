@@ -12,29 +12,29 @@
                                       @bind-ActivePanelId="@_activePanelId"
                                       ShowPluginPanels="false">
                         <IconBarHeader>
-                            <MudIconButton Icon="@Icons.Material.Filled.Home" Color="Color.Primary" Class="my-2" />
+                            <MudIconButton Icon="@MythetechFrameworkIcons.Home" Color="Color.Primary" Class="my-2" />
                         </IconBarHeader>
 
                         <PanelNavContent>
-                            <ContextPanelItem Id="files" Icon="@Icons.Material.Filled.Folder" Title="Files">
+                            <ContextPanelItem Id="files" Icon="@MythetechFrameworkIcons.Round("folder")" Title="Files">
                                 <PanelContent>
                                     <MudStack Spacing="2">
                                         <MudText Typo="Typo.body1">File Explorer</MudText>
                                         <MudTreeView T="string" Hover="true">
-                                            <MudTreeViewItem Value="@("src")" Icon="@Icons.Material.Filled.Folder">
-                                                <MudTreeViewItem Value="@("components")" Icon="@Icons.Material.Filled.Folder" />
-                                                <MudTreeViewItem Value="@("pages")" Icon="@Icons.Material.Filled.Folder" />
+                                            <MudTreeViewItem Value="@("src")" Icon="@MythetechFrameworkIcons.Round("folder")">
+                                                <MudTreeViewItem Value="@("components")" Icon="@MythetechFrameworkIcons.Round("folder")" />
+                                                <MudTreeViewItem Value="@("pages")" Icon="@MythetechFrameworkIcons.Round("folder")" />
                                             </MudTreeViewItem>
-                                            <MudTreeViewItem Value="@("tests")" Icon="@Icons.Material.Filled.Folder" />
+                                            <MudTreeViewItem Value="@("tests")" Icon="@MythetechFrameworkIcons.Round("folder")" />
                                         </MudTreeView>
                                     </MudStack>
                                 </PanelContent>
                             </ContextPanelItem>
 
-                            <ContextPanelItem Id="search" Icon="@Icons.Material.Filled.Search" Title="Search">
+                            <ContextPanelItem Id="search" Icon="@MythetechFrameworkIcons.Search" Title="Search">
                                 <PanelContent>
                                     <MudStack Spacing="2">
-                                        <MudTextField T="string" Label="Search" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                                        <MudTextField T="string" Label="Search" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@MythetechFrameworkIcons.Search" />
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">Enter a search term to find files</MudText>
                                     </MudStack>
                                 </PanelContent>
@@ -46,9 +46,9 @@
                                         <MudText Typo="Typo.body1">Source Control</MudText>
                                         <MudAlert Severity="Severity.Warning" Dense="true">3 uncommitted changes</MudAlert>
                                         <MudList T="string" Dense="true">
-                                            <MudListItem Icon="@Icons.Material.Filled.Add" IconColor="Color.Success">new-file.cs</MudListItem>
-                                            <MudListItem Icon="@Icons.Material.Filled.Edit" IconColor="Color.Warning">modified.cs</MudListItem>
-                                            <MudListItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error">deleted.cs</MudListItem>
+                                            <MudListItem Icon="@MythetechFrameworkIcons.Add" IconColor="Color.Success">new-file.cs</MudListItem>
+                                            <MudListItem Icon="@MythetechFrameworkIcons.Round("edit")" IconColor="Color.Warning">modified.cs</MudListItem>
+                                            <MudListItem Icon="@MythetechFrameworkIcons.Delete" IconColor="Color.Error">deleted.cs</MudListItem>
                                         </MudList>
                                     </MudStack>
                                 </PanelContent>
@@ -56,7 +56,7 @@
                         </PanelNavContent>
 
                         <PanelFooterContent>
-                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" Class="mb-2" />
+                            <MudIconButton Icon="@MythetechFrameworkIcons.Settings" Color="Color.Default" Class="mb-2" />
                         </PanelFooterContent>
                     </AppContextDrawer>
                 </MudDrawer>
@@ -82,7 +82,7 @@
                                       ActivePanelId="notifications"
                                       ShowPluginPanels="false">
                         <PanelNavContent>
-                            <ContextPanelItem Id="notifications" Icon="@Icons.Material.Filled.Notifications" Title="Notifications" BadgeColor="Color.Error">
+                            <ContextPanelItem Id="notifications" Icon="@MythetechFrameworkIcons.Round("notifications")" Title="Notifications" BadgeColor="Color.Error">
                                 <PanelContent>
                                     <MudStack Spacing="2">
                                         <MudText Typo="Typo.body1">Notifications</MudText>
@@ -91,13 +91,13 @@
                                 </PanelContent>
                             </ContextPanelItem>
 
-                            <ContextPanelItem Id="status" Icon="@Icons.Material.Filled.Circle" Title="Status" BadgeColor="Color.Success">
+                            <ContextPanelItem Id="status" Icon="@MythetechFrameworkIcons.Circle" Title="Status" BadgeColor="Color.Success">
                                 <PanelContent>
                                     <MudText Typo="Typo.body1">All systems operational</MudText>
                                 </PanelContent>
                             </ContextPanelItem>
 
-                            <ContextPanelItem Id="sync" Icon="@Icons.Material.Filled.Sync" Title="Sync" BadgeColor="Color.Warning">
+                            <ContextPanelItem Id="sync" Icon="@MythetechFrameworkIcons.Round("sync")" Title="Sync" BadgeColor="Color.Warning">
                                 <PanelContent>
                                     <MudText Typo="Typo.body1">Syncing...</MudText>
                                     <MudProgressLinear Indeterminate="true" Color="Color.Warning" />

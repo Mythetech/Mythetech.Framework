@@ -6,6 +6,7 @@
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Infrastructure.Mcp.Messages
 @using Mythetech.Framework.Infrastructure.Mcp.Server
+@using Mythetech.Framework
 @inject McpServerState McpState
 @inject IMessageBus MessageBus
 @inject IDialogService DialogService
@@ -18,23 +19,23 @@
          TransformOrigin="Origin.TopLeft"
          Dense="true"
          Label="@MenuLabel"
-         StartIcon="@Icons.Material.Filled.Api"
+         StartIcon="@MythetechFrameworkIcons.Api"
          ListClass="pa-1">
     <MudMenuItem Class="rounded"
-                 Icon="@(McpState.IsRunning ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)"
+                 Icon="@(McpState.IsRunning ? MythetechFrameworkIcons.Stop : MythetechFrameworkIcons.PlayArrow)"
                  OnClick="HandleToggleServer">
         @(McpState.IsRunning ? "Disable" : "Enable")
     </MudMenuItem>
 
     <MudMenuItem Class="rounded"
-                 Icon="@Icons.Material.Filled.Terminal"
+                 Icon="@MythetechFrameworkIcons.Terminal"
                  Disabled="@(!McpState.IsRunning || string.IsNullOrEmpty(McpState.HttpEndpoint))"
                  OnClick="HandleAddToClaudeCode">
         Add to Claude Code
     </MudMenuItem>
 
     <MudMenuItem Class="rounded"
-                 Icon="@Icons.Material.Filled.Info"
+                 Icon="@MythetechFrameworkIcons.Info"
                  OnClick="HandleShowInfo">
         Info...
     </MudMenuItem>

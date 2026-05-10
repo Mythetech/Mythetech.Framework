@@ -1,6 +1,7 @@
 @namespace Mythetech.Framework.Components.Input
 @typeparam T
 @using MudBlazor
+@using Mythetech.Framework
 
 <div class="mt-text-field @_rootClass @Class" style="@Style">
     @if (Adornment == MudBlazor.Adornment.Start && !string.IsNullOrEmpty(AdornmentIcon))
@@ -49,7 +50,7 @@
     @if (Clearable && !string.IsNullOrEmpty(_text))
     {
         <button class="mt-tf-adornment mt-tf-clear" tabindex="-1" @onclick="HandleClearAsync" type="button">
-            <MudIcon Icon="@Icons.Material.Rounded.Close" Size="Size.Small" />
+            <MudIcon Icon="@MythetechFrameworkIcons.Close" Size="Size.Small" />
         </button>
     }
 

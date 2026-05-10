@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using MudBlazor.Services;
+using Mythetech.Framework;
 using Mythetech.Framework.Components.Badge;
 using Mythetech.Framework.Enums;
 using Shouldly;
@@ -153,7 +154,7 @@ public class BadgeTests : TestContext
         // Arrange & Act
         var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "With Icon")
-            .Add(p => p.Icon, Icons.Material.Filled.Check));
+            .Add(p => p.Icon, MythetechFrameworkIcons.Round("check")));
 
         // Assert
         cut.Markup.ShouldContain("mythetech-badge-icon");

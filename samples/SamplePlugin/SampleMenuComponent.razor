@@ -1,4 +1,5 @@
 @using MudBlazor
+@using Mythetech.Framework
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.Plugins.Components
 @inherits PluginMenu
@@ -6,7 +7,7 @@
 @* This component is rendered by PluginMenuHost - it has full Blazor lifecycle *@
 
 @code {
-    public override string Icon => Icons.Material.Filled.Extension;
+    public override string Icon => MythetechFrameworkIcons.Extension;
     public override string Title => "Sample Plugin";
     public override int Order => 50;
     public override string? Tooltip => "Sample Plugin Actions";
@@ -19,13 +20,13 @@
     [
         new PluginMenuItem
         {
-            Icon = Icons.Material.Filled.Send,
+            Icon = MythetechFrameworkIcons.Round("send"),
             Text = $"Send Message (sent: {MessageCount})",
             OnClick = SendMessage
         },
         new PluginMenuItem
         {
-            Icon = Icons.Material.Filled.Refresh,
+            Icon = MythetechFrameworkIcons.Refresh,
             Text = "Reset Counter",
             OnClick = ResetCounter
         }

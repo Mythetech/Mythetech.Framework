@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
-using MudBlazor;
 using Mythetech.Framework.Infrastructure.Settings;
 
 namespace Mythetech.Framework.Infrastructure.FeatureFlags;
@@ -29,7 +28,7 @@ public abstract class FeatureFlagsSettingsBase : SettingsBase
     /// <summary>
     /// Default icon for feature flag settings sections.
     /// </summary>
-    public override string Icon => Icons.Material.Filled.Flag;
+    public override string Icon => MythetechFrameworkIcons.Flag;
 
     /// <summary>
     /// Feature flags appear after MCP settings in the settings UI.

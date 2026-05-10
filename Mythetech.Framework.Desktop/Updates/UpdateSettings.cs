@@ -1,4 +1,4 @@
-using MudBlazor;
+using Mythetech.Framework;
 using Mythetech.Framework.Desktop.Updates.Components;
 using Mythetech.Framework.Infrastructure.Settings;
 
@@ -16,7 +16,7 @@ public class UpdateSettings : SettingsBase
     public override string DisplayName => "Updates";
 
     /// <inheritdoc />
-    public override string Icon => Icons.Material.Filled.SystemUpdate;
+    public override string Icon => MythetechFrameworkIcons.SystemUpdate;
 
     /// <inheritdoc />
     public override int Order => 100;

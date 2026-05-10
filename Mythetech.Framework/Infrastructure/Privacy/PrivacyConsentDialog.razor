@@ -1,6 +1,7 @@
 @using MudBlazor
 @using Mythetech.Framework.Components.Links
 @using Mythetech.Framework.Infrastructure.Settings
+@using Mythetech.Framework
 
 <MudDialog Class="mf-privacy-dialog">
     <DialogContent>
@@ -15,13 +16,13 @@
             <div>
                 <MudText Typo="Typo.subtitle2"><strong>What's included:</strong></MudText>
                 <MudList T="string" Dense="true" ReadOnly="true">
-                    <MudListItem Icon="@Icons.Material.Filled.BugReport" Text="Exception type, message, and stack trace frames" />
-                    <MudListItem Icon="@Icons.Material.Filled.ErrorOutline" Text="Error and critical log messages" />
-                    <MudListItem Icon="@Icons.Material.Filled.Computer" Text="Platform info (OS, version, CPU architecture, .NET version)" />
-                    <MudListItem Icon="@Icons.Material.Filled.Info" Text="Product name and version" />
-                    <MudListItem Icon="@Icons.Material.Filled.Language" Text="System locale" />
-                    <MudListItem Icon="@Icons.Material.Filled.Schedule" Text="Crash source type and UTC timestamp" />
-                    <MudListItem Icon="@Icons.Material.Filled.Tag" Text="An anonymous session ID (generated fresh each launch - cannot link separate app runs or identify you)" />
+                    <MudListItem Icon="@MythetechFrameworkIcons.BugReport" Text="Exception type, message, and stack trace frames" />
+                    <MudListItem Icon="@MythetechFrameworkIcons.Error" Text="Error and critical log messages" />
+                    <MudListItem Icon="@MythetechFrameworkIcons.Computer" Text="Platform info (OS, version, CPU architecture, .NET version)" />
+                    <MudListItem Icon="@MythetechFrameworkIcons.Info" Text="Product name and version" />
+                    <MudListItem Icon="@MythetechFrameworkIcons.Language" Text="System locale" />
+                    <MudListItem Icon="@MythetechFrameworkIcons.Schedule" Text="Crash source type and UTC timestamp" />
+                    <MudListItem Icon="@MythetechFrameworkIcons.Tag" Text="An anonymous session ID (generated fresh each launch - cannot link separate app runs or identify you)" />
                 </MudList>
             </div>
         </MudStack>

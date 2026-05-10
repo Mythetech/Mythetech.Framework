@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using MudBlazor.Services;
+using Mythetech.Framework;
 using Mythetech.Framework.Components.Input;
 using Shouldly;
 
@@ -270,7 +271,7 @@ public class MtNumericFieldTests : TestContext
     {
         var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Adornment, Adornment.Start)
-            .Add(p => p.AdornmentIcon, Icons.Material.Filled.AttachMoney));
+            .Add(p => p.AdornmentIcon, MythetechFrameworkIcons.Round("attach_money")));
 
         cut.FindAll(".mt-nf-adornment-start").Count.ShouldBe(1);
     }

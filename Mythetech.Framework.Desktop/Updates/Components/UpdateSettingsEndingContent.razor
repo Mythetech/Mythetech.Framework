@@ -1,4 +1,5 @@
 @using MudBlazor
+@using Mythetech.Framework
 @using Mythetech.Framework.Components.Buttons
 @using Mythetech.Framework.Desktop.Updates.Events
 @using Mythetech.Framework.Infrastructure.Commands
@@ -74,7 +75,7 @@
     }
 
     <MtButton Text="Check for Updates"
-            StartIcon="@Icons.Material.Filled.Refresh"
+            StartIcon="@MythetechFrameworkIcons.Refresh"
             Variant="Variant.Outlined"
             Disabled="@(_isChecking || !UpdateService.IsInstalled)"
             OnClick="CheckForUpdates" />

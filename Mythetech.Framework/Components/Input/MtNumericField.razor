@@ -1,6 +1,7 @@
 @namespace Mythetech.Framework.Components.Input
 @typeparam T where T : struct, IComparable<T>
 @using MudBlazor
+@using Mythetech.Framework
 
 <div class="mt-numeric-field @_rootClass @Class" style="@Style">
     @if (Adornment == MudBlazor.Adornment.Start && !string.IsNullOrEmpty(AdornmentIcon))
@@ -29,7 +30,7 @@
     @if (Clearable && Value.HasValue)
     {
         <button class="mt-nf-adornment mt-nf-clear" tabindex="-1" @onclick="HandleClearAsync" type="button">
-            <MudIcon Icon="@Icons.Material.Rounded.Close" Size="Size.Small" />
+            <MudIcon Icon="@MythetechFrameworkIcons.Close" Size="Size.Small" />
         </button>
     }
 
@@ -42,10 +43,10 @@
 
     <div class="mt-nf-spinners">
         <button class="mt-nf-spinner-up" tabindex="-1" @onclick="IncrementAsync" type="button" disabled="@(Disabled || ReadOnly || IsAtMax)">
-            <MudIcon Icon="@Icons.Material.Rounded.KeyboardArrowUp" Size="Size.Small" />
+            <MudIcon Icon="@MythetechFrameworkIcons.KeyboardArrowUp" Size="Size.Small" />
         </button>
         <button class="mt-nf-spinner-down" tabindex="-1" @onclick="DecrementAsync" type="button" disabled="@(Disabled || ReadOnly || IsAtMin)">
-            <MudIcon Icon="@Icons.Material.Rounded.KeyboardArrowDown" Size="Size.Small" />
+            <MudIcon Icon="@MythetechFrameworkIcons.KeyboardArrowDown" Size="Size.Small" />
         </button>
     </div>
 
