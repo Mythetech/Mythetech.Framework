@@ -4,6 +4,7 @@
 @using Mythetech.Framework.Components.Buttons
 @using Mythetech.Framework.Components.Switch
 @using Mythetech.Framework.Infrastructure.Environment
+@using Mythetech.Framework
 @using System.IO.Compression
 @using System.Net.Http
 @using Microsoft.Extensions.DependencyInjection
@@ -53,12 +54,12 @@
                                 </MtBadge>
                             </MudTd>
                             <MudTd DataLabel="Actions">
-                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Variant="Variant.Text">
-                                    <MudMenuItem Icon="@(context.IsEnabled ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)"
+                                <MudMenu Icon="@MythetechFrameworkIcons.MoreVert" Size="Size.Small" Variant="Variant.Text">
+                                    <MudMenuItem Icon="@(context.IsEnabled ? MythetechFrameworkIcons.Block : MythetechFrameworkIcons.CheckCircle)"
                                                  OnClick="@(() => HandleTogglePlugin(context))">
                                         @(context.IsEnabled ? "Disable" : "Enable")
                                     </MudMenuItem>
-                                    <MudMenuItem Icon="@Icons.Material.Filled.Delete"
+                                    <MudMenuItem Icon="@MythetechFrameworkIcons.Delete"
                                                  OnClick="@(() => HandleDeletePlugin(context))">
                                         Delete
                                     </MudMenuItem>
@@ -114,7 +115,7 @@
                                             <MtButton Size="Size.Small"
                                                     Variant="Variant.Filled"
                                                     Color="Color.Default"
-                                                    StartIcon="@Icons.Material.Filled.Block"
+                                                    StartIcon="@MythetechFrameworkIcons.Block"
                                                     Disabled="true"
                                                     Text="@(isUpgrade ? "Upgrade" : "Install")" />
                                         </MudTooltip>
@@ -124,7 +125,7 @@
                                         <MtButton Size="Size.Small"
                                                 Variant="Variant.Filled"
                                                 Color="Color.Warning"
-                                                StartIcon="@Icons.Material.Filled.Upgrade"
+                                                StartIcon="@MythetechFrameworkIcons.Upgrade"
                                                 OnClick="@(() => HandleInstallPlugin(context))"
                                                 Disabled="@_isInstalling"
                                                 Text="Upgrade" />
@@ -134,7 +135,7 @@
                                         <MtButton Size="Size.Small"
                                                 Variant="Variant.Filled"
                                                 Color="Color.Primary"
-                                                StartIcon="@Icons.Material.Filled.Download"
+                                                StartIcon="@MythetechFrameworkIcons.Download"
                                                 OnClick="@(() => HandleInstallPlugin(context))"
                                                 Disabled="@_isInstalling"
                                                 Text="Install" />

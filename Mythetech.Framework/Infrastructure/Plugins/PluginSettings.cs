@@ -1,4 +1,3 @@
-using MudBlazor;
 using Mythetech.Framework.Infrastructure.Settings;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
@@ -16,7 +15,7 @@ public class PluginSettings : SettingsBase
     public override string DisplayName => "Plugins";
 
     /// <inheritdoc />
-    public override string Icon => Icons.Material.Filled.Extension;
+    public override string Icon => MythetechFrameworkIcons.Extension;
 
     /// <inheritdoc />
     public override int Order => 500;

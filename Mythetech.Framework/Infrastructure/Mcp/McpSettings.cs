@@ -1,4 +1,3 @@
-using MudBlazor;
 using Mythetech.Framework.Infrastructure.Settings;
 
 namespace Mythetech.Framework.Infrastructure.Mcp;
@@ -16,7 +15,7 @@ public class McpSettings : SettingsBase
     public override string DisplayName => "MCP Server";
 
     /// <inheritdoc />
-    public override string Icon => Icons.Material.Filled.Api;
+    public override string Icon => MythetechFrameworkIcons.Api;
 
     /// <inheritdoc />
     public override int Order => 300;

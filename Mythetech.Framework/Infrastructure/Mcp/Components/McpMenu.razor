@@ -3,6 +3,7 @@
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Infrastructure.Mcp.Messages
 @using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework
 @inject McpServerState McpState
 @inject IMessageBus MessageBus
 @inject IDialogService DialogService
@@ -20,7 +21,7 @@
                     @MenuText
                     @if (McpState.IsRunning)
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="font-size: 10px;" />
+                        <MudIcon Icon="@MythetechFrameworkIcons.Circle" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="font-size: 10px;" />
                     }
                 </ChildContent>
             </MtButton>
@@ -28,7 +29,7 @@
     </ActivatorContent>
     <ChildContent>
         <MudMenuItem Class="@ItemClass"
-                     Icon="@(McpState.IsRunning ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)"
+                     Icon="@(McpState.IsRunning ? MythetechFrameworkIcons.Stop : MythetechFrameworkIcons.PlayArrow)"
                      OnClick="HandleToggleServer">
             @(McpState.IsRunning ? "Disable Server" : "Enable Server")
         </MudMenuItem>
@@ -36,7 +37,7 @@
         <MudDivider />
 
         <MudMenuItem Class="@ItemClass"
-                     Icon="@Icons.Material.Filled.Info"
+                     Icon="@MythetechFrameworkIcons.Info"
                      OnClick="HandleShowInfo">
             MCP Info
         </MudMenuItem>

@@ -1,5 +1,5 @@
 using System.Reflection;
-using MudBlazor;
+using Mythetech.Framework;
 using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.Storybook.Stories;
@@ -61,7 +61,7 @@ public static class StorybookPluginData
     {
         ComponentType = typeof(StorybookPluginData),
         Title = "Demo Component",
-        Icon = Icons.Material.Filled.Extension,
+        Icon = MythetechFrameworkIcons.Extension,
         Order = 1,
         Tooltip = "A demonstration plugin component"
     };
@@ -73,7 +73,7 @@ public static class StorybookPluginData
         public required Version Version { get; init; }
         public required string Developer { get; init; }
         public required string Description { get; init; }
-        public string? Icon => Icons.Material.Filled.Extension;
+        public string? Icon => MythetechFrameworkIcons.Extension;
         public string? ProjectUrl => "https://github.com/mythetech/Mythetech.Framework";
         public Version? MinimumFrameworkVersion => new Version(10, 0, 0);
         public PluginAsset[] Assets => [];

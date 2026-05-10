@@ -1,4 +1,3 @@
-using MudBlazor;
 using Mythetech.Framework.Infrastructure.Settings;
 
 namespace Mythetech.Framework.Infrastructure.Privacy;
@@ -16,7 +15,7 @@ public class PrivacySettings : SettingsBase
     public override string DisplayName => "Privacy";
 
     /// <inheritdoc />
-    public override string Icon => Icons.Material.Filled.Shield;
+    public override string Icon => MythetechFrameworkIcons.Privacy;
 
     /// <inheritdoc />
     public override int Order => int.MaxValue;

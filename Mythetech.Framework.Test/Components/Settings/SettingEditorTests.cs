@@ -3,6 +3,7 @@ using Bunit;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using MudBlazor.Services;
+using Mythetech.Framework;
 using Mythetech.Framework.Components.Settings.Editors;
 using Mythetech.Framework.Infrastructure.Settings;
 using Shouldly;
@@ -26,7 +27,7 @@ public class SettingEditorTests : TestContext
     {
         public override string SettingsId => "test";
         public override string DisplayName => "Test Settings";
-        public override string Icon => Icons.Material.Filled.Settings;
+        public override string Icon => MythetechFrameworkIcons.Settings;
 
         [Setting(Label = "Bool Setting", Description = "A boolean setting")]
         public bool BoolValue { get; set; }

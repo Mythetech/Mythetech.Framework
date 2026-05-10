@@ -1,6 +1,7 @@
 @using Mythetech.Framework.Infrastructure.Guards
 @using Microsoft.JSInterop
 @using MudBlazor
+@using Mythetech.Framework
 @inject IJsGuardService GuardService
 @inject IJSRuntime JS
 
@@ -18,7 +19,7 @@
             else
             {
                 <div class="js-guard-error mud-border-error">
-                    <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                    <MudIconButton Icon="@MythetechFrameworkIcons.Refresh"
                                    Size="Size.Small"
                                    Color="Color.Error"
                                    OnClick="Recover"
@@ -40,7 +41,7 @@ else if (_timedOut)
     else
     {
         <div class="js-guard-error mud-border-error">
-            <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+            <MudIconButton Icon="@MythetechFrameworkIcons.Refresh"
                            Size="Size.Small"
                            Color="Color.Error"
                            OnClick="RetryGuard"

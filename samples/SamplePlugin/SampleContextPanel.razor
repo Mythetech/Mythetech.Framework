@@ -1,7 +1,8 @@
 @using MudBlazor
+@using Mythetech.Framework
 @using Mythetech.Framework.Infrastructure.Plugins.Components
 @attribute [PluginComponentMetadata(
-    Icon = Icons.Material.Filled.Dashboard,
+    Icon = "material-symbols-rounded/dashboard",
     Title = "Sample Panel",
     Order = 10)]
 @inherits PluginContextPanel
@@ -47,7 +48,7 @@
 </MudPaper>
 
 @code {
-    public override string Icon => Icons.Material.Filled.Dashboard;
+    public override string Icon => MythetechFrameworkIcons.Dashboard;
     public override string Title => "Sample Panel";
     public override int Order => 10;
     

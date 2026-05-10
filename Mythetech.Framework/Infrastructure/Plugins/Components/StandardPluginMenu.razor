@@ -3,6 +3,7 @@
 @using Mythetech.Framework.Infrastructure.Files
 @using Mythetech.Framework.Infrastructure.Guards
 @using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework
 @inject PluginState PluginState
 @inject PluginLoader PluginLoader
 @inject IFileOpenService FileOpenService
@@ -45,18 +46,18 @@
                         <MudDivider />
                     }
                     
-                    <MudMenuItem Class="@ItemClass" 
-                                Icon="@Icons.Material.Filled.Info" 
+                    <MudMenuItem Class="@ItemClass"
+                                Icon="@MythetechFrameworkIcons.Info"
                                 OnClick="() => HandleAboutPlugin(plugin)">
                         About...
                     </MudMenuItem>
-                    <MudMenuItem Class="@ItemClass" 
-                                Icon="@(plugin.IsEnabled ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
+                    <MudMenuItem Class="@ItemClass"
+                                Icon="@(plugin.IsEnabled ? MythetechFrameworkIcons.Block : MythetechFrameworkIcons.CheckCircle)"
                                 OnClick="() => HandleDisablePlugin(plugin)">
                         @(plugin.IsEnabled ? "Disable" : "Enable")
                     </MudMenuItem>
-                    <MudMenuItem Class="@ItemClass" 
-                                Icon="@Icons.Material.Filled.Delete" 
+                    <MudMenuItem Class="@ItemClass"
+                                Icon="@MythetechFrameworkIcons.Delete"
                                 OnClick="() => HandleDeletePlugin(plugin)">
                         Delete...
                     </MudMenuItem>
@@ -68,7 +69,7 @@
             <MudDivider />
         }
         
-        <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.Apps" OnClick="HandleViewPlugins">
+        <MudMenuItem Class="@ItemClass" Icon="@MythetechFrameworkIcons.Apps" OnClick="HandleViewPlugins">
             View Plugins
         </MudMenuItem>
 
@@ -83,10 +84,10 @@
 
         <MudDivider />
         
-        <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.FileUpload" OnClick="HandleImportPlugin">
+        <MudMenuItem Class="@ItemClass" Icon="@MythetechFrameworkIcons.FileUpload" OnClick="HandleImportPlugin">
             Import Plugin...
         </MudMenuItem>
-        <MudMenuItem Class="@ItemClass" Icon="@Icons.Material.Filled.Link" OnClick="HandleImportPluginFromUrl">
+        <MudMenuItem Class="@ItemClass" Icon="@MythetechFrameworkIcons.Link" OnClick="HandleImportPluginFromUrl">
             Import from URL...
         </MudMenuItem>
     </ChildContent>
