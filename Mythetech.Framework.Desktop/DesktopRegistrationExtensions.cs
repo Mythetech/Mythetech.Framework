@@ -31,6 +31,7 @@ public static class DesktopRegistrationExtensions
         }
 
         services.AddLinkOpenService();
+        services.AddCopyToClipboard();
         services.AddPluginStorage();
         services.AddDesktopAssetLoader();
         services.AddShowFileService();
@@ -56,6 +57,13 @@ public static class DesktopRegistrationExtensions
     public static IServiceCollection AddLinkOpenService(this IServiceCollection services)
     {
         services.AddTransient<ILinkOpenService, LinkOpenService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddCopyToClipboard(this IServiceCollection services)
+    {
+        services.AddTransient<ICopyToClipboard, TextCopyClipboardService>();
 
         return services;
     }
