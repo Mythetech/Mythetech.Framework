@@ -1,0 +1,82 @@
+@using MudBlazor
+@using Mythetech.Framework
+@using Mythetech.Framework.Infrastructure
+@inherits MudComponentBase
+@implements IDisposable
+@inject ICopyToClipboard CopyToClipboardService
+
+<span class="@WrapperClass" data-copied="@_copied.ToString()">
+    <MtIconButton Icon="@CurrentIcon"
+                  Tooltip="@CurrentTooltip"
+                  TooltipPlacement="@TooltipPlacement"
+                  OnClick="@OnCopyClickAsync"
+                  Color="@Color"
+                  Size="@Size"
+                  Variant="@Variant"
+                  Disabled="@(Disabled || string.IsNullOrEmpty(Text))"
+                  Class="@Class"
+                  Style="@Style" />
+</span>
+
+@code {
+    private bool _copied;
+    private CancellationTokenSource? _resetCts;
+
+    [Parameter] public string Text { get; set; } = string.Empty;
+
+    [Parameter] public string CopyTooltip { get; set; } = "Copy";
+
+    [Parameter] public string CopiedTooltip { get; set; } = "Copied";
+
+    [Parameter] public TimeSpan ResetDelay { get; set; } = TimeSpan.FromMilliseconds(1500);
+
+    [Parameter] public Color Color { get; set; } = Color.Default;
+
+    [Parameter] public Size Size { get; set; } = Size.Medium;
+
+    [Parameter] public Variant Variant { get; set; } = Variant.Text;
+
+    [Parameter] public Placement TooltipPlacement { get; set; } = Placement.Bottom;
+
+    [Parameter] public bool Disabled { get; set; }
+
+    private string WrapperClass => _copied ? "mt-copy-button mt-copy-button--copied" : "mt-copy-button";
+
+    private string CurrentIcon => _copied ? MythetechFrameworkIcons.Check : MythetechFrameworkIcons.ContentCopy;
+
+    private string CurrentTooltip => _copied ? CopiedTooltip : CopyTooltip;
+
+    private async Task OnCopyClickAsync()
+    {
+        if (string.IsNullOrEmpty(Text)) return;
+
+        await CopyToClipboardService.CopyToClipboardAsync(Text);
+
+        _resetCts?.Cancel();
+        _resetCts?.Dispose();
+        _resetCts = new CancellationTokenSource();
+        var token = _resetCts.Token;
+
+        _copied = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(ResetDelay, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        _copied = false;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _resetCts?.Cancel();
+        _resetCts?.Dispose();
+        _resetCts = null;
+    }
+}

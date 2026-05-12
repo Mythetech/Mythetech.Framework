@@ -1,0 +1,32 @@
+.mt-copy-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mt-copy-button ::deep .mud-icon-button .mud-icon-root {
+    transition: transform 180ms ease-out, opacity 180ms ease-out;
+    transform: scale(1);
+    opacity: 1;
+}
+
+.mt-copy-button--copied ::deep .mud-icon-button .mud-icon-root {
+    transform: scale(1.15);
+    opacity: 1;
+    animation: mt-copy-pop 240ms ease-out;
+}
+
+@keyframes mt-copy-pop {
+    0% {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+}

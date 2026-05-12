@@ -9,6 +9,7 @@ using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Shell;
 using Mythetech.Framework.WebAssembly.Environment;
+using Mythetech.Framework.WebAssembly.Services;
 using Mythetech.Framework.WebAssembly.Shell;
 using Mythetech.Framework.WebAssembly.Storage.LocalStorage;
 
@@ -25,7 +26,17 @@ public static class WebAssemblyRegistrationExtensions
     public static IServiceCollection AddLinkOpeningService(this IServiceCollection services)
     {
         services.AddTransient<ILinkOpenService, JavaScriptLinkOpenService>();
-        
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the copy-to-clipboard service for WebAssembly, delegating to MudBlazor's <c>IJsApiService</c>.
+    /// </summary>
+    public static IServiceCollection AddCopyToClipboard(this IServiceCollection services)
+    {
+        services.AddTransient<ICopyToClipboard, JsCopyToClipboardService>();
+
         return services;
     }
 
@@ -76,6 +87,7 @@ public static class WebAssemblyRegistrationExtensions
     public static IServiceCollection AddWebAssemblyServices(this IServiceCollection services)
     {
         services.AddLinkOpeningService();
+        services.AddCopyToClipboard();
         services.AddFileOpenService();
         services.AddFileSaveService();
         services.AddPluginStorage();

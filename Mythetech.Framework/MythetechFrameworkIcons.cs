@@ -14,11 +14,13 @@ public static class MythetechFrameworkIcons
     public static string Block => Round("block");
     public static string BugReport => Round("bug_report");
     public static string Build => Round("build");
+    public static string Check => Round("check");
     public static string CheckCircle => Round("check_circle");
     public static string ChevronLeft => Round("chevron_left");
     public static string Circle => Round("circle");
     public static string Close => Round("close");
     public static string Computer => Round("computer");
+    public static string ContentCopy => Round("content_copy");
     public static string Dashboard => Round("dashboard");
     public static string DarkMode => Round("dark_mode");
     public static string Delete => Round("delete");
