@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleHost.Shared", "sample
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Framework.AI.Generator", "Mythetech.Framework.AI.Generator\Mythetech.Framework.AI.Generator.csproj", "{284DCC55-CFBC-4E96-9A42-40C02B2ED911}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleHost.Server", "samples\SampleHost.Server\SampleHost.Server.csproj", "{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -152,6 +154,18 @@ Global
 		{284DCC55-CFBC-4E96-9A42-40C02B2ED911}.Release|x64.Build.0 = Release|Any CPU
 		{284DCC55-CFBC-4E96-9A42-40C02B2ED911}.Release|x86.ActiveCfg = Release|Any CPU
 		{284DCC55-CFBC-4E96-9A42-40C02B2ED911}.Release|x86.Build.0 = Release|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Debug|x64.Build.0 = Debug|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Debug|x86.Build.0 = Debug|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|x64.ActiveCfg = Release|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|x64.Build.0 = Release|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|x86.ActiveCfg = Release|Any CPU
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -161,5 +175,6 @@ Global
 		{AB2FCEE7-C4DF-4342-AAA6-FB344420CBF4} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{61221248-C220-4ECD-A6F5-CBC4451DFE6F} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{B8247D74-8BB2-4DA9-B4FE-2832408813C4} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 EndGlobal
