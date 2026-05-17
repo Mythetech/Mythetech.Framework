@@ -1,0 +1,33 @@
+@using MudBlazor
+
+<MudThemeProvider Theme="_theme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<Router AppAssembly="@typeof(Routes).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+</Router>
+
+@code {
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#7C4DFF",
+            Secondary = "#00BFA5",
+            AppbarBackground = "#1E1E2E"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#7C4DFF",
+            Secondary = "#00BFA5",
+            Background = "#1E1E2E",
+            Surface = "#2D2D3D",
+            AppbarBackground = "#1E1E2E"
+        }
+    };
+}

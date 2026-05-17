@@ -1,0 +1,66 @@
+@page "/copy"
+@using MudBlazor
+@using Mythetech.Framework.Components.Buttons
+
+<MudText Typo="Typo.h4" Class="mb-4">Copy Demo</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">
+    Click the copy button to copy the JSON payload below to your clipboard.
+</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 position-relative">
+    <div class="d-flex justify-end mb-2">
+        <MtCopyButton Text="@SampleJson" CopyTooltip="Copy JSON" />
+    </div>
+    <pre class="json-block">@SampleJson</pre>
+</MudPaper>
+
+@code {
+    private const string SampleJson = """
+        {
+          "application": {
+            "name": "SampleHost.Server",
+            "version": "1.0.0",
+            "framework": "Mythetech.Framework",
+            "hosting": "Blazor Server (Interactive)"
+          },
+          "configuration": {
+            "theme": {
+              "mode": "dark",
+              "primary": "#7C4DFF",
+              "secondary": "#00BFA5"
+            },
+            "features": {
+              "plugins": true,
+              "settings": true,
+              "messageBus": true,
+              "copyToClipboard": true
+            }
+          },
+          "plugins": [
+            {
+              "id": "sample-plugin",
+              "name": "Sample Plugin",
+              "version": "1.0.0",
+              "enabled": true,
+              "capabilities": ["contextPanel", "menuItems", "pages"]
+            }
+          ],
+          "endpoints": [
+            {
+              "path": "/",
+              "description": "Home page"
+            },
+            {
+              "path": "/copy",
+              "description": "Copy button demonstration"
+            }
+          ],
+          "metadata": {
+            "createdAt": "2026-05-16T00:00:00Z",
+            "runtime": ".NET 10",
+            "renderMode": "InteractiveServer",
+            "transport": "SignalR WebSocket"
+          }
+        }
+        """;
+}
