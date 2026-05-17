@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Files;
 
-namespace Mythetech.Framework.WebAssembly;
+namespace Mythetech.Framework.WebAssembly.Services;
 
 /// <summary>
 /// WebAssembly implementation of IShowFileService that logs unsupported operations

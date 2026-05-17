@@ -1,9 +1,7 @@
-using KristofferStrube.Blazor.FileSystemAccess;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure;
 
-namespace Mythetech.Framework.WebAssembly;
+namespace Mythetech.Framework.WebAssembly.Services;
 
 /// <summary>
 /// WebAssembly implementation of link opening using JavaScript interop

@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.WebAssembly.Exceptions;
 
-namespace Mythetech.Framework.WebAssembly;
+namespace Mythetech.Framework.WebAssembly.Services;
 
 /// <summary>
 /// WebAssembly implementation of file save service using the File System Access API
