@@ -1,0 +1,46 @@
+@page "/copy"
+@using MudBlazor
+@using Mythetech.Framework.Components.Buttons
+
+<MudText Typo="Typo.h4" Class="mb-4">Copy Demo</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">
+    Click the copy button to copy the JSON payload below to your clipboard.
+</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <div class="d-flex justify-end mb-2">
+        <MtCopyButton Text="@SampleJson" CopyTooltip="Copy JSON" />
+    </div>
+    <pre style="margin: 0; font-family: monospace; font-size: 0.85rem; line-height: 1.5; white-space: pre; overflow-x: auto;">@SampleJson</pre>
+</MudPaper>
+
+@code {
+    private const string SampleJson = """
+        {
+          "application": {
+            "name": "SampleHost.Desktop",
+            "version": "1.0.0",
+            "framework": "Mythetech.Framework",
+            "hosting": "Blazor Hybrid (Photino)"
+          },
+          "configuration": {
+            "theme": {
+              "mode": "dark",
+              "primary": "#7C4DFF",
+              "secondary": "#00BFA5"
+            },
+            "features": {
+              "plugins": true,
+              "settings": true,
+              "messageBus": true,
+              "copyToClipboard": true
+            }
+          },
+          "metadata": {
+            "runtime": ".NET 10",
+            "renderMode": "Blazor Hybrid",
+            "transport": "Direct WebView IPC"
+          }
+        }
+        """;
+}

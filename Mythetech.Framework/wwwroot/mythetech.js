@@ -338,3 +338,45 @@ export function getDrawerWidth() {
     const value = getComputedStyle(document.documentElement).getPropertyValue('--mud-drawer-width-left');
     return parseInt(value, 10) || 300;
 }
+
+// ============================================================================
+// Clipboard Support
+// ============================================================================
+
+// Registry mapping element IDs to clipboard text values
+const clipboardRegistry = new Map();
+
+/**
+ * Registers text to be copied when an element with the given ID is clicked.
+ * The element must have a `data-mt-clipboard` attribute.
+ *
+ * @param {string} elementId - The id attribute of the clipboard button element
+ * @param {string} text - The text to copy to the clipboard when clicked
+ */
+export function registerClipboard(elementId, text) {
+    clipboardRegistry.set(elementId, text);
+}
+
+/**
+ * Unregisters a clipboard entry, removing it from the registry.
+ *
+ * @param {string} elementId - The id attribute previously passed to registerClipboard
+ */
+export function unregisterClipboard(elementId) {
+    clipboardRegistry.delete(elementId);
+}
+
+// Delegated click handler: runs within the user activation context so
+// navigator.clipboard.writeText succeeds on Safari (no SignalR round-trip).
+document.addEventListener('click', (e) => {
+    const button = e.target.closest('[data-mt-clipboard]');
+    if (!button) return;
+
+    const id = button.id;
+    const text = clipboardRegistry.get(id);
+    if (text === undefined) return;
+
+    navigator.clipboard.writeText(text).catch((err) => {
+        console.warn('[Mythetech] Clipboard write failed:', err);
+    });
+});
