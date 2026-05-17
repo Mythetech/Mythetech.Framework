@@ -2,15 +2,15 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
 using Mythetech.Framework.Components.Buttons;
-using Mythetech.Framework.Infrastructure;
-using NSubstitute;
 using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Buttons;
 
 public class CopyButtonTests : TestContext
 {
-    private readonly ICopyToClipboard _clipboard;
+    private const string JsModulePath = "./_content/Mythetech.Framework/mythetech.js";
+
+    private readonly JSRuntimeInvocationHandler _unregisterHandler;
 
     public CopyButtonTests()
     {
@@ -18,9 +18,9 @@ public class CopyButtonTests : TestContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         RenderTree.Add<PopoverTestHost>();
 
-        _clipboard = Substitute.For<ICopyToClipboard>();
-        _clipboard.CopyToClipboardAsync(Arg.Any<string>()).Returns(Task.CompletedTask);
-        Services.AddSingleton(_clipboard);
+        var module = JSInterop.SetupModule(JsModulePath);
+        module.SetupVoid("registerClipboard", _ => true);
+        _unregisterHandler = module.SetupVoid("unregisterClipboard", _ => true);
     }
 
     [Fact(DisplayName = "CopyButton renders the copy icon initially")]
@@ -31,20 +31,48 @@ public class CopyButtonTests : TestContext
         cut.Find(".mt-copy-button").GetAttribute("data-copied").ShouldBe("False");
     }
 
-    [Fact(DisplayName = "CopyButton invokes clipboard service with the Text parameter on click")]
-    public async Task CopyButton_InvokesClipboard_OnClick()
+    [Fact(DisplayName = "CopyButton registers text with JS module on first render")]
+    public void CopyButton_RegistersText_OnFirstRender()
     {
-        var cut = RenderComponent<MtCopyButton>(p => p
-            .Add(x => x.Text, "payload")
-            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(10)));
+        var module = JSInterop.SetupModule(JsModulePath);
+        var registerInvocation = module.SetupVoid("registerClipboard", _ => true);
 
-        await cut.Find("button").ClickAsync(new());
+        var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "payload"));
 
-        await _clipboard.Received(1).CopyToClipboardAsync("payload");
+        registerInvocation.Invocations.Count.ShouldBeGreaterThanOrEqualTo(1);
+        registerInvocation.Invocations["registerClipboard"][0].Arguments[1].ShouldBe("payload");
     }
 
-    [Fact(DisplayName = "CopyButton resets to copy state after ResetDelay elapses")]
-    public async Task CopyButton_ResetsToCopyState_AfterDelay()
+    [Fact(DisplayName = "CopyButton re-registers when Text parameter changes")]
+    public void CopyButton_ReRegisters_WhenTextChanges()
+    {
+        var module = JSInterop.SetupModule(JsModulePath);
+        var registerInvocation = module.SetupVoid("registerClipboard", _ => true);
+
+        var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "first"));
+
+        cut.SetParametersAndRender(p => p.Add(x => x.Text, "second"));
+
+        var secondArgs = registerInvocation.Invocations.Last().Arguments;
+        secondArgs[1].ShouldBe("second");
+    }
+
+    [Fact(DisplayName = "CopyButton does not re-register when Text is unchanged")]
+    public void CopyButton_DoesNotReRegister_WhenTextUnchanged()
+    {
+        var module = JSInterop.SetupModule(JsModulePath);
+        var registerInvocation = module.SetupVoid("registerClipboard", _ => true);
+
+        var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "same"));
+        var countAfterFirstRender = registerInvocation.Invocations.Count;
+
+        cut.SetParametersAndRender(p => p.Add(x => x.Text, "same"));
+
+        registerInvocation.Invocations.Count.ShouldBe(countAfterFirstRender);
+    }
+
+    [Fact(DisplayName = "CopyButton shows copied state on click then resets")]
+    public async Task CopyButton_ShowsCopiedState_ThenResets()
     {
         var cut = RenderComponent<MtCopyButton>(p => p
             .Add(x => x.Text, "payload")
@@ -52,9 +80,7 @@ public class CopyButtonTests : TestContext
 
         await cut.Find("button").ClickAsync(new());
 
-        cut.WaitForAssertion(
-            () => cut.Find(".mt-copy-button").GetAttribute("data-copied").ShouldBe("False"),
-            timeout: TimeSpan.FromSeconds(2));
+        cut.Find(".mt-copy-button").GetAttribute("data-copied").ShouldBe("False");
     }
 
     [Fact(DisplayName = "CopyButton is disabled when Text is empty")]
@@ -65,14 +91,31 @@ public class CopyButtonTests : TestContext
         cut.Find("button").HasAttribute("disabled").ShouldBeTrue();
     }
 
-    [Fact(DisplayName = "CopyButton does not invoke clipboard when Text is empty")]
-    public async Task CopyButton_DoesNotInvokeClipboard_WhenTextEmpty()
+    [Fact(DisplayName = "CopyButton renders data-mt-clipboard attribute")]
+    public void CopyButton_Renders_DataMtClipboardAttribute()
     {
-        var cut = RenderComponent<MtCopyButton>(p => p
-            .Add(x => x.Text, string.Empty)
-            .Add(x => x.Disabled, false));
+        var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "hello"));
 
-        cut.Find("button").HasAttribute("disabled").ShouldBeTrue();
-        await _clipboard.DidNotReceive().CopyToClipboardAsync(Arg.Any<string>());
+        cut.Find("[data-mt-clipboard]").ShouldNotBeNull();
+    }
+
+    [Fact(DisplayName = "CopyButton renders with a unique element ID")]
+    public void CopyButton_Renders_WithUniqueId()
+    {
+        var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "hello"));
+
+        var id = cut.Find("[data-mt-clipboard]").GetAttribute("id");
+        id.ShouldNotBeNullOrEmpty();
+        id.ShouldStartWith("mt-cb-");
+    }
+
+    [Fact(DisplayName = "CopyButton unregisters on dispose")]
+    public void CopyButton_Unregisters_OnDispose()
+    {
+        var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "hello"));
+
+        DisposeComponents();
+        
+        _unregisterHandler.Invocations.Count.ShouldBeGreaterThanOrEqualTo(1);
     }
 }

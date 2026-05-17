@@ -110,7 +110,7 @@ public partial class MtSwitch<T> : MudBooleanInput<T>
         }
     }
 
-    private readonly string _elementId = "switchm3_" + Guid.NewGuid().ToString().Substring(0, 8);
+    private readonly string _elementId = Identifier.Create("mt-switch-");
 
     /// <inheritdoc />
     protected override void OnInitialized()

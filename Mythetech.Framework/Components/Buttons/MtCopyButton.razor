@@ -1,11 +1,11 @@
 @using MudBlazor
 @using Mythetech.Framework
-@using Mythetech.Framework.Infrastructure
+@using Microsoft.JSInterop
 @inherits MudComponentBase
-@implements IDisposable
-@inject ICopyToClipboard CopyToClipboardService
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
 
-<span class="@WrapperClass" data-copied="@_copied.ToString()">
+<span id="@_elementId" class="@WrapperClass" data-copied="@_copied.ToString()" data-mt-clipboard>
     <MtIconButton Icon="@CurrentIcon"
                   Tooltip="@CurrentTooltip"
                   TooltipPlacement="@TooltipPlacement"
@@ -19,8 +19,13 @@
 </span>
 
 @code {
+    private const string JsModulePath = "./_content/Mythetech.Framework/mythetech.js";
+
     private bool _copied;
     private CancellationTokenSource? _resetCts;
+    private IJSObjectReference? _jsModule;
+    private string? _registeredText;
+    private readonly string _elementId = Identifier.Create("mt-cb-");
 
     [Parameter] public string Text { get; set; } = string.Empty;
 
@@ -46,11 +51,33 @@
 
     private string CurrentTooltip => _copied ? CopiedTooltip : CopyTooltip;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", JsModulePath);
+            await RegisterTextAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_jsModule is not null && Text != _registeredText)
+        {
+            await RegisterTextAsync();
+        }
+    }
+
+    private async Task RegisterTextAsync()
+    {
+        if (_jsModule is null) return;
+        _registeredText = Text;
+        await _jsModule.InvokeVoidAsync("registerClipboard", _elementId, Text ?? string.Empty);
+    }
+
     private async Task OnCopyClickAsync()
     {
         if (string.IsNullOrEmpty(Text)) return;
-
-        await CopyToClipboardService.CopyToClipboardAsync(Text);
 
         _resetCts?.Cancel();
         _resetCts?.Dispose();
@@ -73,10 +100,22 @@
         StateHasChanged();
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _resetCts?.Cancel();
         _resetCts?.Dispose();
         _resetCts = null;
+
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("unregisterClipboard", _elementId);
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
     }
 }
