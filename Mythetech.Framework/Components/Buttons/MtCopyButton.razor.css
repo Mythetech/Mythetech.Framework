@@ -10,7 +10,8 @@
     opacity: 1;
 }
 
-.mt-copy-button--copied ::deep .mud-icon-button .mud-icon-root {
+.mt-copy-button--copied ::deep .mud-icon-button .mud-icon-root,
+.mt-copy-button--failed ::deep .mud-icon-button .mud-icon-root {
     transform: scale(1.15);
     opacity: 1;
     animation: mt-copy-pop 240ms ease-out;

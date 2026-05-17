@@ -43,6 +43,17 @@ public class CopyButtonTests : TestContext
         registerInvocation.Invocations["registerClipboard"][0].Arguments[1].ShouldBe("payload");
     }
 
+    [Fact(DisplayName = "CopyButton passes DotNetObjectReference to JS register call")]
+    public void CopyButton_PassesDotNetRef_ToRegisterCall()
+    {
+        var module = JSInterop.SetupModule(JsModulePath);
+        var registerInvocation = module.SetupVoid("registerClipboard", _ => true);
+
+        var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "payload"));
+
+        registerInvocation.Invocations["registerClipboard"][0].Arguments[2].ShouldNotBeNull();
+    }
+
     [Fact(DisplayName = "CopyButton re-registers when Text parameter changes")]
     public void CopyButton_ReRegisters_WhenTextChanges()
     {
@@ -71,16 +82,44 @@ public class CopyButtonTests : TestContext
         registerInvocation.Invocations.Count.ShouldBe(countAfterFirstRender);
     }
 
-    [Fact(DisplayName = "CopyButton shows copied state on click then resets")]
-    public async Task CopyButton_ShowsCopiedState_ThenResets()
+    [Fact(DisplayName = "CopyButton shows copied state on successful copy then resets")]
+    public void CopyButton_ShowsCopiedState_OnSuccess_ThenResets()
     {
         var cut = RenderComponent<MtCopyButton>(p => p
             .Add(x => x.Text, "payload")
             .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
 
-        await cut.Find("button").ClickAsync(new());
+        cut.InvokeAsync(() => cut.Instance.OnCopyResult(true));
+
+        cut.WaitForState(() =>
+            cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--copied"),
+            TimeSpan.FromSeconds(2));
+
+        cut.Find(".mt-copy-button").GetAttribute("data-copied").ShouldBe("True");
+
+        cut.WaitForState(() =>
+            cut.Find(".mt-copy-button").GetAttribute("data-copied") == "False",
+            TimeSpan.FromSeconds(2));
+    }
+
+    [Fact(DisplayName = "CopyButton shows failed state on copy failure then resets")]
+    public void CopyButton_ShowsFailedState_OnFailure_ThenResets()
+    {
+        var cut = RenderComponent<MtCopyButton>(p => p
+            .Add(x => x.Text, "payload")
+            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
+
+        cut.InvokeAsync(() => cut.Instance.OnCopyResult(false));
+
+        cut.WaitForState(() =>
+            cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--failed"),
+            TimeSpan.FromSeconds(2));
 
         cut.Find(".mt-copy-button").GetAttribute("data-copied").ShouldBe("False");
+
+        cut.WaitForState(() =>
+            !cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--failed"),
+            TimeSpan.FromSeconds(2));
     }
 
     [Fact(DisplayName = "CopyButton is disabled when Text is empty")]
@@ -115,7 +154,7 @@ public class CopyButtonTests : TestContext
         var cut = RenderComponent<MtCopyButton>(p => p.Add(x => x.Text, "hello"));
 
         DisposeComponents();
-        
+
         _unregisterHandler.Invocations.Count.ShouldBeGreaterThanOrEqualTo(1);
     }
 }

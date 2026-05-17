@@ -343,7 +343,7 @@ export function getDrawerWidth() {
 // Clipboard Support
 // ============================================================================
 
-// Registry mapping element IDs to clipboard text values
+// Registry mapping element IDs to { text, dotNetRef } entries
 const clipboardRegistry = new Map();
 
 /**
@@ -352,9 +352,10 @@ const clipboardRegistry = new Map();
  *
  * @param {string} elementId - The id attribute of the clipboard button element
  * @param {string} text - The text to copy to the clipboard when clicked
+ * @param {object} dotNetRef - A DotNetObjectReference to invoke on copy result
  */
-export function registerClipboard(elementId, text) {
-    clipboardRegistry.set(elementId, text);
+export function registerClipboard(elementId, text, dotNetRef) {
+    clipboardRegistry.set(elementId, { text, dotNetRef });
 }
 
 /**
@@ -373,10 +374,14 @@ document.addEventListener('click', (e) => {
     if (!button) return;
 
     const id = button.id;
-    const text = clipboardRegistry.get(id);
-    if (text === undefined) return;
+    const entry = clipboardRegistry.get(id);
+    if (!entry) return;
 
-    navigator.clipboard.writeText(text).catch((err) => {
-        console.warn('[Mythetech] Clipboard write failed:', err);
-    });
+    navigator.clipboard.writeText(entry.text).then(
+        () => entry.dotNetRef.invokeMethodAsync('OnCopyResult', true),
+        (err) => {
+            console.warn('[Mythetech] Clipboard write failed:', err);
+            entry.dotNetRef.invokeMethodAsync('OnCopyResult', false);
+        }
+    );
 });
