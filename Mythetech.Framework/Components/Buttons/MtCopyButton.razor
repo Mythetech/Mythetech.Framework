@@ -1,20 +1,36 @@
 @using MudBlazor
 @using Mythetech.Framework
+@using Mythetech.Framework.Enums
+@using Mythetech.Framework.Components.Buttons
 @using Microsoft.JSInterop
 @inherits MudComponentBase
 @implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
 
 <span id="@_elementId" class="@WrapperClass" data-copied="@((_state == CopyState.Copied).ToString())" data-mt-clipboard>
-    <MtIconButton Icon="@CurrentIcon"
-                  Tooltip="@CurrentTooltip"
-                  TooltipPlacement="@TooltipPlacement"
+    @if (CopyVariant == CopyButtonVariant.Text)
+    {
+        <MtButton Text="@CurrentLabel"
+                  EndIcon="@CurrentEndIcon"
                   Color="@CurrentColor"
                   Size="@Size"
                   Variant="@Variant"
                   Disabled="@(Disabled || string.IsNullOrEmpty(Text))"
                   Class="@Class"
                   Style="@Style" />
+    }
+    else
+    {
+        <MtIconButton Icon="@CurrentIcon"
+                      Tooltip="@CurrentTooltip"
+                      TooltipPlacement="@TooltipPlacement"
+                      Color="@CurrentColor"
+                      Size="@Size"
+                      Variant="@Variant"
+                      Disabled="@(Disabled || string.IsNullOrEmpty(Text))"
+                      Class="@Class"
+                      Style="@Style" />
+    }
 </span>
 
 @code {
@@ -30,6 +46,8 @@
     private readonly string _elementId = Identifier.Create("mt-cb-");
 
     [Parameter] public string Text { get; set; } = string.Empty;
+
+    [Parameter] public CopyButtonVariant CopyVariant { get; set; } = CopyButtonVariant.Icon;
 
     [Parameter] public string CopyTooltip { get; set; } = "Copy";
 
@@ -68,6 +86,20 @@
         CopyState.Copied => CopiedTooltip,
         CopyState.Failed => ErrorTooltip,
         _ => CopyTooltip
+    };
+
+    private string CurrentLabel => _state switch
+    {
+        CopyState.Copied => CopiedTooltip,
+        CopyState.Failed => ErrorTooltip,
+        _ => CopyTooltip
+    };
+
+    private string? CurrentEndIcon => _state switch
+    {
+        CopyState.Copied => MythetechFrameworkIcons.Check,
+        CopyState.Failed => MythetechFrameworkIcons.Error,
+        _ => null
     };
 
     private Color CurrentColor => _state switch
