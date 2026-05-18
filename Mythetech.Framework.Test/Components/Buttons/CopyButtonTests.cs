@@ -2,6 +2,7 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
 using Mythetech.Framework.Components.Buttons;
+using Mythetech.Framework.Enums;
 using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Buttons;
@@ -156,5 +157,55 @@ public class CopyButtonTests : TestContext
         DisposeComponents();
 
         _unregisterHandler.Invocations.Count.ShouldBeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact(DisplayName = "CopyButton Text variant renders label text")]
+    public void CopyButton_TextVariant_RendersLabel()
+    {
+        var cut = RenderComponent<MtCopyButton>(p => p
+            .Add(x => x.Text, "hello")
+            .Add(x => x.CopyVariant, CopyButtonVariant.Text));
+
+        cut.Find("button").TextContent.ShouldContain("Copy");
+    }
+
+    [Fact(DisplayName = "CopyButton Text variant shows Copied label on success")]
+    public void CopyButton_TextVariant_ShowsCopiedLabel_OnSuccess()
+    {
+        var cut = RenderComponent<MtCopyButton>(p => p
+            .Add(x => x.Text, "hello")
+            .Add(x => x.CopyVariant, CopyButtonVariant.Text)
+            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
+
+        cut.InvokeAsync(() => cut.Instance.OnCopyResult(true));
+
+        cut.WaitForState(() =>
+            cut.Find("button").TextContent.Contains("Copied"),
+            TimeSpan.FromSeconds(2));
+    }
+
+    [Fact(DisplayName = "CopyButton Text variant shows error label on failure")]
+    public void CopyButton_TextVariant_ShowsErrorLabel_OnFailure()
+    {
+        var cut = RenderComponent<MtCopyButton>(p => p
+            .Add(x => x.Text, "hello")
+            .Add(x => x.CopyVariant, CopyButtonVariant.Text)
+            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
+
+        cut.InvokeAsync(() => cut.Instance.OnCopyResult(false));
+
+        cut.WaitForState(() =>
+            cut.Find("button").TextContent.Contains("Copy failed"),
+            TimeSpan.FromSeconds(2));
+    }
+
+    [Fact(DisplayName = "CopyButton Text variant is disabled when Text is empty")]
+    public void CopyButton_TextVariant_Disabled_WhenTextEmpty()
+    {
+        var cut = RenderComponent<MtCopyButton>(p => p
+            .Add(x => x.Text, string.Empty)
+            .Add(x => x.CopyVariant, CopyButtonVariant.Text));
+
+        cut.Find("button").HasAttribute("disabled").ShouldBeTrue();
     }
 }
