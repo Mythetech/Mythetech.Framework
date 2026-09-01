@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.WebAssembly</PackageId>
-        <VersionPrefix>0.18.0</VersionPrefix>
+        <VersionPrefix>0.18.1</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Description>WebAssembly-specific components for building blazor applications</Description>
         <PackageTags>blazor;wasm;webassembly;components;ui;framework</PackageTags>
@@ -21,6 +21,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Mythetech.Framework\Mythetech.Framework.csproj" />
       <PackageReference Include="SqliteWasmBlazor" Version="0.8.5-pre" />
+      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
     </ItemGroup>
 
     <ItemGroup>
