@@ -9,7 +9,7 @@ using HoverContextType = Mythetech.Framework.Components.HoverStack.HoverContext;
 
 namespace Mythetech.Framework.Test.Components.HoverStackTests;
 
-public class HoverStackTests : TestContext
+public class HoverStackTests : BunitContext
 {
     public HoverStackTests()
     {
@@ -21,7 +21,7 @@ public class HoverStackTests : TestContext
     public void HoverStack_RendersChildContent()
     {
         // Arrange & Act
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, "Hover Content"))));
 
@@ -35,7 +35,7 @@ public class HoverStackTests : TestContext
         // Arrange
         bool? isHovering = null;
 
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
             {
                 isHovering = ctx.IsHovering;
@@ -51,7 +51,7 @@ public class HoverStackTests : TestContext
     public async Task HoverStack_SetsIsHoveringTrue_OnMouseEnter()
     {
         // Arrange
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, $"Hovering: {ctx.IsHovering}"))));
 
@@ -67,7 +67,7 @@ public class HoverStackTests : TestContext
     public async Task HoverStack_SetsIsHoveringFalse_OnMouseLeave()
     {
         // Arrange
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, $"Hovering: {ctx.IsHovering}"))));
 
@@ -85,7 +85,7 @@ public class HoverStackTests : TestContext
     {
         // Arrange
         MouseEventArgs? capturedArgs = null;
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.OnClick, EventCallback.Factory.Create<MouseEventArgs>(this, args => capturedArgs = args))
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, "Click me"))));
@@ -102,7 +102,7 @@ public class HoverStackTests : TestContext
     public void HoverStack_AppliesRowParameter()
     {
         // Arrange & Act
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.Row, true)
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, "Row content"))));
@@ -116,7 +116,7 @@ public class HoverStackTests : TestContext
     public void HoverStack_AppliesCustomClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.Class, "my-custom-class")
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, "Custom class"))));
@@ -129,7 +129,7 @@ public class HoverStackTests : TestContext
     public void HoverStack_AppliesCustomStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.Style, "background-color: red;")
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, "Styled content"))));
@@ -142,7 +142,7 @@ public class HoverStackTests : TestContext
     public void HoverStack_AppliesSpacingParameter()
     {
         // Arrange & Act
-        var cut = RenderComponent<HoverStackComponent>(parameters => parameters
+        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.Spacing, 5)
             .Add(p => p.ChildContent, (HoverContextType ctx) =>
                 (RenderFragment)(builder => builder.AddContent(0, "Spaced content"))));

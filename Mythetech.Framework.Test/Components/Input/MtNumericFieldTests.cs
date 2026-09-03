@@ -9,7 +9,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Input;
 
-public class MtNumericFieldTests : TestContext
+public class MtNumericFieldTests : BunitContext
 {
     public MtNumericFieldTests()
     {
@@ -20,7 +20,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Renders with default value")]
     public void Renders_WithDefaultValue()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, 5));
 
         cut.Find("input").GetAttribute("value").ShouldBe("5");
@@ -29,7 +29,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Renders with null value shows empty")]
     public void Renders_WithNullValue_ShowsEmpty()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, null));
 
         cut.Find("input").GetAttribute("value").ShouldBe("");
@@ -39,7 +39,7 @@ public class MtNumericFieldTests : TestContext
     public async Task Increment_IncreasesValue_ByStep()
     {
         int? value = 5;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
 
@@ -52,7 +52,7 @@ public class MtNumericFieldTests : TestContext
     public async Task Decrement_DecreasesValue_ByStep()
     {
         int? value = 5;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
 
@@ -65,7 +65,7 @@ public class MtNumericFieldTests : TestContext
     public async Task Increment_RespectsMaxBound()
     {
         int? value = 10;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.Max, 10)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
@@ -79,7 +79,7 @@ public class MtNumericFieldTests : TestContext
     public async Task Decrement_RespectsMinBound()
     {
         int? value = 0;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.Min, 0)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
@@ -93,7 +93,7 @@ public class MtNumericFieldTests : TestContext
     public async Task CustomStep_IsUsed()
     {
         decimal? value = 1.0m;
-        var cut = RenderComponent<MtNumericField<decimal>>(parameters => parameters
+        var cut = Render<MtNumericField<decimal>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.Step, 0.5m)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (decimal? v) => value = v)));
@@ -107,7 +107,7 @@ public class MtNumericFieldTests : TestContext
     public async Task Increment_FromNull_StartsAtMin_WhenMinSet()
     {
         int? value = null;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.Min, 3)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
@@ -121,7 +121,7 @@ public class MtNumericFieldTests : TestContext
     public async Task Increment_FromNull_StartsAtDefault_WhenNoMin()
     {
         int? value = null;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
 
@@ -134,7 +134,7 @@ public class MtNumericFieldTests : TestContext
     public async Task TextInput_ParsesValidNumber()
     {
         int? value = 5;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
 
@@ -147,7 +147,7 @@ public class MtNumericFieldTests : TestContext
     public async Task TextInput_ClampsToMax()
     {
         int? value = 5;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.Max, 10)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
@@ -161,7 +161,7 @@ public class MtNumericFieldTests : TestContext
     public async Task InvalidTextInput_DoesNotChangeValue()
     {
         int? value = 5;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (int? v) => value = v)));
 
@@ -174,7 +174,7 @@ public class MtNumericFieldTests : TestContext
     public async Task ArrowUpKeyIncrementsValue()
     {
         int? result = null;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, 5)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<int?>(this, v => result = v)));
 
@@ -188,7 +188,7 @@ public class MtNumericFieldTests : TestContext
     public async Task ArrowDownKeyDecrementsValue()
     {
         int? result = null;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, 5)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<int?>(this, v => result = v)));
 
@@ -202,7 +202,7 @@ public class MtNumericFieldTests : TestContext
     public async Task ClearButtonResetsValueToNull()
     {
         int? result = 5;
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, 5)
             .Add(p => p.Clearable, true)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<int?>(this, v => result = v)));
@@ -216,7 +216,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Renders spinner buttons")]
     public void RendersSpinnerButtons()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, 0));
 
         cut.FindAll(".mt-nf-spinner-up").Count.ShouldBe(1);
@@ -226,7 +226,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Renders label with fieldset")]
     public void RendersLabelWithFieldset()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Label, "Amount"));
 
         cut.Find(".mt-nf-label").TextContent.ShouldBe("Amount");
@@ -237,7 +237,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Applies focused class on focus")]
     public void AppliesFocusedClassOnFocus()
     {
-        var cut = RenderComponent<MtNumericField<int>>();
+        var cut = Render<MtNumericField<int>>();
 
         var input = cut.Find("input");
         input.Focus();
@@ -248,7 +248,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Applies error state class")]
     public void AppliesErrorStateClass()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Error, true)
             .Add(p => p.ErrorText, "Required"));
 
@@ -259,7 +259,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Applies disabled class and disables inputs")]
     public void AppliesDisabledClass()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Disabled, true));
 
         cut.Find(".mt-numeric-field").ClassList.ShouldContain("mt-nf-disabled");
@@ -269,7 +269,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Renders start adornment")]
     public void RendersStartAdornment()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Adornment, Adornment.Start)
             .Add(p => p.AdornmentIcon, MythetechFrameworkIcons.Round("attach_money")));
 
@@ -279,7 +279,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Renders clear button when clearable and has value")]
     public void RendersClearButton()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Value, 5)
             .Add(p => p.Clearable, true));
 
@@ -289,7 +289,7 @@ public class MtNumericFieldTests : TestContext
     [Fact(DisplayName = "Does not render clear button when no value")]
     public void DoesNotRenderClearButtonWhenNoValue()
     {
-        var cut = RenderComponent<MtNumericField<int>>(parameters => parameters
+        var cut = Render<MtNumericField<int>>(parameters => parameters
             .Add(p => p.Clearable, true));
 
         cut.FindAll(".mt-nf-clear").Count.ShouldBe(0);

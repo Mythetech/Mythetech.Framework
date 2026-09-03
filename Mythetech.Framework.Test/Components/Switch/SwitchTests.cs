@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Switch;
 
-public class SwitchTests : TestContext
+public class SwitchTests : BunitContext
 {
     public SwitchTests()
     {
@@ -19,7 +19,7 @@ public class SwitchTests : TestContext
     public void Switch_RendersWithInitialFalseValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, false)
             .Add(p => p.Color, Color.Primary));
 
@@ -35,7 +35,7 @@ public class SwitchTests : TestContext
     public void Switch_InputElement_HasOnChangeHandler()
     {
         // Arrange & Act
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, false)
             .Add(p => p.Color, Color.Primary));
 
@@ -55,7 +55,7 @@ public class SwitchTests : TestContext
     public void Switch_RendersWithInitialTrueValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, true)
             .Add(p => p.Color, Color.Primary));
 
@@ -74,7 +74,7 @@ public class SwitchTests : TestContext
         var value = false;
         var valueChangedCount = 0;
 
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<bool>(this, newValue =>
             {
@@ -99,7 +99,7 @@ public class SwitchTests : TestContext
         var value = true;
         var valueChangedCount = 0;
 
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<bool>(this, newValue =>
             {
@@ -123,7 +123,7 @@ public class SwitchTests : TestContext
         // Arrange
         var value = false;
 
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<bool>(this, newValue => value = newValue))
             .Add(p => p.Color, Color.Primary));
@@ -137,7 +137,7 @@ public class SwitchTests : TestContext
         input.Change(true);
 
         // Re-render with new value
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.Value, value));
 
         // Assert - visual state should update
@@ -152,7 +152,7 @@ public class SwitchTests : TestContext
         var value = false;
         var valueChangedCount = 0;
 
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.Disabled, true)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<bool>(this, newValue =>
@@ -178,7 +178,7 @@ public class SwitchTests : TestContext
         var value = false;
         var valueChangedCount = 0;
 
-        var cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<bool>(this, newValue =>
             {
@@ -191,15 +191,15 @@ public class SwitchTests : TestContext
 
         // Act - toggle on
         input.Change(true);
-        cut.SetParametersAndRender(parameters => parameters.Add(p => p.Value, value));
+        cut.Render(parameters => parameters.Add(p => p.Value, value));
 
         // Act - toggle off
         input.Change(false);
-        cut.SetParametersAndRender(parameters => parameters.Add(p => p.Value, value));
+        cut.Render(parameters => parameters.Add(p => p.Value, value));
 
         // Act - toggle on again
         input.Change(true);
-        cut.SetParametersAndRender(parameters => parameters.Add(p => p.Value, value));
+        cut.Render(parameters => parameters.Add(p => p.Value, value));
 
         // Assert
         value.ShouldBeTrue("Final value should be true");
@@ -213,13 +213,13 @@ public class SwitchTests : TestContext
         var parentValue = false;
         IRenderedComponent<MtSwitch<bool>>? cut = null;
 
-        cut = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        cut = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, parentValue)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<bool>(this, newValue =>
             {
                 parentValue = newValue;
                 // Simulate parent re-rendering with new value
-                cut?.SetParametersAndRender(p => p.Add(x => x.Value, newValue));
+                cut?.Render(p => p.Add(x => x.Value, newValue));
             }))
             .Add(p => p.Color, Color.Primary));
 
@@ -238,12 +238,12 @@ public class SwitchTests : TestContext
     public void Custom_Switch_Has_Same_Input_Structure_As_MudSwitch()
     {
         // Render MudSwitch
-        var mudSwitch = RenderComponent<MudSwitch<bool>>(parameters => parameters
+        var mudSwitch = Render<MudSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, false)
             .Add(p => p.Color, Color.Primary));
 
         // Render custom Switch
-        var customSwitch = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var customSwitch = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, false)
             .Add(p => p.Color, Color.Primary));
 
@@ -259,7 +259,7 @@ public class SwitchTests : TestContext
     public void Custom_Switch_Should_Have_OnChange_Handler()
     {
         // Render custom Switch
-        var customSwitch = RenderComponent<MtSwitch<bool>>(parameters => parameters
+        var customSwitch = Render<MtSwitch<bool>>(parameters => parameters
             .Add(p => p.Value, false)
             .Add(p => p.Color, Color.Primary));
 

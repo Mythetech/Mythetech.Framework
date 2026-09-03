@@ -14,7 +14,7 @@ namespace Mythetech.Framework.Test.Infrastructure;
 /// Tests for thread safety of core infrastructure components under concurrent load.
 /// </summary>
 [Trait("Category", "ThreadSafety")]
-public class ThreadSafetyTests : TestContext
+public class ThreadSafetyTests : BunitContext
 {
     #region MessageBus Concurrent Tests
 

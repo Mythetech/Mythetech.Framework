@@ -9,7 +9,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Links;
 
-public class ExternalLinkTests : TestContext
+public class ExternalLinkTests : BunitContext
 {
     private readonly ILinkOpenService _linkOpenService;
 
@@ -26,7 +26,7 @@ public class ExternalLinkTests : TestContext
     public void ExternalLink_RendersChildContent()
     {
         // Arrange & Act
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .Add(p => p.Link, "https://example.com")
             .AddChildContent("Click here"));
 
@@ -39,7 +39,7 @@ public class ExternalLinkTests : TestContext
     {
         // Arrange
         var link = "https://example.com";
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .Add(p => p.Link, link)
             .AddChildContent("Visit"));
 
@@ -55,7 +55,7 @@ public class ExternalLinkTests : TestContext
     public async Task ExternalLink_HandlesNullLink_Gracefully()
     {
         // Arrange
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .AddChildContent("No link"));
 
         // Act
@@ -70,7 +70,7 @@ public class ExternalLinkTests : TestContext
     public void ExternalLink_AppliesDefaultColor()
     {
         // Arrange & Act
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .Add(p => p.Link, "https://example.com")
             .AddChildContent("Link"));
 
@@ -83,7 +83,7 @@ public class ExternalLinkTests : TestContext
     public void ExternalLink_AppliesCustomColor()
     {
         // Arrange & Act
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .Add(p => p.Link, "https://example.com")
             .Add(p => p.Color, Color.Primary)
             .AddChildContent("Link"));
@@ -97,7 +97,7 @@ public class ExternalLinkTests : TestContext
     public void ExternalLink_AppliesCustomClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .Add(p => p.Link, "https://example.com")
             .Add(p => p.Class, "my-custom-class")
             .AddChildContent("Link"));
@@ -111,7 +111,7 @@ public class ExternalLinkTests : TestContext
     public void ExternalLink_AppliesCustomStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .Add(p => p.Link, "https://example.com")
             .Add(p => p.Style, "font-weight: bold;")
             .AddChildContent("Link"));
@@ -125,7 +125,7 @@ public class ExternalLinkTests : TestContext
     public void ExternalLink_AppliesCustomTypography()
     {
         // Arrange & Act
-        var cut = RenderComponent<ExternalLink>(parameters => parameters
+        var cut = Render<ExternalLink>(parameters => parameters
             .Add(p => p.Link, "https://example.com")
             .Add(p => p.Typo, Typo.h6)
             .AddChildContent("Heading Link"));

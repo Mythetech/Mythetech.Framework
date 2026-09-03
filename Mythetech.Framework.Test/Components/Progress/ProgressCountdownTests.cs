@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Progress;
 
-public class ProgressCountdownTests : TestContext
+public class ProgressCountdownTests : BunitContext
 {
     public ProgressCountdownTests()
     {
@@ -19,7 +19,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_RendersMudProgressLinear()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>();
+        var cut = Render<ProgressCountdown>();
 
         // Assert - MudProgressLinear renders as a div with mud-progress-linear class
         var progressBar = cut.Find(".mud-progress-linear");
@@ -30,7 +30,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_StartsAt100PercentValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>();
+        var cut = Render<ProgressCountdown>();
 
         // Assert - the progress indicator should have transform showing near 100%
         // MudProgressLinear uses a transform on the indicator div
@@ -44,7 +44,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_AcceptsDurationParameter()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Duration, 10000));
 
         // Assert - component renders
@@ -56,7 +56,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_AppliesPrimaryColorByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>();
+        var cut = Render<ProgressCountdown>();
 
         // Assert
         var progressBar = cut.Find(".mud-progress-linear");
@@ -67,7 +67,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_AppliesCustomColor()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Color, Color.Secondary));
 
         // Assert
@@ -79,7 +79,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_AppliesRoundedByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>();
+        var cut = Render<ProgressCountdown>();
 
         // Assert
         var progressBar = cut.Find(".mud-progress-linear");
@@ -90,7 +90,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_CanDisableRoundedStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Rounded, false));
 
         // Assert
@@ -102,7 +102,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_CanEnableStripedPattern()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Striped, true));
 
         // Assert
@@ -114,7 +114,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_AppliesSmallSizeByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>();
+        var cut = Render<ProgressCountdown>();
 
         // Assert
         var progressBar = cut.Find(".mud-progress-linear");
@@ -125,7 +125,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_AppliesCustomSize()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Size, Size.Large));
 
         // Assert
@@ -137,7 +137,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_DisposesCleanly()
     {
         // Arrange
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Duration, 100000)); // Long duration so we can dispose mid-countdown
 
         // Act - dispose should not throw
@@ -151,7 +151,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_CanUseErrorColor()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Color, Color.Error));
 
         // Assert
@@ -163,7 +163,7 @@ public class ProgressCountdownTests : TestContext
     public void ProgressCountdown_CanUseMediumSize()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProgressCountdown>(parameters => parameters
+        var cut = Render<ProgressCountdown>(parameters => parameters
             .Add(p => p.Size, Size.Medium));
 
         // Assert
