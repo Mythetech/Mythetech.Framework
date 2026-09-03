@@ -10,7 +10,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Badge;
 
-public class BadgeTests : TestContext
+public class BadgeTests : BunitContext
 {
     public BadgeTests()
     {
@@ -22,7 +22,7 @@ public class BadgeTests : TestContext
     public void Badge_RendersWithTextContent()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Test Badge"));
 
         // Assert
@@ -33,7 +33,7 @@ public class BadgeTests : TestContext
     public void Badge_RendersWithChildContent()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .AddChildContent("Child Content"));
 
         // Assert
@@ -44,7 +44,7 @@ public class BadgeTests : TestContext
     public void Badge_ChildContentTakesPrecedenceOverText()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Text Content")
             .AddChildContent("Child Content"));
 
@@ -57,7 +57,7 @@ public class BadgeTests : TestContext
     public void Badge_AppliesCorrectColorClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Test")
             .Add(p => p.Color, Color.Success));
 
@@ -70,7 +70,7 @@ public class BadgeTests : TestContext
     public void Badge_AppliesCorrectSizeClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Test")
             .Add(p => p.Size, Size.Large));
 
@@ -83,7 +83,7 @@ public class BadgeTests : TestContext
     public void Badge_AppliesCorrectVariantClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Test")
             .Add(p => p.Variant, Variant.Outlined));
 
@@ -97,7 +97,7 @@ public class BadgeTests : TestContext
     {
         // Arrange
         var clicked = false;
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Click Me")
             .Add(p => p.OnClick, EventCallback.Factory.Create(this, () => clicked = true)));
 
@@ -114,7 +114,7 @@ public class BadgeTests : TestContext
     public void Badge_HasButtonRole_WhenClickable()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Click Me")
             .Add(p => p.OnClick, EventCallback.Factory.Create(this, () => { })));
 
@@ -127,7 +127,7 @@ public class BadgeTests : TestContext
     public void Badge_DoesNotHaveRole_WhenNotClickable()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Not Clickable"));
 
         // Assert
@@ -139,7 +139,7 @@ public class BadgeTests : TestContext
     public void DisabledBadge_HasDisabledClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Disabled")
             .Add(p => p.Disabled, true));
 
@@ -152,7 +152,7 @@ public class BadgeTests : TestContext
     public void Badge_RendersIcon_WhenProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "With Icon")
             .Add(p => p.Icon, MythetechFrameworkIcons.Round("check")));
 
@@ -165,7 +165,7 @@ public class BadgeTests : TestContext
     {
         // Arrange
         var clicked = false;
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Press Enter")
             .Add(p => p.OnClick, EventCallback.Factory.Create(this, () => clicked = true)));
 
@@ -182,7 +182,7 @@ public class BadgeTests : TestContext
     {
         // Arrange
         var clicked = false;
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Press Space")
             .Add(p => p.OnClick, EventCallback.Factory.Create(this, () => clicked = true)));
 
@@ -199,7 +199,7 @@ public class BadgeTests : TestContext
     {
         // Arrange
         var clicked = false;
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Disabled")
             .Add(p => p.Disabled, true)
             .Add(p => p.OnClick, EventCallback.Factory.Create(this, () => clicked = true)));
@@ -216,7 +216,7 @@ public class BadgeTests : TestContext
     public void Badge_HasTabindex_WhenClickableAndNotDisabled()
     {
         // Arrange & Act
-        var cut = RenderComponent<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
+        var cut = Render<Mythetech.Framework.Components.Badge.MtBadge>(parameters => parameters
             .Add(p => p.Text, "Focusable")
             .Add(p => p.OnClick, EventCallback.Factory.Create(this, () => { })));
 

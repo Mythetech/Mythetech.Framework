@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Kbd;
 
-public class KeyboardShortcutHintsTests : TestContext
+public class KeyboardShortcutHintsTests : BunitContext
 {
     public KeyboardShortcutHintsTests()
     {
@@ -18,7 +18,7 @@ public class KeyboardShortcutHintsTests : TestContext
     [Fact(DisplayName = "Renders with the mf-shortcut-hints CSS class")]
     public void Renders_with_css_class()
     {
-        var cut = RenderComponent<KeyboardShortcutHints>(p => p
+        var cut = Render<KeyboardShortcutHints>(p => p
             .AddChildContent<ShortcutHint>(hint => hint
                 .AddChildContent("test")));
 
@@ -28,7 +28,7 @@ public class KeyboardShortcutHintsTests : TestContext
     [Fact(DisplayName = "Renders child ShortcutHint content")]
     public void Renders_child_content()
     {
-        var cut = RenderComponent<KeyboardShortcutHints>(p => p
+        var cut = Render<KeyboardShortcutHints>(p => p
             .AddChildContent<ShortcutHint>(hint => hint
                 .AddChildContent("navigate")));
 

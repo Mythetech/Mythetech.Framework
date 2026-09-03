@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Input;
 
-public class ProtectedTextFieldTests : TestContext
+public class ProtectedTextFieldTests : BunitContext
 {
     public ProtectedTextFieldTests()
     {
@@ -19,7 +19,7 @@ public class ProtectedTextFieldTests : TestContext
     {
         // Arrange
         var value = "Test Value";
-        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+        var cut = Render<ProtectedTextField>(parameters => parameters
             .Add(p => p.Value, value)
             .Add(p => p.ValueChanged, EventCallback.Factory.Create(this, (string val) => value = val)));
 
@@ -35,7 +35,7 @@ public class ProtectedTextFieldTests : TestContext
     public void Password_IsHidden_ByDefault()
     {
         // Arrange
-        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+        var cut = Render<ProtectedTextField>(parameters => parameters
             .Add(p => p.Value, "Test Password"));
 
         // Assert
@@ -47,7 +47,7 @@ public class ProtectedTextFieldTests : TestContext
     public void Clicking_VisibilityToggle_ShowsPassword()
     {
         // Arrange
-        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+        var cut = Render<ProtectedTextField>(parameters => parameters
             .Add(p => p.Value, "Test Password"));
 
         // Act
@@ -62,7 +62,7 @@ public class ProtectedTextFieldTests : TestContext
     public void Clicking_VisibilityToggle_Twice_HidesPassword()
     {
         // Arrange
-        var cut = RenderComponent<ProtectedTextField>(parameters => parameters
+        var cut = Render<ProtectedTextField>(parameters => parameters
             .Add(p => p.Value, "Test Password"));
 
         // Act

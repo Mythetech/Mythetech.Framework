@@ -10,7 +10,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Settings;
 
-public class SettingEditorTests : TestContext
+public class SettingEditorTests : BunitContext
 {
     public SettingEditorTests()
     {
@@ -18,7 +18,7 @@ public class SettingEditorTests : TestContext
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         // Add MudPopoverProvider for components that use popovers (MudSelect)
-        RenderComponent<MudPopoverProvider>();
+        Render<MudPopoverProvider>();
     }
 
     #region Test Settings Model
@@ -74,7 +74,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<BoolSettingEditor>(parameters => parameters
+        var cut = Render<BoolSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -92,7 +92,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<BoolSettingEditor>(parameters => parameters
+        var cut = Render<BoolSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -111,7 +111,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<BoolSettingEditor>(parameters => parameters
+        var cut = Render<BoolSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -134,7 +134,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<IntSettingEditor>(parameters => parameters
+        var cut = Render<IntSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -152,7 +152,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<IntSettingEditor>(parameters => parameters
+        var cut = Render<IntSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -172,7 +172,7 @@ public class SettingEditorTests : TestContext
         var valueChanged = false;
 
         // Act
-        var cut = RenderComponent<IntSettingEditor>(parameters => parameters
+        var cut = Render<IntSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute)
@@ -198,7 +198,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<DoubleSettingEditor>(parameters => parameters
+        var cut = Render<DoubleSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -216,7 +216,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<DoubleSettingEditor>(parameters => parameters
+        var cut = Render<DoubleSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -236,7 +236,7 @@ public class SettingEditorTests : TestContext
         var valueChanged = false;
 
         // Act
-        var cut = RenderComponent<DoubleSettingEditor>(parameters => parameters
+        var cut = Render<DoubleSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute)
@@ -262,7 +262,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<StringSettingEditor>(parameters => parameters
+        var cut = Render<StringSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -280,7 +280,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<StringSettingEditor>(parameters => parameters
+        var cut = Render<StringSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -299,7 +299,7 @@ public class SettingEditorTests : TestContext
         var valueChanged = false;
 
         // Act
-        var cut = RenderComponent<StringSettingEditor>(parameters => parameters
+        var cut = Render<StringSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute)
@@ -325,7 +325,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<EnumSettingEditor>(parameters => parameters
+        var cut = Render<EnumSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -343,7 +343,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<EnumSettingEditor>(parameters => parameters
+        var cut = Render<EnumSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));
@@ -361,7 +361,7 @@ public class SettingEditorTests : TestContext
         var attribute = property.GetCustomAttribute<SettingAttribute>()!;
 
         // Act
-        var cut = RenderComponent<EnumSettingEditor>(parameters => parameters
+        var cut = Render<EnumSettingEditor>(parameters => parameters
             .Add(p => p.Settings, settings)
             .Add(p => p.Property, property)
             .Add(p => p.Attribute, attribute));

@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.VirtualizeGrid;
 
-public class VirtualizeGridTests : TestContext
+public class VirtualizeGridTests : BunitContext
 {
     public VirtualizeGridTests()
     {
@@ -21,7 +21,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_RendersContainerWithCorrectClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1", "Item 2" })
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
             {
@@ -37,7 +37,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_AppliesCustomCssClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.Class, "custom-grid-class")
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -54,7 +54,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_AppliesCustomStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.Style, "max-height: 500px;")
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -71,7 +71,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_WithEmptyItems_RendersContainerOnly()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string>())
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
             {
@@ -90,7 +90,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_AcceptsColumnCountParameter()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1", "Item 2", "Item 3" })
             .Add(p => p.ColumnCount, 5)
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -106,7 +106,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_AcceptsRowHeightParameter()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.RowHeight, 50)
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -122,7 +122,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_AcceptsColumnWidthParameter()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.ColumnWidth, 200)
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -138,7 +138,7 @@ public class VirtualizeGridTests : TestContext
     public void VirtualizeGrid_AcceptsOverscanCountParameter()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<VirtualizeGrid<string>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.OverscanCount, 5)
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -162,7 +162,7 @@ public class VirtualizeGridTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<VirtualizeGrid<TestItem>>(parameters => parameters
+        var cut = Render<VirtualizeGrid<TestItem>>(parameters => parameters
             .Add(p => p.Items, items)
             .Add(p => p.ColumnCount, 2)
             .Add(p => p.ChildContent, (RenderFragment<TestItem>)(item => builder =>
