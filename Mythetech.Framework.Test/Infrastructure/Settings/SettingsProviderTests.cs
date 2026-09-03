@@ -10,7 +10,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Infrastructure.Settings;
 
-public class SettingsProviderTests : TestContext
+public class SettingsProviderTests : BunitContext
 {
     private readonly IMessageBus _bus;
     private readonly SettingsProvider _provider;

@@ -10,7 +10,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.CommandPalette;
 
-public class CommandPalettePanelTests : TestContext
+public class CommandPalettePanelTests : BunitContext
 {
     private readonly List<string> _invokedIds = new();
     private int _cancelCount;
@@ -215,7 +215,7 @@ public class CommandPalettePanelTests : TestContext
     // ----- helpers -----
 
     private IRenderedComponent<CommandPalettePanel> Render() =>
-        RenderComponent<CommandPalettePanel>(parameters => parameters
+        Render<CommandPalettePanel>(parameters => parameters
             .Add(p => p.OnCancel, EventCallback.Factory.Create(this, () => _cancelCount++))
             .Add(p => p.OnInvoked, EventCallback.Factory.Create<string>(this, _ => _invokedCount++)));
 

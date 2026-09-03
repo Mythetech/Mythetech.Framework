@@ -11,7 +11,7 @@ using System.Reflection;
 
 namespace Mythetech.Framework.Test.Infrastructure.Plugins;
 
-public class PluginGuardTests : TestContext
+public class PluginGuardTests : BunitContext
 {
     private readonly PluginState _pluginState;
     private IPluginManifest _manifest;
@@ -60,7 +60,7 @@ public class PluginGuardTests : TestContext
         var metadata = CreateMetadata();
 
         // Act
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent("<div class=\"test-content\">Hello World</div>"));
@@ -78,7 +78,7 @@ public class PluginGuardTests : TestContext
         var metadata = CreateMetadata();
 
         // Act
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent("<div class=\"test-content\">Should not render</div>"));
@@ -100,7 +100,7 @@ public class PluginGuardTests : TestContext
         var metadata = CreateMetadata();
 
         // Act
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent("<div class=\"test-content\">Should not render</div>"));
@@ -118,7 +118,7 @@ public class PluginGuardTests : TestContext
         await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent("<div class=\"test-content\">Should not render</div>"));
@@ -142,7 +142,7 @@ public class PluginGuardTests : TestContext
         var metadata = CreateMetadata();
 
         // Act
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent<ThrowingComponent>());
@@ -163,7 +163,7 @@ public class PluginGuardTests : TestContext
         var metadata = CreateMetadata();
 
         // Act
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .Add(p => p.ShowErrorDetails, true)
@@ -183,7 +183,7 @@ public class PluginGuardTests : TestContext
         var metadata = CreateMetadata();
 
         // Act
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .Add(p => p.ShowErrorDetails, false)
@@ -201,7 +201,7 @@ public class PluginGuardTests : TestContext
         await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent("<div class=\"test-content\">Hello</div>"));
@@ -225,7 +225,7 @@ public class PluginGuardTests : TestContext
         await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent("<div class=\"test-content\">Hello</div>"));
@@ -249,7 +249,7 @@ public class PluginGuardTests : TestContext
         await _pluginState.RegisterPluginAsync(pluginInfo);
         var metadata = CreateMetadata();
 
-        var cut = RenderComponent<PluginGuard>(parameters => parameters
+        var cut = Render<PluginGuard>(parameters => parameters
             .Add(p => p.PluginInfo, pluginInfo)
             .Add(p => p.Metadata, metadata)
             .AddChildContent("<div class=\"test-content\">Hello</div>"));

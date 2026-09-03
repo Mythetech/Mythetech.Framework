@@ -8,7 +8,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.Guards;
 
-public class JsGuardTests : TestContext
+public class JsGuardTests : BunitContext
 {
     private readonly IJsGuardService _guardService;
 
@@ -26,7 +26,7 @@ public class JsGuardTests : TestContext
     {
         _guardService.IsReady("monaco").Returns(true);
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent("<p>Editor loaded</p>"));
 
@@ -38,7 +38,7 @@ public class JsGuardTests : TestContext
     {
         _guardService.IsReady("monaco").Returns(false);
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent("<p>Editor loaded</p>"));
 
@@ -50,7 +50,7 @@ public class JsGuardTests : TestContext
     {
         _guardService.IsReady("monaco").Returns(true);
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent<ThrowingComponent>());
 
@@ -64,7 +64,7 @@ public class JsGuardTests : TestContext
     {
         _guardService.IsReady("monaco").Returns(true);
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent<ThrowingComponent>()
             .Add(p => p.ErrorContent, ex => $"<p>Failed: {ex.Message}</p>"));
@@ -77,7 +77,7 @@ public class JsGuardTests : TestContext
     {
         _guardService.IsReady("monaco").Returns(true);
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent<ThrowingComponent>()
             .Add(p => p.ErrorContent, ex => "<p>Error state</p>"));
@@ -99,7 +99,7 @@ public class JsGuardTests : TestContext
         _guardService.WaitForReadyAsync(Arg.Any<IJSRuntime>(), "monaco")
             .Returns(Task.FromResult(true));
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent("<p>Editor loaded</p>"));
 
@@ -113,7 +113,7 @@ public class JsGuardTests : TestContext
     {
         _guardService.IsReady("monaco").Returns(true);
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent("<p>Editor loaded</p>"));
 
@@ -127,7 +127,7 @@ public class JsGuardTests : TestContext
         _guardService.IsReady("monaco").Returns(true);
         _guardService.IsReady("easymde").Returns(false);
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "easymde")
             .AddChildContent("<p>Markdown editor</p>"));
 
@@ -141,7 +141,7 @@ public class JsGuardTests : TestContext
         _guardService.WaitForReadyAsync(Arg.Any<IJSRuntime>(), "monaco")
             .Returns(Task.FromResult(false));
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent("<p>Editor loaded</p>"));
 
@@ -157,7 +157,7 @@ public class JsGuardTests : TestContext
         _guardService.WaitForReadyAsync(Arg.Any<IJSRuntime>(), "monaco")
             .Returns(Task.FromResult(false));
 
-        var cut = RenderComponent<JsGuard>(parameters => parameters
+        var cut = Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .AddChildContent("<p>Editor loaded</p>")
             .Add(p => p.ErrorContent, ex => $"<p>Custom error: {ex.Message}</p>"));
@@ -175,7 +175,7 @@ public class JsGuardTests : TestContext
             .Returns(Task.FromResult(true));
 
         var timeout = TimeSpan.FromSeconds(30);
-        RenderComponent<JsGuard>(parameters => parameters
+        Render<JsGuard>(parameters => parameters
             .Add(p => p.Name, "monaco")
             .Add(p => p.Timeout, timeout)
             .AddChildContent("<p>Editor loaded</p>"));
