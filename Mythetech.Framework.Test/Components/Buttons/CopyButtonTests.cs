@@ -83,44 +83,64 @@ public class CopyButtonTests : BunitContext
         registerInvocation.Invocations.Count.ShouldBe(countAfterFirstRender);
     }
 
-    [Fact(DisplayName = "CopyButton shows copied state on successful copy then resets")]
-    public void CopyButton_ShowsCopiedState_OnSuccess_ThenResets()
+    [Fact(DisplayName = "CopyButton shows copied state on successful copy")]
+    public void CopyButton_ShowsCopiedState_OnSuccess()
     {
+        // Park the reset so the copied state cannot vanish between observation and assertion
         var cut = Render<MtCopyButton>(p => p
             .Add(x => x.Text, "payload")
-            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
+            .Add(x => x.ResetDelay, TimeSpan.FromHours(1)));
 
         cut.InvokeAsync(() => cut.Instance.OnCopyResult(true));
 
-        cut.WaitForState(() =>
-            cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--copied"),
-            TimeSpan.FromSeconds(2));
-
-        cut.Find(".mt-copy-button").GetAttribute("data-copied").ShouldBe("True");
-
-        cut.WaitForState(() =>
-            cut.Find(".mt-copy-button").GetAttribute("data-copied") == "False",
-            TimeSpan.FromSeconds(2));
+        cut.WaitForAssertion(() =>
+        {
+            var element = cut.Find(".mt-copy-button");
+            element.GetAttribute("data-copied").ShouldBe("True");
+            element.ClassList.Contains("mt-copy-button--copied").ShouldBeTrue();
+        }, TimeSpan.FromSeconds(2));
     }
 
-    [Fact(DisplayName = "CopyButton shows failed state on copy failure then resets")]
-    public void CopyButton_ShowsFailedState_OnFailure_ThenResets()
+    [Fact(DisplayName = "CopyButton resets to idle after the reset delay")]
+    public async Task CopyButton_ResetsToIdle_AfterResetDelay()
     {
         var cut = Render<MtCopyButton>(p => p
             .Add(x => x.Text, "payload")
             .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
 
-        cut.InvokeAsync(() => cut.Instance.OnCopyResult(false));
-
-        cut.WaitForState(() =>
-            cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--failed"),
-            TimeSpan.FromSeconds(2));
+        await cut.InvokeAsync(() => cut.Instance.OnCopyResult(true));
 
         cut.Find(".mt-copy-button").GetAttribute("data-copied").ShouldBe("False");
+        cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--copied").ShouldBeFalse();
+    }
 
-        cut.WaitForState(() =>
-            !cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--failed"),
-            TimeSpan.FromSeconds(2));
+    [Fact(DisplayName = "CopyButton shows failed state on copy failure")]
+    public void CopyButton_ShowsFailedState_OnFailure()
+    {
+        var cut = Render<MtCopyButton>(p => p
+            .Add(x => x.Text, "payload")
+            .Add(x => x.ResetDelay, TimeSpan.FromHours(1)));
+
+        cut.InvokeAsync(() => cut.Instance.OnCopyResult(false));
+
+        cut.WaitForAssertion(() =>
+        {
+            var element = cut.Find(".mt-copy-button");
+            element.ClassList.Contains("mt-copy-button--failed").ShouldBeTrue();
+            element.GetAttribute("data-copied").ShouldBe("False");
+        }, TimeSpan.FromSeconds(2));
+    }
+
+    [Fact(DisplayName = "CopyButton resets failed state after the reset delay")]
+    public async Task CopyButton_ResetsFailedState_AfterResetDelay()
+    {
+        var cut = Render<MtCopyButton>(p => p
+            .Add(x => x.Text, "payload")
+            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
+
+        await cut.InvokeAsync(() => cut.Instance.OnCopyResult(false));
+
+        cut.Find(".mt-copy-button").ClassList.Contains("mt-copy-button--failed").ShouldBeFalse();
     }
 
     [Fact(DisplayName = "CopyButton is disabled when Text is empty")]
@@ -175,12 +195,12 @@ public class CopyButtonTests : BunitContext
         var cut = Render<MtCopyButton>(p => p
             .Add(x => x.Text, "hello")
             .Add(x => x.CopyVariant, CopyButtonVariant.Text)
-            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
+            .Add(x => x.ResetDelay, TimeSpan.FromHours(1)));
 
         cut.InvokeAsync(() => cut.Instance.OnCopyResult(true));
 
-        cut.WaitForState(() =>
-            cut.Find("button").TextContent.Contains("Copied"),
+        cut.WaitForAssertion(() =>
+            cut.Find("button").TextContent.ShouldContain("Copied"),
             TimeSpan.FromSeconds(2));
     }
 
@@ -190,12 +210,12 @@ public class CopyButtonTests : BunitContext
         var cut = Render<MtCopyButton>(p => p
             .Add(x => x.Text, "hello")
             .Add(x => x.CopyVariant, CopyButtonVariant.Text)
-            .Add(x => x.ResetDelay, TimeSpan.FromMilliseconds(50)));
+            .Add(x => x.ResetDelay, TimeSpan.FromHours(1)));
 
         cut.InvokeAsync(() => cut.Instance.OnCopyResult(false));
 
-        cut.WaitForState(() =>
-            cut.Find("button").TextContent.Contains("Copy failed"),
+        cut.WaitForAssertion(() =>
+            cut.Find("button").TextContent.ShouldContain("Copy failed"),
             TimeSpan.FromSeconds(2));
     }
 
