@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Infrastructure.MessageBus;
 
-public class MessageBusTests : TestContext
+public class MessageBusTests : BunitContext
 {
     private IMessageBus _bus;
     
@@ -41,7 +41,7 @@ public class MessageBusTests : TestContext
     {
         // Arrange
         _bus.RegisterConsumerType<TestCommand, TestComponentConsumer>();
-        var cut = RenderComponent<TestComponentConsumer>();
+        var cut = Render<TestComponentConsumer>();
         
         // Act
         await _bus.PublishAsync(new TestCommand("HelloWorld!"));
@@ -57,8 +57,8 @@ public class MessageBusTests : TestContext
         _bus.RegisterConsumerType<TestCommand, TestComponentConsumer>();
         _bus.RegisterConsumerType<TestCommand, TestExceptionThrowingConsumer>();
         
-        var normalConsumer = RenderComponent<TestComponentConsumer>();
-        var throwingConsumer = RenderComponent<TestExceptionThrowingConsumer>();
+        var normalConsumer = Render<TestComponentConsumer>();
+        var throwingConsumer = Render<TestExceptionThrowingConsumer>();
         
         // Act 
         await _bus.PublishAsync(new TestCommand("HelloWorld!"));
@@ -74,9 +74,9 @@ public class MessageBusTests : TestContext
         _bus.RegisterConsumerType<TestCommand, TestComponentConsumer>();
         _bus.RegisterConsumerType<TestCommand, TestExceptionThrowingConsumer>();
         
-        var initialThrowingConsumer = RenderComponent<TestExceptionThrowingConsumer>();
-        var throwingConsumer = RenderComponent<TestExceptionThrowingConsumer>();
-        var normalConsumer = RenderComponent<TestComponentConsumer>();
+        var initialThrowingConsumer = Render<TestExceptionThrowingConsumer>();
+        var throwingConsumer = Render<TestExceptionThrowingConsumer>();
+        var normalConsumer = Render<TestComponentConsumer>();
         
         // Act 
         await _bus.PublishAsync(new TestCommand("HelloWorld!"));
@@ -170,7 +170,7 @@ public class MessageBusTests : TestContext
     public async Task DualConsumer_ReceivesFirstMessageType()
     {
         // Arrange
-        var cut = RenderComponent<TestDualConsumer>();
+        var cut = Render<TestDualConsumer>();
 
         // Act
         await _bus.PublishAsync(new TestCommand("Hello"));
@@ -184,7 +184,7 @@ public class MessageBusTests : TestContext
     public async Task DualConsumer_ReceivesSecondMessageType()
     {
         // Arrange
-        var cut = RenderComponent<TestDualConsumer>();
+        var cut = Render<TestDualConsumer>();
 
         // Act
         await _bus.PublishAsync(new TestCommand2(42));
@@ -198,7 +198,7 @@ public class MessageBusTests : TestContext
     public async Task DualConsumer_ReceivesBothMessageTypes()
     {
         // Arrange
-        var cut = RenderComponent<TestDualConsumer>();
+        var cut = Render<TestDualConsumer>();
 
         // Act
         await _bus.PublishAsync(new TestCommand("Hello"));
@@ -213,7 +213,7 @@ public class MessageBusTests : TestContext
     public async Task DualConsumer_UnsubscribesOnDispose()
     {
         // Arrange
-        var cut = RenderComponent<TestDualConsumer>();
+        var cut = Render<TestDualConsumer>();
         var instance = cut.Instance;
 
         // Act - dispose the component explicitly
@@ -236,7 +236,7 @@ public class MessageBusTests : TestContext
     public async Task TripleConsumer_ReceivesAllMessageTypes()
     {
         // Arrange
-        var cut = RenderComponent<TestTripleConsumer>();
+        var cut = Render<TestTripleConsumer>();
 
         // Act
         await _bus.PublishAsync(new TestCommand("Hello"));
@@ -253,7 +253,7 @@ public class MessageBusTests : TestContext
     public async Task TripleConsumer_UnsubscribesOnDispose()
     {
         // Arrange
-        var cut = RenderComponent<TestTripleConsumer>();
+        var cut = Render<TestTripleConsumer>();
         var instance = cut.Instance;
 
         // Act - dispose the component explicitly
@@ -278,7 +278,7 @@ public class MessageBusTests : TestContext
     public async Task QuadConsumer_ReceivesAllMessageTypes()
     {
         // Arrange
-        var cut = RenderComponent<TestQuadConsumer>();
+        var cut = Render<TestQuadConsumer>();
 
         // Act
         await _bus.PublishAsync(new TestCommand("Hello"));
@@ -297,7 +297,7 @@ public class MessageBusTests : TestContext
     public async Task QuadConsumer_UnsubscribesOnDispose()
     {
         // Arrange
-        var cut = RenderComponent<TestQuadConsumer>();
+        var cut = Render<TestQuadConsumer>();
         var instance = cut.Instance;
 
         // Act - dispose the component explicitly

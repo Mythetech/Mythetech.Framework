@@ -52,7 +52,7 @@ jobs:
         run: dotnet restore
 
       - name: Run Tests
-        run: dotnet test Mythetech.Framework.Test --no-restore --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
+        run: dotnet test --project Mythetech.Framework.Test --no-restore --results-directory "TestResults-${{ matrix.dotnet-version }}" -- --report-xunit-trx
 
       - name: Upload dotnet test results
         uses: actions/upload-artifact@v4

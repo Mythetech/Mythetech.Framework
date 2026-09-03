@@ -8,7 +8,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Components.VirtualizeContainer;
 
-public class VirtualizeContainerTests : TestContext
+public class VirtualizeContainerTests : BunitContext
 {
     public VirtualizeContainerTests()
     {
@@ -20,7 +20,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_RendersContainerWithVerticalClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1", "Item 2" })
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
             {
@@ -37,7 +37,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_RendersWithHorizontalClass_WhenOrientationIsHorizontal()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1", "Item 2" })
             .Add(p => p.Orientation, Orientation.Horizontal)
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -55,7 +55,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_AppliesCustomCssClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.Class, "my-custom-class")
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -72,7 +72,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_AppliesCustomStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.Style, "height: 400px;")
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -89,7 +89,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_AcceptsItemSizeParameter()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.ItemSize, 48)
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -105,7 +105,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_AcceptsOverscanCountParameter()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.OverscanCount, 5)
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
@@ -121,7 +121,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_RendersWithEmptyItems()
     {
         // Arrange & Act - should not throw
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string>())
             .Add(p => p.ChildContent, (RenderFragment<string>)(item => builder =>
             {
@@ -145,7 +145,7 @@ public class VirtualizeContainerTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<VirtualizeContainer<TestItem>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<TestItem>>(parameters => parameters
             .Add(p => p.Items, items)
             .Add(p => p.ChildContent, (RenderFragment<TestItem>)(item => builder =>
             {
@@ -161,7 +161,7 @@ public class VirtualizeContainerTests : TestContext
     public void VirtualizeContainer_CombinesAllCssClasses()
     {
         // Arrange & Act
-        var cut = RenderComponent<VirtualizeContainer<string>>(parameters => parameters
+        var cut = Render<VirtualizeContainer<string>>(parameters => parameters
             .Add(p => p.Items, new List<string> { "Item 1" })
             .Add(p => p.Orientation, Orientation.Vertical)
             .Add(p => p.Class, "extra-class another-class")

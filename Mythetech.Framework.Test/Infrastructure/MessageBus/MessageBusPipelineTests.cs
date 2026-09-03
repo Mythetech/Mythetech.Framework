@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Infrastructure.MessageBus;
 
-public class MessageBusPipelineTests : TestContext
+public class MessageBusPipelineTests : BunitContext
 {
     private readonly ILogger<InMemoryMessageBus> _logger = Substitute.For<ILogger<InMemoryMessageBus>>();
 

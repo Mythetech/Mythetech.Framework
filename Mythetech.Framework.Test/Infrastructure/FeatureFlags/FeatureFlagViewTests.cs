@@ -10,7 +10,7 @@ using Shouldly;
 
 namespace Mythetech.Framework.Test.Infrastructure.FeatureFlags;
 
-public class FeatureFlagViewTests : TestContext
+public class FeatureFlagViewTests : BunitContext
 {
     private readonly TestFeatureFlags _testFlags;
     private readonly IFeatureFlagRegistry _registry;
@@ -46,7 +46,7 @@ public class FeatureFlagViewTests : TestContext
         var featureFlagState = Task.FromResult(new FeatureFlagState(["Beta"]));
 
         // Act - Use wrapper component approach
-        var cut = RenderComponent<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
+        var cut = Render<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
             .Add(p => p.Value, featureFlagState)
             .AddChildContent<FeatureFlagView>(flagParams => flagParams
                 .Add(p => p.Feature, "Beta")
@@ -68,7 +68,7 @@ public class FeatureFlagViewTests : TestContext
         var featureFlagState = Task.FromResult(new FeatureFlagState([]));
 
         // Act
-        var cut = RenderComponent<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
+        var cut = Render<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
             .Add(p => p.Value, featureFlagState)
             .AddChildContent<FeatureFlagView>(flagParams => flagParams
                 .Add(p => p.Feature, "TestFeature")
@@ -90,7 +90,7 @@ public class FeatureFlagViewTests : TestContext
         var featureFlagState = Task.FromResult(new FeatureFlagState(["Beta"]));
 
         // Act
-        var cut = RenderComponent<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
+        var cut = Render<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
             .Add(p => p.Value, featureFlagState)
             .AddChildContent<FeatureFlagView>(flagParams => flagParams
                 .Add(p => p.Feature, "Beta")
@@ -117,7 +117,7 @@ public class FeatureFlagViewTests : TestContext
         var featureFlagState = Task.FromResult(new FeatureFlagState([]));
 
         // Act
-        var cut = RenderComponent<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
+        var cut = Render<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
             .Add(p => p.Value, featureFlagState)
             .AddChildContent<FeatureFlagView>(flagParams => flagParams
                 .Add(p => p.Feature, "TestFeature")
@@ -144,7 +144,7 @@ public class FeatureFlagViewTests : TestContext
         var featureFlagState = Task.FromResult(new FeatureFlagState([]));
 
         // Act
-        var cut = RenderComponent<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
+        var cut = Render<CascadingValue<Task<FeatureFlagState>>>(parameters => parameters
             .Add(p => p.Value, featureFlagState)
             .AddChildContent<FeatureFlagView>(flagParams => flagParams
                 .Add(p => p.Feature, "NonExistentFeature")

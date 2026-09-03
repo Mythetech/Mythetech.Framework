@@ -3,7 +3,7 @@ using MudBlazor.Services;
 
 namespace Mythetech.Framework.Test.Components.SimpleTabs;
 
-public class SimpleTabTests : TestContext
+public class SimpleTabTests : BunitContext
 {
     public SimpleTabTests()
     {
@@ -15,7 +15,7 @@ public class SimpleTabTests : TestContext
     public void Can_Render_Tabs()
     {
         // Act
-        var cut = RenderComponent<TestTabComponent>();
+        var cut = Render<TestTabComponent>();
         
         // Assert
         var tabs = cut.FindAll(".mud-link");
