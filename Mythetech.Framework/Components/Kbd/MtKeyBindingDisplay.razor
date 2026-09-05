@@ -1,0 +1,21 @@
+@namespace Mythetech.Framework.Components.Kbd
+@using Mythetech.Framework.Infrastructure.Keyboard
+
+@if (Binding is null)
+{
+    <span class="mf-keybinding-unset">Not set</span>
+}
+else
+{
+    @foreach (var token in Binding.ToTokens())
+    {
+        <MtKbd Key="@token" />
+    }
+}
+
+@code {
+    /// <summary>
+    /// The binding to render. Null renders the unbound placeholder.
+    /// </summary>
+    [Parameter] public KeyBinding? Binding { get; set; }
+}

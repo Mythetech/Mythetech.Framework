@@ -1,16 +1,28 @@
 # Changelog
 
+## [0.18.2] - 2026-09-05
+
+### Added
+
+- Key binding subsystem for rebindable keyboard shortcuts
+  - `AddKeyBindings()` declares actions, each with an optional default binding, so an action can ship unbound and be assigned by the user later
+  - `AddKeyBindingSettings()` adds a shortcuts section to the settings panel and persists overrides
+  - `<MtKeyBindings />` registers a `MudHotkey` per bound action; unbound actions register nothing
+  - `MtKeyBindingsEditor`, `MtKeyBindingRecorder` and `MtKeyBindingDisplay` provide the settings UI
+  - Handlers receive `IMessageBus` and are declared alongside the action
+  - Located in the `Mythetech.Framework.Infrastructure.Keyboard` namespace
+
 ## [0.15.0] - 2026-04-23
 
 ### Breaking Changes
 
 Desktop storage classes have been reorganized into provider-specific namespaces under `Storage/`.
 
-| Old Namespace | New Namespace |
-|---|---|
+| Old Namespace                                             | New Namespace                                |
+| --------------------------------------------------------- | -------------------------------------------- |
 | `Mythetech.Framework.Desktop` (LiteDbPluginStorage, etc.) | `Mythetech.Framework.Desktop.Storage.LiteDb` |
-| `Mythetech.Framework.Desktop.Settings` | `Mythetech.Framework.Desktop.Storage.LiteDb` |
-| `Mythetech.Framework.Desktop.Queue` | `Mythetech.Framework.Desktop.Storage.LiteDb` |
+| `Mythetech.Framework.Desktop.Settings`                    | `Mythetech.Framework.Desktop.Storage.LiteDb` |
+| `Mythetech.Framework.Desktop.Queue`                       | `Mythetech.Framework.Desktop.Storage.LiteDb` |
 
 **Migration:** Update `using` directives in consuming projects. Registration extension method names are unchanged; add `using Mythetech.Framework.Desktop.Storage.LiteDb;` where `AddPluginStorage`, `AddDesktopSettingsStorage`, `AddPluginStateProvider`, or `AddLiteDbQueue` are called.
 
@@ -36,13 +48,13 @@ Desktop storage classes have been reorganized into provider-specific namespaces 
 
 Primitive framework components now use the `Mt` prefix to avoid confusion with HTML elements and MudBlazor components. Composed/feature components with descriptive names are unchanged.
 
-| Old Name | New Name |
-|----------|----------|
-| `Button` | `MtButton` |
+| Old Name     | New Name       |
+| ------------ | -------------- |
+| `Button`     | `MtButton`     |
 | `IconButton` | `MtIconButton` |
-| `Switch<T>` | `MtSwitch<T>` |
-| `Badge` | `MtBadge` |
-| `Kbd` | `MtKbd` |
+| `Switch<T>`  | `MtSwitch<T>`  |
+| `Badge`      | `MtBadge`      |
+| `Kbd`        | `MtKbd`        |
 
 **Migration:** Find and replace component tag names in your `.razor` files. Namespaces (`Mythetech.Framework.Components.Buttons`, `.Switch`, `.Badge`, `.Kbd`) are unchanged, so `@using` directives do not need updating.
 

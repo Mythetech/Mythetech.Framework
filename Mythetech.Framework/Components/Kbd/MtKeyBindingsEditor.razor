@@ -1,0 +1,126 @@
+@namespace Mythetech.Framework.Components.Kbd
+@using MudBlazor
+@using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Infrastructure.Keyboard
+@inject IKeyBindingService Bindings
+
+<div class="mf-keybindings-editor">
+    @foreach (var category in Bindings.GetByCategory())
+    {
+        <div class="mf-keybinding-category">@category.Key</div>
+
+        @foreach (var action in category)
+        {
+            <div class="mf-keybinding-row" @key="action.Id">
+                <div class="mf-keybinding-labels">
+                    <span class="mf-keybinding-name">@action.DisplayName</span>
+                    @if (!string.IsNullOrWhiteSpace(action.Description))
+                    {
+                        <span class="mf-keybinding-description">@action.Description</span>
+                    }
+                </div>
+
+                <div class="mf-keybinding-controls">
+                    @if (_recordingId == action.Id)
+                    {
+                        <MtKeyBindingRecorder BindingRecorded="@(binding => OnBindingRecordedAsync(action.Id, binding))"
+                                              Cancelled="@StopRecording" />
+                    }
+                    else
+                    {
+                        <MtKeyBindingDisplay Binding="action.CurrentBinding" />
+
+                        <MtIconButton Class="mf-keybinding-record"
+                                      Icon="@MythetechFrameworkIcons.Keyboard"
+                                      Size="Size.Small"
+                                      Tooltip="Change shortcut"
+                                      OnClick="@(() => StartRecording(action.Id))" />
+
+                        @if (action.CurrentBinding is not null)
+                        {
+                            <MtIconButton Class="mf-keybinding-clear"
+                                          Icon="@MythetechFrameworkIcons.Close"
+                                          Size="Size.Small"
+                                          Tooltip="Remove shortcut"
+                                          OnClick="@(() => Bindings.UnbindAsync(action.Id))" />
+                        }
+
+                        @if (action.IsCustomized)
+                        {
+                            <MtIconButton Class="mf-keybinding-reset"
+                                          Icon="@MythetechFrameworkIcons.Refresh"
+                                          Size="Size.Small"
+                                          Tooltip="Reset to default"
+                                          OnClick="@(() => Bindings.ResetAsync(action.Id))" />
+                        }
+                    }
+                </div>
+            </div>
+
+            @if (_conflictId == action.Id && _conflictWith is not null && _pendingBinding is not null)
+            {
+                <div class="mf-keybinding-conflict">
+                    <span>Already used by @_conflictWith</span>
+                    <MtButton Class="mf-keybinding-reassign"
+                              Text="Reassign"
+                              Size="Size.Small"
+                              Variant="Variant.Text"
+                              OnClick="@(() => ReassignAsync(action.Id))" />
+                    <MtButton Class="mf-keybinding-conflict-cancel"
+                              Text="Cancel"
+                              Size="Size.Small"
+                              Variant="Variant.Text"
+                              OnClick="@ClearConflict" />
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    private string? _recordingId;
+    private string? _conflictId;
+    private string? _conflictWith;
+    private KeyBinding? _pendingBinding;
+
+    private void StartRecording(string id)
+    {
+        ClearConflict();
+        _recordingId = id;
+    }
+
+    private void StopRecording() => _recordingId = null;
+
+    private void ClearConflict()
+    {
+        _conflictId = null;
+        _conflictWith = null;
+        _pendingBinding = null;
+    }
+
+    private async Task OnBindingRecordedAsync(string id, KeyBinding binding)
+    {
+        StopRecording();
+
+        if (Bindings.TryFindConflict(id, binding, out var conflictingId) && conflictingId is not null)
+        {
+            _conflictId = id;
+            _conflictWith = Bindings.GetAll().FirstOrDefault(b => b.Id == conflictingId)?.DisplayName ?? conflictingId;
+            _pendingBinding = binding;
+            return;
+        }
+
+        await Bindings.SetBindingAsync(id, binding);
+    }
+
+    private async Task ReassignAsync(string id)
+    {
+        if (_pendingBinding is not { } binding)
+        {
+            return;
+        }
+
+        ClearConflict();
+        await Bindings.ReassignAsync(id, binding);
+    }
+}
