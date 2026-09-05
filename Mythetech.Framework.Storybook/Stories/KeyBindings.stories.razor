@@ -1,0 +1,55 @@
+@using MudBlazor.Utilities
+@using Mythetech.Framework.Components.Kbd
+@using Mythetech.Framework.Infrastructure.Keyboard
+@attribute [Stories("Components/KeyBindings")]
+
+<Stories TComponent="Mythetech.Framework.Components.Kbd.MtKeyBindingDisplay">
+
+    <Story Name="Binding Display" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.h6">Bound</MudText>
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    <MtKeyBindingDisplay Binding="@KeyBinding.CtrlOrCmd(JsKey.KeyK)" />
+                    <MtKeyBindingDisplay Binding="@KeyBinding.CtrlOrCmd(JsKey.KeyF, shift: true)" />
+                    <MtKeyBindingDisplay Binding="@KeyBinding.Plain(JsKey.F2)" />
+                </MudStack>
+
+                <MudText Typo="Typo.h6">Unbound</MudText>
+                <MtKeyBindingDisplay Binding="null" />
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Recorder" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.body2">
+                    Click the recorder and press a shortcut. A bare letter is rejected because it would
+                    fire while typing. Escape cancels.
+                </MudText>
+                <MtKeyBindingRecorder BindingRecorded="@(binding => _recorded = binding)" />
+                <MudText Typo="Typo.body2">
+                    Recorded: @(_recorded is null ? "nothing yet" : string.Join(" + ", _recorded.ToTokens()))
+                </MudText>
+            </MudStack>
+        </Template>
+    </Story>
+
+    <Story Name="Editor" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.body2">
+                    "Duplicate request" ships with no shortcut. Assign one to it, then try assigning
+                    a key another action already holds to see the conflict prompt.
+                </MudText>
+                <MtKeyBindingsEditor />
+            </MudStack>
+        </Template>
+    </Story>
+
+</Stories>
+
+@code {
+    private KeyBinding? _recorded;
+}
