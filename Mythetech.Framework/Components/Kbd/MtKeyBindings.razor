@@ -1,0 +1,96 @@
+@namespace Mythetech.Framework.Components.Kbd
+@using MudBlazor
+@using MudBlazor.Utilities
+@using Mythetech.Framework.Infrastructure.Keyboard
+@using Mythetech.Framework.Infrastructure.MessageBus
+@using Mythetech.Framework.Infrastructure.Settings.Events
+@inherits ComponentConsumer<SettingsModelChanged>
+@inject IKeyBindingService Bindings
+@inject IPlatformDetector PlatformDetector
+
+@foreach (var action in Bindings.GetAll())
+{
+    if (action.CurrentBinding is not { } binding)
+    {
+        continue;
+    }
+
+    foreach (var variant in ModifierVariantsFor(binding))
+    {
+        <MudHotkey @key="@(action.Id + ":" + variant.Key)"
+                   Key="binding.Key"
+                   KeyModifiers="variant.Value"
+                   OnHotkeyPressed="@(() => Bindings.InvokeAsync(action.Id, CancellationToken.None))" />
+    }
+}
+
+@code {
+    /// <summary>
+    /// Re-renders when the shortcut settings change so newly assigned bindings
+    /// register without a restart. This covers settings loaded asynchronously
+    /// after the first render.
+    /// </summary>
+    protected override Task Consume(SettingsModelChanged message, CancellationToken cancellationToken)
+    {
+        if (message.Settings is KeyBindingSettings)
+        {
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Returns one modifier set per hotkey to register for this binding, keyed by
+    /// the accelerator name used in the render key.
+    ///
+    /// On macOS an accelerator binding yields two sets, one for Cmd and one for
+    /// Ctrl, so the shortcut fires whichever the user actually presses. The
+    /// accelerator is a single concept in the model, and a user who records
+    /// Ctrl+B on a Mac would otherwise get a binding that only Cmd+B triggers.
+    /// Windows and Linux register Ctrl alone, so the Windows key never triggers
+    /// a shortcut.
+    /// </summary>
+    private IReadOnlyList<KeyValuePair<string, IEnumerable<JsKeyModifier>>> ModifierVariantsFor(KeyBinding binding)
+    {
+        if (!binding.Ctrl)
+        {
+            return [new("none", CommonModifiers(binding))];
+        }
+
+        if (!PlatformDetector.IsMacOS)
+        {
+            return [new("ctrl", Accelerated(binding, JsKeyModifier.ControlLeft))];
+        }
+
+        return
+        [
+            new("meta", Accelerated(binding, JsKeyModifier.MetaLeft)),
+            new("ctrl", Accelerated(binding, JsKeyModifier.ControlLeft)),
+        ];
+    }
+
+    private static IEnumerable<JsKeyModifier> Accelerated(KeyBinding binding, JsKeyModifier accelerator)
+    {
+        var modifiers = new List<JsKeyModifier>(3) { accelerator };
+        modifiers.AddRange(CommonModifiers(binding));
+        return modifiers;
+    }
+
+    private static List<JsKeyModifier> CommonModifiers(KeyBinding binding)
+    {
+        var modifiers = new List<JsKeyModifier>(2);
+
+        if (binding.Shift)
+        {
+            modifiers.Add(JsKeyModifier.ShiftLeft);
+        }
+
+        if (binding.Alt)
+        {
+            modifiers.Add(JsKeyModifier.AltLeft);
+        }
+
+        return modifiers;
+    }
+}

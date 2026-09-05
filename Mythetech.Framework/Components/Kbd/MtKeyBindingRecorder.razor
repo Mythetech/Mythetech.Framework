@@ -1,0 +1,85 @@
+@namespace Mythetech.Framework.Components.Kbd
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor.Utilities
+@using Mythetech.Framework.Infrastructure.Keyboard
+
+<div class="mf-keybinding-recorder"
+     tabindex="0"
+     @ref="_recorder"
+     @onkeydown="OnKeyDownAsync"
+     @onkeydown:preventDefault="true"
+     @onkeydown:stopPropagation="true">
+    @(_message ?? "Press a shortcut")
+</div>
+
+@code {
+    private static readonly HashSet<string> ModifierCodes = new(StringComparer.Ordinal)
+    {
+        "ShiftLeft", "ShiftRight",
+        "ControlLeft", "ControlRight",
+        "AltLeft", "AltRight",
+        "MetaLeft", "MetaRight",
+    };
+
+    // Only the function keys may be bound without a modifier. MudHotkey prevents
+    // the default action of a matched key, so binding a navigation or editing key
+    // such as Delete or ArrowDown would disable that key across the whole app.
+    private static readonly HashSet<JsKey> StandaloneKeys =
+    [
+        JsKey.F1, JsKey.F2, JsKey.F3, JsKey.F4, JsKey.F5, JsKey.F6,
+        JsKey.F7, JsKey.F8, JsKey.F9, JsKey.F10, JsKey.F11, JsKey.F12,
+    ];
+
+    private ElementReference _recorder;
+    private string? _message;
+
+    /// <summary>Raised when the user presses a valid shortcut.</summary>
+    [Parameter] public EventCallback<KeyBinding> BindingRecorded { get; set; }
+
+    /// <summary>Raised when the user presses Escape.</summary>
+    [Parameter] public EventCallback Cancelled { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _recorder.FocusAsync();
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (ModifierCodes.Contains(args.Code))
+        {
+            return;
+        }
+
+        if (args.Code == nameof(JsKey.Escape))
+        {
+            await Cancelled.InvokeAsync();
+            return;
+        }
+
+        if (!Enum.TryParse<JsKey>(args.Code, ignoreCase: false, out var key))
+        {
+            _message = "Unsupported key";
+            return;
+        }
+
+        var binding = new KeyBinding(
+            key,
+            Ctrl: args.CtrlKey || args.MetaKey,
+            Shift: args.ShiftKey,
+            Alt: args.AltKey);
+
+        if (!binding.Ctrl && !binding.Shift && !binding.Alt && !StandaloneKeys.Contains(key))
+        {
+            _message = "Add Ctrl, Shift or Alt to use this key";
+            return;
+        }
+
+        _message = null;
+        await BindingRecorded.InvokeAsync(binding);
+    }
+}
