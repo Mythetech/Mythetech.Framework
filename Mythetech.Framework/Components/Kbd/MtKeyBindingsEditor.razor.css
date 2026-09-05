@@ -1,0 +1,48 @@
+.mf-keybindings-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mf-keybinding-category {
+    margin-top: 12px;
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mf-keybinding-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 4px 0;
+}
+
+.mf-keybinding-labels {
+    display: flex;
+    flex-direction: column;
+}
+
+.mf-keybinding-description {
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.75rem;
+}
+
+.mf-keybinding-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mf-keybinding-conflict {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: var(--mud-default-borderradius);
+    background-color: var(--mud-palette-warning-hover);
+    color: var(--mud-palette-warning-text);
+    font-size: 0.75rem;
+}

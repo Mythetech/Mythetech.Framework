@@ -32,6 +32,7 @@ public static class MythetechFrameworkIcons
     public static string Home => Round("home");
     public static string Info => Round("info");
     public static string Key => Round("key");
+    public static string Keyboard => Round("keyboard");
     public static string KeyboardArrowDown => Round("keyboard_arrow_down");
     public static string KeyboardArrowUp => Round("keyboard_arrow_up");
     public static string Language => Round("language");

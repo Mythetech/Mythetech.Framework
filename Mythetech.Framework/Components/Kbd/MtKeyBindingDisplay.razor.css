@@ -1,0 +1,5 @@
+.mf-keybinding-unset {
+    color: var(--mud-palette-text-disabled);
+    font-size: 0.75rem;
+    font-style: italic;
+}
