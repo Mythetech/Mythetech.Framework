@@ -223,7 +223,7 @@ Photino currently does not support true native child windows. You cannot:
 <Project Sdk="Microsoft.NET.Sdk.Razor">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ApplicationIcon>wwwroot\logo.ico</ApplicationIcon>
     </PropertyGroup>
 

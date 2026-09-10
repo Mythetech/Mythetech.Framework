@@ -171,8 +171,6 @@
         var dialog = await DialogService.ShowAsync<SampleSettingsDialog>("Settings", options);
         await dialog.Result;
 
-        // Refresh UI after settings dialog closes
-        StateHasChanged();
     }
 
     public void Dispose()

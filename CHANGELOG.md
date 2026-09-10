@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.19.0] - 2026-09-09
+
+### Added
+
+- Guarded JS interop in `Mythetech.Framework.Infrastructure.Guards`, for the new .NET 11 `BL0016` analyzer
+  - `InvokeVoidSafeAsync` and `InvokeSafeAsync<T>` ignore a torn-down runtime and rethrow genuine JavaScript errors. Prefer these
+  - `TryInvokeVoidAsync` and `TryInvokeAsync<T>` return a `JsInvokeResult` / `JsInvokeResult<T>` carrying `JsInvokeStatus` (`Success`, `Disconnected`, `Failed`) for call sites that act on the difference
+  - Disconnection means `JSDisconnectedException` or `ObjectDisposedException`; a `JSException` is a genuine fault and is never treated as disconnection. Anything else propagates
+  - See `docs/Infrastructure/Guards/JsInterop.md`
+
+### Fixed
+
+- `DesktopPluginAssetLoader` marked plugin assets as loaded even when the injecting JS call never reached the browser, so an asset lost to a teardown race was never retried. The bookkeeping is now conditional on the call succeeding
+- `JsGuardService` treats an unreachable runtime as "not ready" rather than throwing
+
+### Changed
+
+- Retargeted to `net11.0` on the .NET 11 RC1 SDK, pinned via the `sdk` section of `global.json`; CI resolves the SDK from that file instead of a hardcoded `dotnet-version`
+- `Mythetech.Framework.AI.Generator` stays on `netstandard2.0`, as source generators must
+- Upgraded to Hermes 1.3.0
+- Microsoft package pins moved to their latest stable versions (`10.0.12`, Roslyn `5.9.0`, hot reload `10.0.204`). Only packages carrying SDK-locked runtime assets need the RC build, and none of the packable projects do, so all four packages ship with stable dependencies
+- Removed the explicit `Microsoft.Extensions.DependencyInjection.Abstractions` reference. .NET 11 reports it as automatically available via `NU1510`, and referencing it explicitly now fails restore
+
 ## [0.18.2] - 2026-09-05
 
 ### Added
