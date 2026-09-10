@@ -114,7 +114,6 @@
     private async Task Download()
     {
         _isDownloading = true;
-        StateHasChanged();
 
         try
         {
@@ -123,7 +122,6 @@
         catch
         {
             _isDownloading = false;
-            StateHasChanged();
         }
     }
 
