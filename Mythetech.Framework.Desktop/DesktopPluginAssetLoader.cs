@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using Mythetech.Framework.Infrastructure.Guards;
 using Mythetech.Framework.Infrastructure.Plugins;
 
 namespace Mythetech.Framework.Desktop;
@@ -140,7 +141,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                 if (el) el.remove();
             })();
             """;
-        await _jsRuntime.InvokeVoidAsync("eval", js);
+        await _jsRuntime.InvokeVoidSafeAsync("eval", js);
         _loadedAssets.TryRemove(href, out _);
     }
 
@@ -176,7 +177,16 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             })();
             """;
 
-        await _jsRuntime.InvokeVoidAsync("eval", js);
+        var result = await _jsRuntime.TryInvokeVoidAsync("eval", js);
+        if (result.Exception is not null)
+            throw result.Exception;
+
+        if (!result.Success)
+        {
+            _logger.LogDebug("WebView went away before inline CSS {Id} was injected", id);
+            return;
+        }
+
         _loadedAssets[id] = true;
         _logger.LogDebug("Injected inline CSS: {Id}", id);
     }
@@ -270,8 +280,12 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             })();
             """;
 
-        await _jsRuntime.InvokeVoidAsync("eval", js);
-        _loadedAssets[href] = true;
+        var result = await _jsRuntime.TryInvokeVoidAsync("eval", js);
+        if (result.Exception is not null)
+            throw result.Exception;
+
+        if (result.Success)
+            _loadedAssets[href] = true;
     }
 
     private async Task LoadScriptViaSrcAsync(string src, string? integrity, string? crossOrigin)
@@ -298,8 +312,12 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             });
             """;
 
-        await _jsRuntime.InvokeVoidAsync("eval", js);
-        _loadedAssets[src] = true;
+        var result = await _jsRuntime.TryInvokeVoidAsync("eval", js);
+        if (result.Exception is not null)
+            throw result.Exception;
+
+        if (result.Success)
+            _loadedAssets[src] = true;
     }
 
     private string? ResolveAssetToFilePath(PluginInfo pluginInfo, string assetPath)

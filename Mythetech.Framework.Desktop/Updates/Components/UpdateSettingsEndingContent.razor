@@ -159,7 +159,6 @@
         {
             _isDownloading = false;
             _downloadFailed = true;
-            StateHasChanged();
         });
     }
 
@@ -167,7 +166,6 @@
     {
         _isDownloading = true;
         _downloadFailed = false;
-        StateHasChanged();
 
         try
         {
@@ -177,7 +175,6 @@
         {
             _isDownloading = false;
             _downloadFailed = true;
-            StateHasChanged();
         }
     }
 

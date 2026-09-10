@@ -5,6 +5,10 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <!-- BL0016 wants JS interop guarded against a torn-down runtime. Substituted
+             IJSRuntime calls here are mock configuration, not interop, and cannot
+             disconnect, so the guidance does not apply to this project. -->
+        <NoWarn>$(NoWarn);BL0016</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

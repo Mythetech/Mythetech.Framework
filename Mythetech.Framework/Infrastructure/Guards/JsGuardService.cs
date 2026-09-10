@@ -31,7 +31,9 @@ public class JsGuardService : IJsGuardService
             return true;
 
         var timeoutMs = (int)(timeout ?? DefaultTimeout).TotalMilliseconds;
-        var ready = await js.InvokeAsync<bool>("waitForJsGuard", name, timeoutMs);
+
+        // A guard that cannot be reached because the runtime is gone is simply not ready.
+        var ready = await js.InvokeSafeAsync<bool>("waitForJsGuard", name, timeoutMs);
 
         if (ready)
         {
@@ -49,6 +51,6 @@ public class JsGuardService : IJsGuardService
     public async Task ResetAsync(IJSRuntime js, string name)
     {
         _readyState.TryRemove(name, out _);
-        await js.InvokeVoidAsync("clearJsGuard", name);
+        await js.InvokeVoidSafeAsync("clearJsGuard", name);
     }
 }
