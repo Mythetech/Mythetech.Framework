@@ -21,6 +21,10 @@
     <ItemGroup>
       <ProjectReference Include="..\Mythetech.Framework\Mythetech.Framework.csproj" />
       <PackageReference Include="SqliteWasmBlazor" Version="0.8.5-pre" />
+      <!-- SqliteWasmBlazor 0.8.5-pre pulls MessagePack 3.1.4, which carries a high
+           severity DoS advisory (GHSA-382j-8mxh-c7x2, patched in 3.1.7). Pinned
+           directly until SqliteWasmBlazor is upgraded to 0.9.x, which ships 3.1.8. -->
+      <PackageReference Include="MessagePack" Version="3.1.8" />
       <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
     </ItemGroup>
 
