@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Company>Mythetech</Company>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <PackageId>Mythetech.Framework</PackageId>
-        <VersionPrefix>0.18.2</VersionPrefix>
+        <VersionPrefix>0.19.0</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Description>Base component library for Mythetech applications</Description>
         <PackageTags>blazor;components;ui;framework;cross-platform;desktop;webassembly;photino;hermes</PackageTags>
@@ -39,9 +39,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.Components" Version="10.0.5" />
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
-      <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
+      <PackageReference Include="Microsoft.AspNetCore.Components" Version="10.0.12" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
       <PackageReference Include="MudBlazor" Version="9.3.0" />
     </ItemGroup>
 
