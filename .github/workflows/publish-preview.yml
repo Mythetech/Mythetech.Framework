@@ -18,7 +18,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0'
+          global-json-file: global.json
 
       - name: Install .NET WASM workload
         run: dotnet workload install wasm-tools
