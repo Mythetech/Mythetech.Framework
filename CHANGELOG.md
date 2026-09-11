@@ -11,6 +11,7 @@
 
 - `Mythetech.Framework.Desktop` now references `Microsoft.Extensions.Logging.Console` directly. Photino brought it transitively and every desktop host calls `AddConsole()`, so keeping it explicit means this stays a patch release. Hosts can take the reference themselves later
 - The desktop sample host runs on Hermes
+- `Mythetech.Framework` drops the `photino` package tag; bumped to 0.19.1 alongside Desktop
 
 ## [0.19.0] - 2026-09-09
 
