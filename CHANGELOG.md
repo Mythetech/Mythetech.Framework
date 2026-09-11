@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.2] - 2026-09-11
+
+### Fixed
+
+- `Mythetech.Framework.Desktop` upgraded to `Mythetech.Hermes.Blazor` 1.3.1, which aligns `Microsoft.AspNetCore.Components.WebView` with the .NET 11 shared framework. The 1.3.0 package embedded the 10.x `blazor.webview.js` against the RC1 `Components.Web` runtime, so any app rendering a `Virtualize` failed at first render with `Blazor._internal.Virtualize.setAnchorMode is not a function`
+- Only `Mythetech.Framework.Desktop` is bumped; the other packages stay on their current versions
+
 ## [0.19.1] - 2026-09-11
 
 ### Removed
