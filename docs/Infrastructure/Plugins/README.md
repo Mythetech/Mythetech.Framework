@@ -10,7 +10,7 @@ The Plugin infrastructure provides a complete system for extending applications 
 - **State Management** - Both transient (in-memory) and persistent storage
 - **Message Bus Integration** - Inter-plugin and plugin-host communication
 - **Asset Loading** - Dynamic CSS/JS injection
-- **Platform Support** - Desktop (Photino) and WebAssembly targets
+- **Platform Support** - Desktop (Hermes) and WebAssembly targets
 
 ## Quick Start
 

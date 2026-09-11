@@ -3,7 +3,6 @@ using Mythetech.Framework.Components.Kbd;
 using Mythetech.Framework.Desktop.Components;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Desktop.Hermes;
-using Mythetech.Framework.Desktop.Photino;
 using Mythetech.Framework.Desktop.Services;
 using Mythetech.Framework.Desktop.Storage.LiteDb;
 using Mythetech.Framework.Infrastructure;
@@ -16,13 +15,10 @@ namespace Mythetech.Framework.Desktop;
 
 public static class DesktopRegistrationExtensions
 {
-    public static IServiceCollection AddDesktopServices(this IServiceCollection services, DesktopHost host = DesktopHost.Photino)
+    public static IServiceCollection AddDesktopServices(this IServiceCollection services, DesktopHost host = DesktopHost.Hermes)
     {
         switch (host)
         {
-            case DesktopHost.Photino:
-                services.AddPhotinoServices();
-                break;
             case DesktopHost.Hermes:
                 services.AddHermesServices();
                 break;
