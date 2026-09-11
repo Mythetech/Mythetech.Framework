@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.19.1] - 2026-09-11
+
+### Removed
+
+- Photino host support from `Mythetech.Framework.Desktop`. Hermes is the only desktop host; nothing in the suite has referenced Photino since Hermes 1.0. Gone: `DesktopHost.Photino`, `AddPhotinoServices()`, `IPhotinoAppProvider`, `PhotinoInteropFileOpenService`, `PhotinoInteropFileSaveService` and the `PhotinoBlazorApp.RegisterProvider()` extensions. `AddDesktopServices()` now defaults to `DesktopHost.Hermes`
+- The `Photino.Blazor` package dependency, and with it `Photino.NET` and `Photino.Native`
+
+### Changed
+
+- `Mythetech.Framework.Desktop` now references `Microsoft.Extensions.Logging.Console` directly. Photino brought it transitively and every desktop host calls `AddConsole()`, so keeping it explicit means this stays a patch release. Hosts can take the reference themselves later
+- The desktop sample host runs on Hermes
+- `Mythetech.Framework` drops the `photino` package tag; bumped to 0.19.1 alongside Desktop
+
 ## [0.19.0] - 2026-09-09
 
 ### Added

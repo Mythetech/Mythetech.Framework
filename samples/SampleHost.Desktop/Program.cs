@@ -1,7 +1,10 @@
+using Hermes;
+using Hermes.Blazor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using Mythetech.Framework.Desktop;
+using Mythetech.Framework.Desktop.Hermes;
 using Mythetech.Framework.Desktop.Storage.LiteDb;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Infrastructure.FeatureFlags;
@@ -10,30 +13,42 @@ using Mythetech.Framework.Infrastructure.Mcp;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Secrets;
 using Mythetech.Framework.Infrastructure.Settings;
-using Photino.Blazor;
 using SampleHost.Desktop;
 using SampleHost.Shared.Settings;
 
 class Program
 {
+    // Hermes requires a synchronous STA entry point on Windows; async work is joined explicitly.
     [STAThread]
-    static async Task Main(string[] args)
+    static void Main(string[] args)
     {
-        if (await McpRegistrationExtensions.TryRunMcpServerAsync(args, options =>
+        var ranAsMcpServer = McpRegistrationExtensions.TryRunMcpServerAsync(args, options =>
         {
             options.ServerName = "SampleHost.Desktop";
             options.ServerVersion = "1.0.0";
-        }))
+        }).GetAwaiter().GetResult();
+
+        if (ranAsMcpServer)
         {
             return;
         }
 
-        await RunDesktopApp(args);
+        RunDesktopApp(args);
     }
 
-    static async Task RunDesktopApp(string[] args)
+    static void RunDesktopApp(string[] args)
     {
-        var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
+        HermesWindow.Prewarm();
+
+        var builder = HermesBlazorAppBuilder.CreateDefault(args);
+        builder.ConfigureWindow(options =>
+        {
+            options.Title = "Sample Host (Desktop)";
+            options.Width = 1920;
+            options.Height = 1080;
+            options.CenterOnScreen = true;
+            options.DevToolsEnabled = true;
+        });
 
         builder.Services.AddLogging(logging =>
         {
@@ -41,7 +56,7 @@ class Program
             logging.SetMinimumLevel(LogLevel.Information);
         });
         builder.Services.AddMudServices();
-        builder.Services.AddDesktopServices();
+        builder.Services.AddDesktopServices(DesktopHost.Hermes);
         builder.Services.AddMessageBus();
         builder.Services.AddPluginFramework();
         builder.Services.AddOnePasswordSecretManager();
@@ -66,23 +81,18 @@ class Program
         builder.RootComponents.Add<App>("app");
 
         var app = builder.Build();
+        app.RegisterHermesProvider();
 
         app.Services.UseMessageBus();
         app.Services.UseSecretManager();
         app.Services.UseMcp();
         app.Services.UsePluginFramework();
         app.Services.UseSettingsFramework();
-        await app.Services.LoadPersistedSettingsAsync();
-        await app.Services.UseFeatureFlags();
+        app.Services.LoadPersistedSettingsAsync().GetAwaiter().GetResult();
+        app.Services.UseFeatureFlags().GetAwaiter().GetResult();
 
         // Plugin loading is deferred to MainLayout.OnAfterRenderAsync
         // This allows custom plugin directory setting to take effect
-
-        app.MainWindow
-            .SetTitle("Sample Host (Desktop)")
-            .SetSize(1920, 1080)
-            .SetLogVerbosity(0)
-            .SetUseOsDefaultSize(false);
 
         AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
         {
@@ -90,5 +100,6 @@ class Program
         };
 
         app.Run();
+        app.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }

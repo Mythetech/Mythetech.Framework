@@ -125,7 +125,7 @@ app.Services.UsePlugin(assembly2);
 ```csharp
 public enum Platform
 {
-    Desktop,       // Photino/WebView
+    Desktop,       // Hermes/WebView
     WebAssembly    // Browser WASM
 }
 ```

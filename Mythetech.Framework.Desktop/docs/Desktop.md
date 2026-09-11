@@ -193,20 +193,6 @@ if (firstRender)
 
 ## Known Limitations
 
-### Native Child Windows
-
-Photino currently does not support true native child windows. You cannot:
-
-- Create popup windows that are children of the main window
-- Have modal dialogs that block the parent window natively
-- Spawn secondary windows with parent-child relationships
-
-**Workarounds:**
-
-- Use in-app modal dialogs (MudBlazor dialogs, etc.)
-- Use overlay panels instead of popups
-- For multi-window needs, spawn independent windows (no parent relationship)
-
 ### Platform Differences
 
 | Feature       | Windows         | macOS     | Linux     |

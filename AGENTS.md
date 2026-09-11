@@ -134,7 +134,7 @@ When adding new components to the framework:
 
 **Use `ILinkOpenService` for opening external URLs, never JS interop.**
 
-Since the framework supports desktop apps (Photino), `window.open()` via JS interop doesn't work.
+Since the framework supports desktop apps (Hermes), `window.open()` via JS interop doesn't work.
 
 ```csharp
 @using Mythetech.Framework.Infrastructure
@@ -276,7 +276,7 @@ MudBlazor utilities and base classes are available for use in this framework.
 ### Project Structure
 
 - **Mythetech.Framework** - Core component library with UI components and infrastructure
-- **Mythetech.Framework.Desktop** - Desktop-specific implementations (Photino, LiteDB)
+- **Mythetech.Framework.Desktop** - Desktop-specific implementations (Hermes, LiteDB)
 - **Mythetech.Framework.WebAssembly** - Browser-specific implementations
 - **Mythetech.Framework.Storybook** - Component documentation with BlazingStory
 - **Mythetech.Framework.Test** - Unit tests with xUnit, bUnit, NSubstitute, Shouldly
