@@ -7,7 +7,7 @@ This directory contains example projects demonstrating how to use the Mythetech.
 **These sample host projects may be moved to a separate repository in the future.**
 
 - `SamplePlugin/` - **Keep this** - A complete plugin example showing best practices
-- `SampleHost.Desktop/` - Temporary example desktop host (Photino.Blazor)
+- `SampleHost.Desktop/` - Example desktop host (Hermes)
 - `SampleHost.WebAssembly/` - Temporary example WASM host
 
 ## Quick Start

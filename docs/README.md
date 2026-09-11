@@ -1,6 +1,6 @@
 # Mythetech.Framework Documentation
 
-Welcome to the Mythetech.Framework documentation. This framework provides infrastructure for building extensible Blazor applications targeting Desktop (Photino) and WebAssembly platforms.
+Welcome to the Mythetech.Framework documentation. This framework provides infrastructure for building extensible Blazor applications targeting Desktop (Hermes) and WebAssembly platforms.
 
 ## Infrastructure
 
