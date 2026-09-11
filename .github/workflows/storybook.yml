@@ -52,13 +52,13 @@ jobs:
         run: dotnet restore
 
       - name: Run Tests
-        run: dotnet test --project Mythetech.Framework.Test --no-restore --results-directory "TestResults-${{ matrix.dotnet-version }}" -- --report-xunit-trx
+        run: dotnet test --project Mythetech.Framework.Test --no-restore --results-directory "TestResults" -- --report-xunit-trx
 
       - name: Upload dotnet test results
         uses: actions/upload-artifact@v4
         with:
-          name: dotnet-results-${{ matrix.dotnet-version }}
-          path: TestResults-${{ matrix.dotnet-version }}
+          name: dotnet-results
+          path: TestResults
         if: ${{ always() }}
 
   # Deploy job
