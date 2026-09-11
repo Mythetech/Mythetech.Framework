@@ -40,7 +40,7 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 - Settings framework with auto-discovery and persistence
 - Extensible plugin system with storage and state management
 - AI generator integration for LLM-powered features
-- Desktop support via [Hermes](https://github.com/Mythetech/Hermes) (recommended) or Photino
+- Desktop support via [Hermes](https://github.com/Mythetech/Hermes)
 - .NET 10.0 support
 - Comprehensive test coverage
 
@@ -49,7 +49,7 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 - `Mythetech.Framework/` - Main component library
   - `Components/` - Custom Blazor components
   - `Infrastructure/` - Supporting infrastructure code and abstractions
-- `Mythetech.Framework.Desktop/` - Desktop application specific implementations (Hermes and Photino hosts)
+- `Mythetech.Framework.Desktop/` - Desktop application specific implementations (Hermes host)
 - `Mythetech.Framework.WebAssembly/` - WebAssembly specific implementations
 - `Mythetech.Framework.AI.Generator/` - AI generator integration for LLM-powered features
 - `Mythetech.Framework.Storybook/` - Component documentation and showcase
@@ -104,17 +104,6 @@ builder.Services.AddDesktopServices(DesktopHost.Hermes);
 
 HermesBlazorApp app = appBuilder.Build();
 app.RegisterHermesProvider();
-```
-
-With desktop (Photino):
-
-```csharp
-builder.Services.AddDesktopServices(DesktopHost.Photino);
-
-...
-
-PhotinoBlazorApp app = appBuilder.Build();
-app.RegisterProvider(app.Services);
 ```
 
 ## Development

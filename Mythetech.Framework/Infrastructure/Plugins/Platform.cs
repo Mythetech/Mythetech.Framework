@@ -7,7 +7,7 @@ namespace Mythetech.Framework.Infrastructure.Plugins;
 public enum Platform
 {
     /// <summary>
-    /// Desktop application (Photino/WebView-based)
+    /// Desktop application (Hermes, WebView-based)
     /// </summary>
     Desktop,
 

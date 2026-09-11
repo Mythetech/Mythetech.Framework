@@ -237,7 +237,7 @@
     private string _explanationMarkdown = @"
 ## File Services
 
-The `IFileOpenService` and `IFileSaveService` provide platform-agnostic ways to open and save files. They have different implementations for WebAssembly and Desktop (Photino).
+The `IFileOpenService` and `IFileSaveService` provide platform-agnostic ways to open and save files. They have different implementations for WebAssembly and Desktop (Hermes).
 
 ### Opening Files
 
@@ -301,9 +301,9 @@ builder.Services.AddFileSaveService();
 builder.Services.AddWebAssemblyServices();
 ```
 
-**Desktop (Photino):**
+**Desktop (Hermes):**
 ```csharp
-builder.Services.AddPhotinoServices();
+builder.Services.AddHermesServices();
 ```
 ";
 }
