@@ -1,0 +1,25 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using MudBlazor
+
+<MudPopoverProvider />
+<AppContextDrawer @bind-IsOpen="IsOpen" @bind-ActivePanelId="ActivePanelId"
+                  ShowPluginPanels="false" EnableResizer="false">
+    <PanelNavContent>
+        <ContextPanelItem Id="messaging" Icon="send" Title="Messaging" RoutePrefix="Messaging">
+            <PanelContent>
+                <p>messaging</p>
+            </PanelContent>
+        </ContextPanelItem>
+        <ContextPanelItem Id="plugin" Icon="extension" Title="Plugin">
+            <PanelContent>
+                <p>plugin</p>
+            </PanelContent>
+        </ContextPanelItem>
+    </PanelNavContent>
+</AppContextDrawer>
+
+@code {
+    public bool IsOpen { get; set; }
+
+    public string? ActivePanelId { get; set; }
+}

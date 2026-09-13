@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.19.3] - 2026-09-12
+
+### Added
+
+- Double clicking a `ContextPanelItem` in the `AppContextDrawer` navigates to its `RoutePrefix` and collapses the drawer. The icon rail was panel state only, so reaching a page meant clicking the icon, moving into the panel, and clicking again. Panels without a `RoutePrefix` (plugin panels) ignore the gesture
+- `ContextPanelItem` renders a `data-panel-id` attribute, so hosts and tests can target a specific panel icon
+
+### Notes
+
+- The browser fires `click`, `click`, `dblclick`, so both single clicks toggle the panel before the double click is seen. `AppContextDrawer` forces the drawer closed on navigation rather than inheriting whatever those clicks left behind, which keeps the end state deterministic
+- Double clicking the panel for the page you are already on is a no-op, leaving the two clicks to behave as a plain toggle. A nested page such as `/Endpoints/my-endpoint` still counts as somewhere to navigate away from, so double clicking there takes you up to `/Endpoints`
+- Only `Mythetech.Framework` is bumped. `0.19.2` is skipped because that number already belongs to the `Mythetech.Framework.Desktop` only release below
+
 ## [0.19.2] - 2026-09-11
 
 ### Fixed
