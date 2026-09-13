@@ -5,7 +5,7 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
-<div class="context-panel-item-wrapper">
+<div class="context-panel-item-wrapper" data-panel-id="@Id" @ondblclick="HandleDoubleClick">
     @if (IsActive)
     {
         <MudIconButton Class="@ActiveClass"
@@ -77,6 +77,12 @@
     public EventCallback<ContextPanelItem> OnPanelItemClicked { get; set; }
 
     /// <summary>
+    /// Callback raised when this item is double clicked (cascaded from parent).
+    /// </summary>
+    [CascadingParameter(Name = "OnPanelItemDoubleClicked")]
+    public EventCallback<ContextPanelItem> OnPanelItemDoubleClicked { get; set; }
+
+    /// <summary>
     /// Callback to register this item with the parent drawer.
     /// </summary>
     [CascadingParameter(Name = "RegisterPanelItem")]
@@ -117,6 +123,20 @@
     private bool IsRouteActive => !string.IsNullOrEmpty(RoutePrefix)
         && Nav.ToBaseRelativePath(Nav.Uri).StartsWith(RoutePrefix.TrimStart('/'), StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Whether the current route is this panel's route exactly, rather than a page nested beneath it.
+    /// A nested page still counts as somewhere to navigate away from.
+    /// </summary>
+    internal bool IsOnExactRoute => !string.IsNullOrEmpty(RoutePrefix)
+        && string.Equals(CurrentPath(), RoutePrefix.Trim('/'), StringComparison.OrdinalIgnoreCase);
+
+    private string CurrentPath()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var end = path.IndexOfAny(['?', '#']);
+        return (end >= 0 ? path[..end] : path).Trim('/');
+    }
+
     protected override void OnInitialized()
     {
         RegisterPanelItem?.Invoke(this);
@@ -140,6 +160,11 @@
     private async Task HandleClick()
     {
         await OnPanelItemClicked.InvokeAsync(this);
+    }
+
+    private async Task HandleDoubleClick()
+    {
+        await OnPanelItemDoubleClicked.InvokeAsync(this);
     }
 
     private string GetBadgeClass()

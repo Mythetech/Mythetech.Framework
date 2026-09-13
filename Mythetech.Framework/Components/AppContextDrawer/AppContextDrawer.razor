@@ -9,6 +9,7 @@
 
 <CascadingValue Name="ActivePanelId" Value="@ActivePanelId">
 <CascadingValue Name="OnPanelItemClicked" Value="@_onPanelItemClicked">
+<CascadingValue Name="OnPanelItemDoubleClicked" Value="@_onPanelItemDoubleClicked">
 <CascadingValue Name="RegisterPanelItem" Value="@RegisterPanelItem">
 <MudStack Spacing="0" Row="true" Class="@GetRootClass()" Style="@Style">
     @* Icon Bar *@
@@ -91,6 +92,7 @@
 {
     <div class="@GetResizerClass()"></div>
 }
+</CascadingValue>
 </CascadingValue>
 </CascadingValue>
 </CascadingValue>
@@ -179,6 +181,9 @@
     private IJSRuntime JS { get; set; } = default!;
 
     [Inject]
+    private NavigationManager Nav { get; set; } = default!;
+
+    [Inject]
     private PluginState? PluginState { get; set; }
 
     [Inject]
@@ -188,10 +193,12 @@
     private ContextPanelItem? _activeItem;
     private Dictionary<string, ContextPanelItem> _registeredPanels = new();
     private EventCallback<ContextPanelItem> _onPanelItemClicked;
+    private EventCallback<ContextPanelItem> _onPanelItemDoubleClicked;
 
     protected override void OnInitialized()
     {
         _onPanelItemClicked = EventCallback.Factory.Create<ContextPanelItem>(this, HandlePanelItemClicked);
+        _onPanelItemDoubleClicked = EventCallback.Factory.Create<ContextPanelItem>(this, HandlePanelItemDoubleClicked);
 
         if (PluginState != null)
         {
@@ -258,6 +265,27 @@
         }
 
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// A double click on a routed panel navigates to its page and collapses the drawer.
+    /// The browser fires both single clicks before this, so the panel state is whatever
+    /// those left behind; forcing it closed here makes the outcome deterministic.
+    /// Double clicking the panel you are already on stays a plain double toggle.
+    /// </summary>
+    private async Task HandlePanelItemDoubleClicked(ContextPanelItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.RoutePrefix) || item.IsOnExactRoute)
+        {
+            return;
+        }
+
+        _activeItem = null;
+        await SetIsOpen(false);
+        await SetActivePanelId(null);
+        StateHasChanged();
+
+        Nav.NavigateTo($"/{item.RoutePrefix.TrimStart('/')}");
     }
 
     private async Task ClosePanel()
