@@ -1,16 +1,16 @@
 @using MudBlazor
-@implements IDisposable
-<MudProgressLinear 
-    Color="@Color" 
-    Value="@Value" 
-    Rounded="@Rounded" 
-    Striped="@Striped" 
-    Size="@Size" 
-    />
+
+<div class="mythetech-progress-countdown" style="@($"--countdown-duration: {Duration}ms")">
+    <MudProgressLinear
+        Color="@Color"
+        Value="100"
+        Rounded="@Rounded"
+        Striped="@Striped"
+        Size="@Size"
+        />
+</div>
 
 @code {
-    private bool _disposed;
-    
     /// <summary>
     /// Duration of the countdown in milliseconds. Default is 5000 (5 seconds).
     /// </summary>
@@ -35,41 +35,4 @@
     /// The size of the progress bar. Default is <see cref="MudBlazor.Size.Small"/>.
     /// </summary>
     [Parameter] public Size Size { get; set; } = Size.Small;
-    
-    private double Value { get; set; } = 100;
-    
-    /// <inheritdoc />
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        await StartCountdownAsync(Duration);
-    }
-    
-    private async Task StartCountdownAsync(double durationInMilliSeconds)
-    {
-        const int interval = 60; //60 "frames" per second
-        const int refreshRate = 14; //16.6 * 60 roughly equals 1000 MS, or a second, going a bit lower makes the animation look smoother but may end a touch early
-        
-        double totalIntervals = durationInMilliSeconds * interval / 1000; //Ex 5000ms times 60 / 1000 expects 300 total loop iterations
-
-        double burndownRate = 100d / totalIntervals; //Value scale of 100 divided by the total calculated intervals
-        
-        for (int i = 0; i < totalIntervals; i++)
-        {
-            if (_disposed)
-            {
-                return;
-            }
-            
-            Value -= burndownRate;
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(refreshRate);
-        }
-
-        Value = 0;
-        StateHasChanged();
-    }
-
-    /// <inheritdoc />
-    public void Dispose() => _disposed = true;
 }

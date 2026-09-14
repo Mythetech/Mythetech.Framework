@@ -170,4 +170,35 @@ public class ProgressCountdownTests : BunitContext
         var progressBar = cut.Find(".mud-progress-linear");
         progressBar.ClassList.ShouldContain("mud-progress-linear-medium");
     }
+
+    [Fact(DisplayName = "ProgressCountdown wraps the bar in the countdown class")]
+    public void ProgressCountdown_WrapsBarInCountdownClass()
+    {
+        var cut = Render<ProgressCountdown>();
+
+        var wrapper = cut.Find(".mythetech-progress-countdown");
+        wrapper.QuerySelector(".mud-progress-linear").ShouldNotBeNull();
+    }
+
+    [Fact(DisplayName = "ProgressCountdown exposes Duration as a CSS custom property")]
+    public void ProgressCountdown_ExposesDurationAsCssCustomProperty()
+    {
+        var cut = Render<ProgressCountdown>(parameters => parameters
+            .Add(p => p.Duration, 12000));
+
+        var wrapper = cut.Find(".mythetech-progress-countdown");
+        wrapper.GetAttribute("style").ShouldContain("--countdown-duration: 12000ms");
+    }
+
+    [Fact(DisplayName = "ProgressCountdown does not re-render from C# while counting down")]
+    public async Task ProgressCountdown_DoesNotReRenderWhileCountingDown()
+    {
+        var cut = Render<ProgressCountdown>(parameters => parameters
+            .Add(p => p.Duration, 5000));
+
+        await Task.Delay(200);
+
+        cut.RenderCount.ShouldBe(1);
+        cut.Find(".mud-progress-linear").GetAttribute("aria-valuenow").ShouldBe("100");
+    }
 }

@@ -1,0 +1,19 @@
+/* The countdown is animated entirely by the compositor so it stays smooth
+   while the Blazor renderer or WebView main thread is busy. MudBlazor sets an
+   inline transform on the bar; a CSS animation takes precedence over it. */
+.mythetech-progress-countdown ::deep .mud-progress-linear-bar {
+    transition: none;
+    animation-name: mythetech-progress-countdown;
+    animation-duration: var(--countdown-duration, 5000ms);
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes mythetech-progress-countdown {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}
