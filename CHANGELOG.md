@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.19.4] - 2026-09-14
+
+### Changed
+
+- Material Symbols Rounded is now embedded in `Mythetech.Framework` at `_content/Mythetech.Framework/fonts/material-symbols-rounded.woff2` and declared by `mythetech.css`. The framework owns the icon font version, every consuming app picks it up through the stylesheet it already links, and icons render without a network connection
+- The `@import` of the Azure CDN `material-symbols.css` is gone. That file only pinned Google's CSS, whose `@font-face` still pointed at `fonts.gstatic.com`, so the CDN never removed the runtime dependency on Google
+
+### Added
+
+- `scripts/update-material-symbols.sh` fetches the latest Google Fonts release, downloads the woff2 over the embedded copy and updates the `material-symbols-version` tag in `mythetech.css`. Run it, review the diff, bump the package
+
+### Notes
+
+- Apps should remove their own `<link>` to the Google or CDN Material Symbols stylesheet once they upgrade. Leaving it in place is harmless but reintroduces the network fetch
+- The embedded build is the default-axes font (weight 400, no FILL, GRAD or opsz ranges) matching what the CDN served. The `.material-symbols-filled` class defined in some apps sets `FILL` and was never honoured by that build either. Nothing applies the class, so it can be deleted rather than supported
+
 ## [0.19.3] - 2026-09-12
 
 ### Added
