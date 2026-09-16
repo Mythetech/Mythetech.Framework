@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.19.5] - 2026-09-16
+
+### Changed
+
+- `InMemoryMessageBus.PublishAsync` no longer allocates per publish when consumers complete synchronously. Consumer, subscriber and pipe lists are cached as arrays, a cancellation source is only created when a timeout is set, activity names are cached per message type and only used when a listener is attached, and only consumers that actually suspend are awaited. A publish to 16 synchronous consumers went from 1,247 ns and 4,016 B to 222 ns and 0 B; with 16 consumers that yield, from 18.2 µs and 10,458 B to 16.7 µs and 4,085 B
+- `SendAsync` also skips the cancellation source when no timeout is set and reuses cached activity names
+- Consumer filters are now evaluated for each consumer just before it is invoked, rather than for all consumers up front
+
+### Fixed
+
+- A `Subscribe` racing the `Unsubscribe` of the last subscriber for a message type could add the consumer to a list that had just been removed, so it silently never received messages. Subscriber lists are now replaced under the lock instead of mutated
+
+### Added
+
+- `Mythetech.Framework.Benchmarks`, a BenchmarkDotNet project measuring `InMemoryMessageBus.PublishAsync` for consumers that complete synchronously and consumers that yield, at fan-outs of 1, 4 and 16, against a direct fan-out without the bus. It runs in-process because BenchmarkDotNet 0.15.8 has no .NET 11 moniker
+
+### Notes
+
+- Only `Mythetech.Framework` is bumped
+- .NET 11 runtime async was evaluated alongside this and not adopted. After these changes it made publishing slightly slower and allocated more (112 B on every publish, about twice as much with yielding consumers), and Mono, which runs Blazor WebAssembly in .NET 11, cannot run it. Worth revisiting on .NET 11 GA or .NET 12
+
 ## [0.19.4] - 2026-09-14
 
 ### Changed
