@@ -9,20 +9,28 @@ namespace Mythetech.Framework.Infrastructure.MessageBus;
 /// <summary>
 /// In memory implementation of the generic bus to work in desktop + webassembly blazor applications
 /// </summary>
+/// <remarks>
+/// Publishing is on the hot path of every app, so it avoids per-publish allocations: consumer,
+/// subscriber and pipe lists are cached as arrays that are replaced rather than mutated, no
+/// cancellation source is created unless a timeout needs one, and activity names are only built
+/// when a listener is attached.
+/// </remarks>
 public class InMemoryMessageBus : IMessageBus
 {
+    private static readonly PublishConfiguration UnboundedPublishConfiguration = new() { Timeout = Timeout.InfiniteTimeSpan };
+
     private readonly ConcurrentDictionary<Type, List<Type>> _registeredConsumerTypes = new();
-    private readonly ConcurrentDictionary<Type, List<object>> _cachedConsumers = new();
-    private readonly ConcurrentDictionary<Type, List<object>> _subscribers = new();
+    private readonly ConcurrentDictionary<Type, object> _cachedConsumers = new();
+    private readonly ConcurrentDictionary<Type, object> _subscribers = new();
     private readonly ConcurrentDictionary<Type, (Type HandlerType, Type ResponseType)> _registeredQueryHandlerTypes = new();
     private readonly ConcurrentDictionary<Type, object> _cachedQueryHandlers = new();
-    private readonly ConcurrentDictionary<Type, List<object>> _cachedTypedPipes = new();
+    private readonly ConcurrentDictionary<Type, object> _cachedTypedPipes = new();
     private readonly Lock _subscribersLock = new();
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<InMemoryMessageBus> _logger;
-    private readonly IEnumerable<IMessagePipe> _globalPipes;
-    private readonly IEnumerable<IConsumerFilter> _filters;
+    private readonly IMessagePipe[] _globalPipes;
+    private readonly IConsumerFilter[] _filters;
 
     /// <summary>
     /// Constructor for the in memory implementation
@@ -32,106 +40,132 @@ public class InMemoryMessageBus : IMessageBus
     /// <param name="globalPipes">Global message pipes</param>
     /// <param name="filters">Consumer filters</param>
     public InMemoryMessageBus(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         ILogger<InMemoryMessageBus> logger,
         IEnumerable<IMessagePipe> globalPipes,
         IEnumerable<IConsumerFilter> filters)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        _globalPipes = globalPipes;
-        _filters = filters;
+        _globalPipes = globalPipes.ToArray();
+        _filters = filters.ToArray();
     }
 
     /// <inheritdoc/>
     public Task PublishAsync<TMessage>(TMessage message) where TMessage : class
-        => PublishAsync(message, new PublishConfiguration { Timeout = Timeout.InfiniteTimeSpan });
+        => PublishAsync(message, UnboundedPublishConfiguration);
 
     /// <inheritdoc/>
     public async Task PublishAsync<TMessage>(TMessage message, PublishConfiguration configuration) where TMessage : class
     {
-        var messageTypeName = typeof(TMessage).Name;
-        using var activity = FrameworkTelemetry.MessageBusSource.StartActivity($"Publish:{messageTypeName}");
-        activity?.SetTag(FrameworkTelemetry.Tags.MessageType, messageTypeName);
+        using var activity = StartActivity(MessageNames<TMessage>.PublishActivity);
+        activity?.SetTag(FrameworkTelemetry.Tags.MessageType, MessageNames<TMessage>.Name);
 
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(configuration.CancellationToken);
+        using var timeoutCts = configuration.Timeout != Timeout.InfiniteTimeSpan
+            ? CancellationTokenSource.CreateLinkedTokenSource(configuration.CancellationToken)
+            : null;
+        timeoutCts?.CancelAfter(configuration.Timeout);
+        var cancellationToken = timeoutCts?.Token ?? configuration.CancellationToken;
 
-        if (configuration.Timeout != Timeout.InfiniteTimeSpan)
-        {
-            linkedCts.CancelAfter(configuration.Timeout);
-        }
-
-        if (!await RunGlobalPipesAsync(message, linkedCts.Token))
+        if (_globalPipes.Length != 0 && !await RunGlobalPipesAsync(message, cancellationToken))
         {
             activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
             return;
         }
 
-        if (!await RunTypedPipesAsync(message, linkedCts.Token))
+        var typedPipes = GetOrResolveTypedPipes<TMessage>();
+        if (typedPipes.Length != 0 && !await RunTypedPipesAsync(typedPipes, message, cancellationToken))
         {
             activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
             return;
         }
 
         var registeredConsumers = GetOrResolveConsumers<TMessage>();
+        var subscribers = GetSubscribers<TMessage>();
 
-        IEnumerable<IConsumer<TMessage>> manualSubscribers;
-        if (_subscribers.TryGetValue(typeof(TMessage), out var subscribers))
+        // Consumers that finish synchronously never need to be awaited, so the pending array is
+        // only allocated once one of them actually suspends.
+        Task[]? pending = null;
+        var pendingCount = 0;
+        var consumerCount = 0;
+
+        foreach (var consumers in (ReadOnlySpan<IConsumer<TMessage>[]>)[registeredConsumers, subscribers])
         {
-            lock (_subscribersLock)
+            foreach (var consumer in consumers)
             {
-                manualSubscribers = subscribers.Cast<IConsumer<TMessage>>().ToList();
+                if (!ShouldInvoke(consumer, message))
+                    continue;
+
+                consumerCount++;
+                var task = ConsumeAsync(consumer, message, cancellationToken);
+                if (task.IsCompleted)
+                    continue;
+
+                pending ??= new Task[registeredConsumers.Length + subscribers.Length];
+                pending[pendingCount++] = task;
             }
         }
-        else
+
+        activity?.SetTag(FrameworkTelemetry.Tags.ConsumerCount, consumerCount);
+
+        if (pendingCount == 1)
         {
-            manualSubscribers = [];
+            await pending![0];
+        }
+        else if (pendingCount > 1)
+        {
+            await Task.WhenAll(pending!.AsSpan(0, pendingCount));
         }
 
-        var allConsumers = registeredConsumers.Concat(manualSubscribers);
-
-        var filteredConsumers = allConsumers.Where(consumer =>
-            _filters.All(filter => filter.ShouldInvoke(consumer, message))).ToList();
-
-        activity?.SetTag(FrameworkTelemetry.Tags.ConsumerCount, filteredConsumers.Count);
-
-        var tasks = filteredConsumers.Select(async consumer =>
-        {
-            var consumerTypeName = consumer.GetType().Name;
-            using var consumerActivity = FrameworkTelemetry.MessageBusSource.StartActivity($"Consume:{consumerTypeName}");
-            consumerActivity?.SetTag(FrameworkTelemetry.Tags.ConsumerType, consumerTypeName);
-            consumerActivity?.SetTag(FrameworkTelemetry.Tags.MessageType, messageTypeName);
-
-            try
-            {
-                await consumer.Consume(message).WaitAsync(linkedCts.Token);
-                consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, true);
-            }
-            catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
-            {
-                consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, false);
-                consumerActivity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, "Timed out or cancelled");
-                _logger.LogWarning(
-                    "Consumer {ConsumerType} timed out or was cancelled for message {MessageType}",
-                    consumerTypeName,
-                    messageTypeName);
-            }
-            catch (Exception ex)
-            {
-                consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, false);
-                consumerActivity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, ex.Message);
-                _logger.LogError(ex,
-                    "Error in message bus consumer {ConsumerType} handling message {MessageType}",
-                    consumerTypeName,
-                    messageTypeName);
-            }
-        });
-
-        await Task.WhenAll(tasks);
         activity?.SetTag(FrameworkTelemetry.Tags.Success, true);
     }
 
-    private async Task<bool> RunGlobalPipesAsync<TMessage>(TMessage message, CancellationToken cancellationToken) 
+    private bool ShouldInvoke<TMessage>(IConsumer<TMessage> consumer, TMessage message) where TMessage : class
+    {
+        foreach (var filter in _filters)
+        {
+            if (!filter.ShouldInvoke(consumer, message))
+                return false;
+        }
+        return true;
+    }
+
+    // Never faults: every consumer failure is logged here, so PublishAsync can skip completed tasks.
+    private async Task ConsumeAsync<TMessage>(IConsumer<TMessage> consumer, TMessage message, CancellationToken cancellationToken)
+        where TMessage : class
+    {
+        using var consumerActivity = FrameworkTelemetry.MessageBusSource.HasListeners()
+            ? FrameworkTelemetry.MessageBusSource.StartActivity($"Consume:{consumer.GetType().Name}")
+            : null;
+        consumerActivity?.SetTag(FrameworkTelemetry.Tags.ConsumerType, consumer.GetType().Name);
+        consumerActivity?.SetTag(FrameworkTelemetry.Tags.MessageType, MessageNames<TMessage>.Name);
+
+        try
+        {
+            await consumer.Consume(message).WaitAsync(cancellationToken);
+            consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, true);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, false);
+            consumerActivity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, "Timed out or cancelled");
+            _logger.LogWarning(
+                "Consumer {ConsumerType} timed out or was cancelled for message {MessageType}",
+                consumer.GetType().Name,
+                MessageNames<TMessage>.Name);
+        }
+        catch (Exception ex)
+        {
+            consumerActivity?.SetTag(FrameworkTelemetry.Tags.Success, false);
+            consumerActivity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, ex.Message);
+            _logger.LogError(ex,
+                "Error in message bus consumer {ConsumerType} handling message {MessageType}",
+                consumer.GetType().Name,
+                MessageNames<TMessage>.Name);
+        }
+    }
+
+    private async Task<bool> RunGlobalPipesAsync<TMessage>(TMessage message, CancellationToken cancellationToken)
         where TMessage : class
     {
         foreach (var pipe in _globalPipes)
@@ -142,7 +176,7 @@ public class InMemoryMessageBus : IMessageBus
                 {
                     _logger.LogDebug(
                         "Message {MessageType} blocked by global pipe {PipeType}",
-                        typeof(TMessage).Name,
+                        MessageNames<TMessage>.Name,
                         pipe.GetType().Name);
                     return false;
                 }
@@ -152,17 +186,15 @@ public class InMemoryMessageBus : IMessageBus
                 _logger.LogError(ex,
                     "Error in global pipe {PipeType} for message {MessageType}",
                     pipe.GetType().Name,
-                    typeof(TMessage).Name);
+                    MessageNames<TMessage>.Name);
             }
         }
         return true;
     }
 
-    private async Task<bool> RunTypedPipesAsync<TMessage>(TMessage message, CancellationToken cancellationToken)
+    private async Task<bool> RunTypedPipesAsync<TMessage>(IMessagePipe<TMessage>[] typedPipes, TMessage message, CancellationToken cancellationToken)
         where TMessage : class
     {
-        var typedPipes = GetOrResolveTypedPipes<TMessage>();
-
         foreach (var pipe in typedPipes)
         {
             try
@@ -171,7 +203,7 @@ public class InMemoryMessageBus : IMessageBus
                 {
                     _logger.LogDebug(
                         "Message {MessageType} blocked by typed pipe {PipeType}",
-                        typeof(TMessage).Name,
+                        MessageNames<TMessage>.Name,
                         pipe.GetType().Name);
                     return false;
                 }
@@ -181,29 +213,15 @@ public class InMemoryMessageBus : IMessageBus
                 _logger.LogError(ex,
                     "Error in typed pipe {PipeType} for message {MessageType}",
                     pipe.GetType().Name,
-                    typeof(TMessage).Name);
+                    MessageNames<TMessage>.Name);
             }
         }
         return true;
     }
 
-    private List<IMessagePipe<TMessage>> GetOrResolveTypedPipes<TMessage>() where TMessage : class
-    {
-        var messageType = typeof(TMessage);
-
-        var cached = _cachedTypedPipes.GetOrAdd(messageType, _ =>
-            _serviceProvider.GetServices<IMessagePipe<TMessage>>()
-                .Cast<object>()
-                .ToList());
-
-        List<object> cachedCopy;
-        lock (cached)
-        {
-            cachedCopy = cached.ToList();
-        }
-
-        return cachedCopy.Cast<IMessagePipe<TMessage>>().ToList();
-    }
+    private IMessagePipe<TMessage>[] GetOrResolveTypedPipes<TMessage>() where TMessage : class
+        => (IMessagePipe<TMessage>[])_cachedTypedPipes.GetOrAdd(typeof(TMessage), _ =>
+            _serviceProvider.GetServices<IMessagePipe<TMessage>>().ToArray());
 
     /// <inheritdoc/>
     public void RegisterConsumerType<TMessage, TConsumer>() where TMessage : class where TConsumer : IConsumer<TMessage>
@@ -215,56 +233,57 @@ public class InMemoryMessageBus : IMessageBus
         }
     }
 
-    private List<IConsumer<TMessage>> GetOrResolveConsumers<TMessage>() where TMessage : class
-    {
-        var messageType = typeof(TMessage);
-
-        var cached = _cachedConsumers.GetOrAdd(messageType, _ =>
+    private IConsumer<TMessage>[] GetOrResolveConsumers<TMessage>() where TMessage : class
+        => (IConsumer<TMessage>[])_cachedConsumers.GetOrAdd(typeof(TMessage), messageType =>
         {
             if (!_registeredConsumerTypes.TryGetValue(messageType, out var consumerTypes))
-                return [];
+                return Array.Empty<IConsumer<TMessage>>();
 
-            List<Type> typesCopy;
+            Type[] typesCopy;
             lock (consumerTypes)
             {
-                typesCopy = consumerTypes.ToList();
+                typesCopy = consumerTypes.ToArray();
             }
 
             return typesCopy
                 .Select(type => _serviceProvider.GetService(type))
-                .OfType<object>()
-                .ToList();
+                .OfType<IConsumer<TMessage>>()
+                .ToArray();
         });
 
-        List<object> cachedCopy;
-        lock (cached)
-        {
-            cachedCopy = cached.ToList();
-        }
+    private IConsumer<TMessage>[] GetSubscribers<TMessage>() where TMessage : class
+        => _subscribers.TryGetValue(typeof(TMessage), out var subscribers)
+            ? (IConsumer<TMessage>[])subscribers
+            : [];
 
-        return cachedCopy.Cast<IConsumer<TMessage>>().ToList();
-    }
+    // Subscriber arrays are replaced under the lock and never mutated, so PublishAsync reads them
+    // without locking and a concurrent Unsubscribe cannot strand a new subscription.
 
     /// <inheritdoc/>
     public void Subscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class
     {
-        var subscribers = _subscribers.GetOrAdd(typeof(TMessage), _ => []);
         lock (_subscribersLock)
         {
-            subscribers.Add(consumer);
+            _subscribers[typeof(TMessage)] = (IConsumer<TMessage>[])[.. GetSubscribers<TMessage>(), consumer];
         }
     }
 
     /// <inheritdoc/>
     public void Unsubscribe<TMessage>(IConsumer<TMessage> consumer) where TMessage : class
     {
-        if (!_subscribers.TryGetValue(typeof(TMessage), out var handlers)) return;
-
         lock (_subscribersLock)
         {
-            handlers.Remove(consumer);
-            if (handlers.Count == 0)
+            var current = GetSubscribers<TMessage>();
+            var index = Array.IndexOf(current, consumer);
+            if (index < 0) return;
+
+            if (current.Length == 1)
+            {
                 _subscribers.TryRemove(typeof(TMessage), out _);
+                return;
+            }
+
+            _subscribers[typeof(TMessage)] = (IConsumer<TMessage>[])[.. current.AsSpan(0, index), .. current.AsSpan(index + 1)];
         }
     }
 
@@ -279,16 +298,15 @@ public class InMemoryMessageBus : IMessageBus
         where TMessage : class
         where TResponse : class
     {
-        var messageTypeName = typeof(TMessage).Name;
-        using var activity = FrameworkTelemetry.MessageBusSource.StartActivity($"Query:{messageTypeName}");
+        var messageTypeName = MessageNames<TMessage>.Name;
+        using var activity = StartActivity(MessageNames<TMessage>.QueryActivity);
         activity?.SetTag(FrameworkTelemetry.Tags.MessageType, messageTypeName);
 
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(configuration.CancellationToken);
-
-        if (configuration.Timeout != Timeout.InfiniteTimeSpan)
-        {
-            linkedCts.CancelAfter(configuration.Timeout);
-        }
+        using var timeoutCts = configuration.Timeout != Timeout.InfiniteTimeSpan
+            ? CancellationTokenSource.CreateLinkedTokenSource(configuration.CancellationToken)
+            : null;
+        timeoutCts?.CancelAfter(configuration.Timeout);
+        var cancellationToken = timeoutCts?.Token ?? configuration.CancellationToken;
 
         var handler = GetOrResolveQueryHandler<TMessage, TResponse>();
 
@@ -305,11 +323,11 @@ public class InMemoryMessageBus : IMessageBus
 
         try
         {
-            var result = await handler.Handle(message).WaitAsync(linkedCts.Token);
+            var result = await handler.Handle(message).WaitAsync(cancellationToken);
             activity?.SetTag(FrameworkTelemetry.Tags.Success, true);
             return result;
         }
-        catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             activity?.SetTag(FrameworkTelemetry.Tags.Success, false);
             activity?.SetTag(FrameworkTelemetry.Tags.ErrorMessage, "Timed out or cancelled");
@@ -375,5 +393,17 @@ public class InMemoryMessageBus : IMessageBus
         }
 
         return handler as IQueryHandler<TMessage, TResponse>;
+    }
+
+    private static Activity? StartActivity(string name)
+        => FrameworkTelemetry.MessageBusSource.HasListeners()
+            ? FrameworkTelemetry.MessageBusSource.StartActivity(name)
+            : null;
+
+    private static class MessageNames<TMessage>
+    {
+        public static readonly string Name = typeof(TMessage).Name;
+        public static readonly string PublishActivity = $"Publish:{Name}";
+        public static readonly string QueryActivity = $"Query:{Name}";
     }
 }

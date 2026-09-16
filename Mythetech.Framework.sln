@@ -24,6 +24,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Framework.AI.Gene
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleHost.Server", "samples\SampleHost.Server\SampleHost.Server.csproj", "{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Framework.Benchmarks", "Mythetech.Framework.Benchmarks\Mythetech.Framework.Benchmarks.csproj", "{E9C72F6B-7720-429A-8D7F-2796D219A225}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -166,6 +168,18 @@ Global
 		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|x64.Build.0 = Release|Any CPU
 		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|x86.ActiveCfg = Release|Any CPU
 		{5F60E50D-EED5-4CB6-8F7B-7982C0972FFB}.Release|x86.Build.0 = Release|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Debug|x64.Build.0 = Debug|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Debug|x86.Build.0 = Debug|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|x64.ActiveCfg = Release|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|x64.Build.0 = Release|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|x86.ActiveCfg = Release|Any CPU
+		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
