@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.19.6] - 2026-09-18
+
+### Changed
+
+- `Mythetech.Framework.Desktop` moves to `Mythetech.Hermes` and `Mythetech.Hermes.Blazor` 1.4.0, which add native notifications via `HermesApplication.Notifications` and the `INativeNotifications` DI contract. Hermes 1.4.0 introduces no new packages and no native dependencies
+
+### Notes
+
+- Only `Mythetech.Framework.Desktop` is bumped. `0.19.3` through `0.19.5` are skipped because those numbers already belong to `Mythetech.Framework` only releases
+
 ## [0.19.5] - 2026-09-16
 
 ### Changed
