@@ -23,16 +23,16 @@ public class SampleAppSettings : SettingsBase
     public override int Order => 10;
 
     /// <summary>
-    /// Whether to show the context panel sidebar on the right.
+    /// Whether plugin contributed panels appear in the context drawer.
     /// </summary>
-    [Setting(Label = "Show Context Panel", Description = "Display the plugin context panel sidebar", Group = "Layout")]
+    [Setting(Label = "Show Plugin Panels", Description = "Display plugin context panels in the drawer", Group = "Layout")]
     public bool ShowContextPanel { get; set; } = true;
 
     /// <summary>
-    /// Width of the context panel in pixels.
+    /// Largest width the context panel can be dragged to, in pixels.
     /// </summary>
-    [Setting(Label = "Context Panel Width", Description = "Width of the context panel in pixels", Group = "Layout", Min = 200, Max = 600, Step = 20)]
-    public int ContextPanelWidth { get; set; } = 320;
+    [Setting(Label = "Max Panel Width", Description = "Largest width the context panel can be resized to", Group = "Layout", Min = 200, Max = 600, Step = 20)]
+    public int ContextPanelWidth { get; set; } = 600;
 
     /// <summary>
     /// Whether the navigation drawer starts expanded.

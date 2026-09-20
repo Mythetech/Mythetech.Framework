@@ -573,6 +573,13 @@
     overflow: hidden;
 }
 
+/* While dragging the resizer, each width write would otherwise restart the drawer's
+   width transition and the panel would trail the pointer. */
+body.mf-drawer-resizing .mud-drawer,
+body.mf-drawer-resizing .app-context-content {
+    transition: none !important;
+}
+
 /* Background helper for drawer panels */
 .bg-drawer {
     background: var(--mud-palette-drawer-background);

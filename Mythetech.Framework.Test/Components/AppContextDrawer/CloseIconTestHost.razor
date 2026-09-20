@@ -1,0 +1,24 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using MudBlazor
+
+<MudPopoverProvider />
+<AppContextDrawer @bind-IsOpen="IsOpen" @bind-ActivePanelId="ActivePanelId"
+                  CloseIcon="@CloseIcon"
+                  ShowPluginPanels="false" EnableResizer="false">
+    <PanelNavContent>
+        <ContextPanelItem Id="plugin" Icon="extension" Title="Plugin">
+            <PanelContent>
+                <p>plugin</p>
+            </PanelContent>
+        </ContextPanelItem>
+    </PanelNavContent>
+</AppContextDrawer>
+
+@code {
+    [Parameter]
+    public string CloseIcon { get; set; } = MythetechFrameworkIcons.Close;
+
+    public bool IsOpen { get; set; }
+
+    public string? ActivePanelId { get; set; }
+}

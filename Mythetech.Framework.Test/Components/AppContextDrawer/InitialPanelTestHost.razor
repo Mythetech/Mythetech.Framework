@@ -1,0 +1,24 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using MudBlazor
+
+<MudPopoverProvider />
+<AppContextDrawer IsOpen="true" ActivePanelId="@ActivePanelId"
+                  ShowPluginPanels="false" EnableResizer="false">
+    <PanelNavContent>
+        <ContextPanelItem Id="first" Icon="extension" Title="First Panel">
+            <PanelContent>
+                <p>first panel body</p>
+            </PanelContent>
+        </ContextPanelItem>
+        <ContextPanelItem Id="second" Icon="extension" Title="Second Panel">
+            <PanelContent>
+                <p>second panel body</p>
+            </PanelContent>
+        </ContextPanelItem>
+    </PanelNavContent>
+</AppContextDrawer>
+
+@code {
+    [Parameter]
+    public string? ActivePanelId { get; set; }
+}
