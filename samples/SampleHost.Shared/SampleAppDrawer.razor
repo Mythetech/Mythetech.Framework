@@ -1,0 +1,116 @@
+@namespace SampleHost.Shared
+@using Mythetech.Framework.Components.AppContextDrawer
+
+<MudDrawer Open="@Open" OpenChanged="SetOpenAsync" Elevation="2"
+           Variant="DrawerVariant.Mini" Class="overflow-hidden">
+    <AppContextDrawer IsOpen="@Open" IsOpenChanged="SetOpenAsync"
+                      @bind-ActivePanelId="_activePanelId"
+                      ShowPluginPanels="@ShowPluginPanels"
+                      MinWidth="@MinWidth"
+                      MaxWidth="@MaxWidth">
+        <IconBarHeader>
+            <MudTooltip Text="@Title" Placement="Placement.Right" Color="Color.Primary">
+                <MudIconButton Icon="@MythetechFrameworkIcons.Home" Color="Color.Primary" Class="my-2" Href="/" />
+            </MudTooltip>
+        </IconBarHeader>
+
+        <PanelNavContent>
+            <ContextPanelItem Id="navigation" Icon="@MythetechFrameworkIcons.Apps" Title="Navigation">
+                <PanelContent>
+                    <MudNavMenu>
+                        @NavContent
+                    </MudNavMenu>
+                </PanelContent>
+            </ContextPanelItem>
+
+            <ContextPanelItem Id="about" Icon="@MythetechFrameworkIcons.Info" Title="About This Drawer">
+                <PanelContent>
+                    <MudStack Spacing="3">
+                        <MudText Typo="Typo.body2">
+                            This is the framework AppContextDrawer. Click an icon to open its panel,
+                            click the same icon again to collapse it.
+                        </MudText>
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            Drag the right edge of this panel to resize it between @MinWidth and @MaxWidth pixels.
+                        </MudAlert>
+                        <MudText Typo="Typo.body2">
+                            Panels that set a RoutePrefix navigate to their page on double click.
+                            Enabled plugins contribute their own panels below the divider.
+                        </MudText>
+                    </MudStack>
+                </PanelContent>
+            </ContextPanelItem>
+
+            @AdditionalPanels
+        </PanelNavContent>
+
+        <PanelFooterContent>
+            @PanelFooterContent
+        </PanelFooterContent>
+    </AppContextDrawer>
+</MudDrawer>
+
+@code {
+    /// <summary>
+    /// Navigation links rendered inside the Navigation panel. Expects MudNavLink content.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? NavContent { get; set; }
+
+    /// <summary>
+    /// Extra ContextPanelItem entries appended after the built in sample panels.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? AdditionalPanels { get; set; }
+
+    /// <summary>
+    /// Content pinned to the bottom of the icon bar, such as a settings button.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? PanelFooterContent { get; set; }
+
+    /// <summary>
+    /// Whether the drawer content panel is expanded.
+    /// </summary>
+    [Parameter]
+    public bool Open { get; set; }
+
+    /// <summary>
+    /// Callback when the expanded state changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>
+    /// Whether plugin contributed context panels are shown.
+    /// </summary>
+    [Parameter]
+    public bool ShowPluginPanels { get; set; } = true;
+
+    /// <summary>
+    /// Largest width the content panel can be dragged to, in pixels.
+    /// </summary>
+    [Parameter]
+    public int MaxWidth { get; set; } = 600;
+
+    /// <summary>
+    /// Title shown in the tooltip on the icon bar header.
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Home";
+
+    private const int MinWidth = 200;
+
+    private string? _activePanelId = "navigation";
+
+    private async Task SetOpenAsync(bool value)
+    {
+        if (Open == value)
+        {
+            return;
+        }
+
+        Open = value;
+        await OpenChanged.InvokeAsync(value);
+    }
+}

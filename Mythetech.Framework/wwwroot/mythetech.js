@@ -275,38 +275,75 @@ export function initializeDrawerResizer(resizerSelector, drawerSelector, minWidt
         return;
     }
 
-    const onMouseDown = (e) => {
-        e.preventDefault();
+    // Measured once per drag: a horizontal resize never moves the drawer's left edge,
+    // so reading it per pointermove would force a layout for a value that cannot change.
+    let drawerLeft = 0;
+    let pendingWidth = null;
+    let frame = 0;
 
-        const onMouseMove = (e) => {
-            const drawerRect = drawer.getBoundingClientRect();
-            let newWidth = e.clientX - drawerRect.left;
-
-            // Clamp to min/max bounds
-            newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-
-            root.style.setProperty('--mud-drawer-width-left', `${newWidth}px`);
-        };
-
-        const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-        };
-
-        document.body.style.cursor = 'ew-resize';
-        document.body.style.userSelect = 'none';
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
+    const applyWidth = () => {
+        frame = 0;
+        if (pendingWidth === null) return;
+        root.style.setProperty('--mud-drawer-width-left', `${pendingWidth}px`);
+        pendingWidth = null;
     };
 
-    resizer.addEventListener('mousedown', onMouseDown);
+    const onPointerMove = (e) => {
+        pendingWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX - drawerLeft));
+
+        // Coalesce bursts of pointer events into a single write per frame.
+        if (frame === 0) {
+            frame = requestAnimationFrame(applyWidth);
+        }
+    };
+
+    const endDrag = (e) => {
+        resizer.removeEventListener('pointermove', onPointerMove);
+        resizer.removeEventListener('pointerup', endDrag);
+        resizer.removeEventListener('pointercancel', endDrag);
+
+        if (e && resizer.hasPointerCapture(e.pointerId)) {
+            resizer.releasePointerCapture(e.pointerId);
+        }
+
+        if (frame !== 0) {
+            cancelAnimationFrame(frame);
+            applyWidth();
+        }
+
+        document.body.classList.remove('mf-drawer-resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
+        if (drawerResizerState) {
+            drawerResizerState.activeDrag = null;
+        }
+    };
+
+    const onPointerDown = (e) => {
+        e.preventDefault();
+
+        drawerLeft = drawer.getBoundingClientRect().left;
+
+        // Capture keeps the drag alive when the pointer leaves the window.
+        resizer.setPointerCapture(e.pointerId);
+        resizer.addEventListener('pointermove', onPointerMove);
+        resizer.addEventListener('pointerup', endDrag);
+        resizer.addEventListener('pointercancel', endDrag);
+
+        // Width transitions would restart on every write and lag behind the pointer.
+        document.body.classList.add('mf-drawer-resizing');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        drawerResizerState.activeDrag = endDrag;
+    };
+
+    resizer.addEventListener('pointerdown', onPointerDown);
 
     drawerResizerState = {
         resizer,
-        handler: onMouseDown
+        handler: onPointerDown,
+        activeDrag: null
     };
 }
 
@@ -315,7 +352,8 @@ export function initializeDrawerResizer(resizerSelector, drawerSelector, minWidt
  */
 export function teardownDrawerResizer() {
     if (drawerResizerState) {
-        drawerResizerState.resizer.removeEventListener('mousedown', drawerResizerState.handler);
+        drawerResizerState.activeDrag?.(null);
+        drawerResizerState.resizer.removeEventListener('pointerdown', drawerResizerState.handler);
         drawerResizerState = null;
     }
 }
