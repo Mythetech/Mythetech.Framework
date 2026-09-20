@@ -4,7 +4,7 @@
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Components.AppContextDrawer.Commands
-@implements IDisposable
+@implements IAsyncDisposable
 @implements IConsumer<ActivatePanel>
 
 <CascadingValue Name="ActivePanelId" Value="@ActivePanelId">
@@ -64,7 +64,7 @@
                         <MudText Class="text-truncate" Typo="Typo.h6">@_activeItem.Title</MudText>
                         <MudSpacer />
                         <MudTooltip Text="Close" Color="Color.Primary">
-                            <MudIconButton Icon="@MythetechFrameworkIcons.ChevronLeft"
+                            <MudIconButton Icon="@CloseIcon"
                                            Variant="Variant.Text"
                                            OnClick="ClosePanel" />
                         </MudTooltip>
@@ -76,7 +76,7 @@
                     <MudStack Row="true" Class="w-100">
                         <MudText Typo="Typo.subtitle1">No Item Selected</MudText>
                         <MudSpacer />
-                        <MudIconButton Icon="@MythetechFrameworkIcons.Close"
+                        <MudIconButton Icon="@CloseIcon"
                                        Variant="Variant.Text"
                                        OnClick="ClosePanel" />
                     </MudStack>
@@ -148,6 +148,12 @@
     public bool ShowPluginPanels { get; set; } = true;
 
     /// <summary>
+    /// Icon used by the button that closes the content panel.
+    /// </summary>
+    [Parameter]
+    public string CloseIcon { get; set; } = MythetechFrameworkIcons.Close;
+
+    /// <summary>
     /// Whether the resizer is enabled. Default true.
     /// </summary>
     [Parameter]
@@ -191,6 +197,7 @@
 
     private IJSObjectReference? _jsModule;
     private ContextPanelItem? _activeItem;
+    private bool _activeItemNeedsRender;
     private Dictionary<string, ContextPanelItem> _registeredPanels = new();
     private EventCallback<ContextPanelItem> _onPanelItemClicked;
     private EventCallback<ContextPanelItem> _onPanelItemDoubleClicked;
@@ -213,6 +220,12 @@
         if (firstRender && EnableResizer)
         {
             await InitializeResizer();
+        }
+
+        if (_activeItemNeedsRender)
+        {
+            _activeItemNeedsRender = false;
+            StateHasChanged();
         }
     }
 
@@ -239,6 +252,14 @@
     private void RegisterPanelItem(ContextPanelItem item)
     {
         _registeredPanels[item.Id] = item;
+
+        // A panel named by ActivePanelId before any click can only be matched once it has
+        // registered, which happens while this component is already rendering its children.
+        if (_activeItem == null && item.Id == ActivePanelId)
+        {
+            _activeItem = item;
+            _activeItemNeedsRender = true;
+        }
     }
 
     private async Task HandlePanelItemClicked(ContextPanelItem item)
@@ -355,7 +376,7 @@
         return IsOpen ? "app-context-resizer" : "app-context-resizer app-context-resizer-hidden";
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (PluginState != null)
         {
@@ -368,12 +389,17 @@
         {
             try
             {
-                _ = _jsModule.InvokeVoidAsync("teardownDrawerResizer");
-                _ = _jsModule.DisposeAsync();
+                await _jsModule.InvokeVoidAsync("teardownDrawerResizer");
+                await _jsModule.DisposeAsync();
             }
             catch
             {
-                // Ignore disposal errors
+                // The host may already have torn the JS context down, which makes
+                // the teardown call moot rather than a failure worth surfacing.
+            }
+            finally
+            {
+                _jsModule = null;
             }
         }
     }
