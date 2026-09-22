@@ -26,6 +26,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleHost.Server", "sample
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Framework.Benchmarks", "Mythetech.Framework.Benchmarks\Mythetech.Framework.Benchmarks.csproj", "{E9C72F6B-7720-429A-8D7F-2796D219A225}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mythetech.Framework.Test.EchoArgs", "Mythetech.Framework.Test.EchoArgs\Mythetech.Framework.Test.EchoArgs.csproj", "{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -180,6 +182,18 @@ Global
 		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|x64.Build.0 = Release|Any CPU
 		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|x86.ActiveCfg = Release|Any CPU
 		{E9C72F6B-7720-429A-8D7F-2796D219A225}.Release|x86.Build.0 = Release|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Debug|x64.Build.0 = Debug|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Debug|x86.Build.0 = Debug|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Release|x64.ActiveCfg = Release|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Release|x64.Build.0 = Release|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Release|x86.ActiveCfg = Release|Any CPU
+		{75FA6A61-0F7C-4A2A-860B-EBD4B904336D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

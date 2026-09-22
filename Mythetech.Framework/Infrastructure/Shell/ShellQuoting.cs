@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Mythetech.Framework.Infrastructure.Shell;
 
 /// <summary>
@@ -18,29 +20,47 @@ public static class ShellQuoting
         => "'" + value.Replace("'", "'\\''") + "'";
 
     /// <summary>
-    /// Quotes a value for Windows cmd.exe using double quotes.
+    /// Quotes a value as a single Windows command-line argument, following the
+    /// CreateProcess / CommandLineToArgvW parsing rules used by the child process.
     /// </summary>
     /// <remarks>
-    /// Escapes backslashes, double quotes, and cmd.exe special characters (%, ^, !).
-    /// For complex cases, prefer using ProcessStartInfo.ArgumentList.
+    /// Wraps the value in double quotes, escapes embedded quotes as \", and doubles
+    /// only the backslashes that come directly before a quote or the closing quote.
+    /// cmd.exe characters such as %, ^ and ! are left alone because the executor
+    /// never routes arguments through cmd.exe. Batch files (.cmd, .bat) are the
+    /// exception: Windows runs them through cmd.exe, and this quoting is not safe there.
+    /// Prefer <see cref="ShellCommand.ArgumentList"/>, which needs no quoting at all.
     /// </remarks>
     public static string QuoteWindows(string value)
     {
-        // Escape backslashes and double quotes
-        var escaped = value
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"");
+        var builder = new StringBuilder(value.Length + 2);
+        builder.Append('"');
 
-        // Escape cmd.exe special characters
-        // % must be doubled to escape in cmd.exe
-        // ^ is the escape character, so it must be escaped
-        // ! is used in delayed expansion
-        escaped = escaped
-            .Replace("%", "%%")
-            .Replace("^", "^^")
-            .Replace("!", "^!");
+        var pendingBackslashes = 0;
+        foreach (var c in value)
+        {
+            if (c == '\\')
+            {
+                pendingBackslashes++;
+                continue;
+            }
 
-        return "\"" + escaped + "\"";
+            if (c == '"')
+            {
+                builder.Append('\\', pendingBackslashes * 2 + 1);
+            }
+            else
+            {
+                builder.Append('\\', pendingBackslashes);
+            }
+
+            builder.Append(c);
+            pendingBackslashes = 0;
+        }
+
+        builder.Append('\\', pendingBackslashes * 2);
+        builder.Append('"');
+        return builder.ToString();
     }
 
     /// <summary>

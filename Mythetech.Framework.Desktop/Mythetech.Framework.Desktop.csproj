@@ -7,7 +7,7 @@
         <!-- Prevent static asset conflicts with consuming app -->
         <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
         <PackageId>Mythetech.Framework.Desktop</PackageId>
-        <VersionPrefix>0.19.6</VersionPrefix>
+        <VersionPrefix>0.19.8</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Description>Desktop-specific components for cross platform Blazor applications using Hermes</Description>
         <PackageTags>blazor;desktop;hermes;components;ui;framework;cross-platform</PackageTags>
@@ -32,6 +32,10 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Mythetech.Framework\Mythetech.Framework.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <InternalsVisibleTo Include="Mythetech.Framework.Test" />
     </ItemGroup>
 
     <ItemGroup>

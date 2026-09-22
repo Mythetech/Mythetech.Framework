@@ -81,7 +81,7 @@ public sealed class WasmShellProcess : IShellProcess
                 if (_commands.TryGetHandler(_command.Command, out var handler))
                 {
                     // Run the C# handler
-                    var args = ParseArguments(_command.Arguments);
+                    var args = _command.ArgumentList is { } argumentList ? [.. argumentList] : ParseArguments(_command.Arguments);
                     var result = await handler!(args, _cts.Token);
 
                     if (!string.IsNullOrEmpty(result.StandardOutput))

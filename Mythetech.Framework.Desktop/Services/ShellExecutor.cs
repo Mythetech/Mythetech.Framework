@@ -189,11 +189,7 @@ public partial class ShellExecutor : IShellExecutor
             startInfo.FileName = "/bin/zsh";
             startInfo.ArgumentList.Add("-c");
 
-            var fullCommand = string.IsNullOrEmpty(command.Arguments)
-                ? $"{MacOsSetupScript}{envExports}{command.Command}"
-                : $"{MacOsSetupScript}{envExports}{command.Command} {command.Arguments}";
-
-            startInfo.ArgumentList.Add(fullCommand);
+            startInfo.ArgumentList.Add($"{MacOsSetupScript}{envExports}{BuildPosixCommandLine(command)}");
         }
         else if (OperatingSystem.IsWindows())
         {
@@ -209,18 +205,51 @@ public partial class ShellExecutor : IShellExecutor
             startInfo.FileName = shell;
             startInfo.ArgumentList.Add("-c");
 
-            var fullCommand = string.IsNullOrEmpty(command.Arguments)
-                ? $"{setupScript}{envExports}{command.Command}"
-                : $"{setupScript}{envExports}{command.Command} {command.Arguments}";
-
-            startInfo.ArgumentList.Add(fullCommand);
+            startInfo.ArgumentList.Add($"{setupScript}{envExports}{BuildPosixCommandLine(command)}");
         }
+    }
+
+    /// <summary>
+    /// Builds the command line for a POSIX -c string. With <see cref="ShellCommand.ArgumentList"/> the
+    /// executor quotes the command and every argument; the legacy string form is passed through as given.
+    /// </summary>
+    private static string BuildPosixCommandLine(ShellCommand command)
+    {
+        if (command.ArgumentList is { } argumentList)
+        {
+            var builder = new StringBuilder(ShellQuoting.Quote(command.Command));
+            foreach (var argument in argumentList)
+            {
+                builder.Append(' ').Append(ShellQuoting.Quote(argument));
+            }
+            return builder.ToString();
+        }
+
+        return string.IsNullOrEmpty(command.Arguments)
+            ? command.Command
+            : $"{command.Command} {command.Arguments}";
     }
 
     private static void ConfigureDirectExecution(ProcessStartInfo startInfo, ShellCommand command)
     {
         startInfo.FileName = command.Command;
-        startInfo.Arguments = command.Arguments;
+
+        if (command.ArgumentList is { } argumentList)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                ValidateBatchFileArguments(command.Command, argumentList);
+            }
+
+            foreach (var argument in argumentList)
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+        }
+        else
+        {
+            startInfo.Arguments = command.Arguments;
+        }
 
         // Set environment variables directly on Windows
         if (command.EnvironmentVariables != null)
@@ -231,6 +260,34 @@ public partial class ShellExecutor : IShellExecutor
             }
         }
     }
+
+    /// <summary>
+    /// Windows runs .cmd and .bat files through cmd.exe, which expands % and ! and treats &amp;, |, ^ and
+    /// quotes as syntax even inside the quoting .NET applies (the BatBadBut class, CVE-2024-24576).
+    /// Arguments headed for a batch file are therefore limited to characters cmd.exe leaves alone.
+    /// </summary>
+    internal static void ValidateBatchFileArguments(string command, IReadOnlyList<string> arguments)
+    {
+        var extension = Path.GetExtension(command);
+        if (!extension.Equals(".cmd", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".bat", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        foreach (var argument in arguments)
+        {
+            if (!BatchSafeArgumentRegex().IsMatch(argument))
+            {
+                throw new NotSupportedException(
+                    $"Argument '{argument}' cannot be passed safely to the batch file '{command}' because cmd.exe " +
+                    "would interpret some of its characters. Launch the underlying .exe instead of the batch file.");
+            }
+        }
+    }
+
+    [GeneratedRegex(@"^[\p{L}\p{N} _\-.,/:=@+\\~]*\z")]
+    private static partial Regex BatchSafeArgumentRegex();
 
     // Valid POSIX environment variable name
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]

@@ -53,7 +53,7 @@ window.mythetech.shell = {
     /**
      * Executes a command.
      * @param {string} command - The command name.
-     * @param {string} args - The command arguments as a string.
+     * @param {string|string[]} args - The command arguments, as a string to parse or an array passed as given.
      * @param {object} env - Environment variables.
      * @returns {Promise<{found: boolean, exitCode: number, standardOutput: string, standardError: string}>}
      */
@@ -70,7 +70,7 @@ window.mythetech.shell = {
         }
 
         try {
-            const argArray = this._parseArgs(args || '');
+            const argArray = Array.isArray(args) ? args : this._parseArgs(args || '');
             const result = await handler(argArray, env || {});
 
             return {

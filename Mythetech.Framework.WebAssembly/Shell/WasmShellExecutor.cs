@@ -38,7 +38,7 @@ public class WasmShellExecutor : IShellExecutor
             if (_commands.TryGetHandler(command.Command, out var handler))
             {
                 _logger?.LogDebug("Executing registered C# command: {Command}", command.Command);
-                var args = ParseArguments(command.Arguments);
+                var args = command.ArgumentList is { } argumentList ? [.. argumentList] : ParseArguments(command.Arguments);
                 var result = await handler!(args, cancellationToken);
                 return result with
                 {
@@ -54,7 +54,7 @@ public class WasmShellExecutor : IShellExecutor
                 "mythetech.shell.execute",
                 cancellationToken,
                 command.Command,
-                command.Arguments,
+                (object?)command.ArgumentList ?? command.Arguments,
                 command.EnvironmentVariables);
 
             if (jsResult is { Found: true })

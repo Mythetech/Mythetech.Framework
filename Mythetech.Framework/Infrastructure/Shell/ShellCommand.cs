@@ -11,11 +11,45 @@ public record ShellCommand
     /// </summary>
     public required string Command { get; init; }
 
+    private readonly string _arguments = string.Empty;
+    private readonly IReadOnlyList<string>? _argumentList;
+
     /// <summary>
-    /// Arguments to pass to the command.
+    /// Arguments to pass to the command as a single pre-quoted string.
     /// Use <see cref="ShellQuoting"/> to escape user-supplied values.
+    /// Prefer <see cref="ArgumentList"/>, which needs no quoting.
+    /// Cannot be combined with <see cref="ArgumentList"/>.
     /// </summary>
-    public string Arguments { get; init; } = string.Empty;
+    public string Arguments
+    {
+        get => _arguments;
+        init
+        {
+            if (!string.IsNullOrEmpty(value) && _argumentList is not null)
+                throw new ArgumentException($"{nameof(Arguments)} cannot be set when {nameof(ArgumentList)} is set.", nameof(Arguments));
+            _arguments = value;
+        }
+    }
+
+    /// <summary>
+    /// Arguments to pass to the command, one value per argument, exactly as the child process should receive them.
+    /// The executor quotes each value (and <see cref="Command"/>) for the platform, so callers never quote.
+    /// Cannot be combined with a non-empty <see cref="Arguments"/>.
+    /// </summary>
+    /// <remarks>
+    /// On Windows, batch files (.cmd, .bat) run through cmd.exe, so the desktop executor refuses values
+    /// containing characters cmd.exe would interpret. Launch the .exe directly where one exists.
+    /// </remarks>
+    public IReadOnlyList<string>? ArgumentList
+    {
+        get => _argumentList;
+        init
+        {
+            if (value is not null && !string.IsNullOrEmpty(_arguments))
+                throw new ArgumentException($"{nameof(ArgumentList)} cannot be set when {nameof(Arguments)} is set.", nameof(ArgumentList));
+            _argumentList = value;
+        }
+    }
 
     /// <summary>
     /// Working directory for command execution.
@@ -47,6 +81,11 @@ public record ShellCommand
     /// Creates a new command with the specified arguments.
     /// </summary>
     public ShellCommand WithArguments(string args) => this with { Arguments = args };
+
+    /// <summary>
+    /// Creates a new command with the specified argument list. Values are passed verbatim; do not quote them.
+    /// </summary>
+    public ShellCommand WithArgumentList(params IEnumerable<string> args) => this with { ArgumentList = [.. args] };
 
     /// <summary>
     /// Creates a new command with the specified working directory.
