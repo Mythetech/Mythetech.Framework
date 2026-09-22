@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.19.8] - 2026-09-22
+
+### Fixed
+
+- `ShellQuoting.QuoteWindows` (and so `QuotePlatform` and `QuoteIfNeeded` on Windows) escaped for cmd.exe, but `ShellExecutor` never runs arguments through cmd.exe on Windows; it hands them to CreateProcess, whose parser knows nothing about `%`, `^` or `!` and treats backslashes as literal unless they come before a quote. Every quoted value reached the child corrupted: `100%` arrived as `100%%`, `a^b` as `a^^b`, `hi!` as `hi^!` and `C:\Users\tom` as `C:\\Users\\tom`. It now follows the CreateProcess / `CommandLineToArgvW` rules: wrap in quotes, escape `"` as `\"`, double only the backslashes that come before a quote or the closing quote, and leave everything else alone. macOS and Linux were never affected
+
+### Added
+
+- `ShellCommand.ArgumentList` and `WithArgumentList(...)`, the argument-list form of `Arguments`. Each value reaches the child process exactly as given and callers never quote. On Windows and for direct execution the values go straight into `ProcessStartInfo.ArgumentList`; through the macOS and Linux shell the executor POSIX-quotes `Command` and every argument itself when building the `-c` string. Setting both `Arguments` and `ArgumentList` throws `ArgumentException`
+- `WasmShellExecutor` passes `ArgumentList` to registered C# and JavaScript handlers as-is, and `WasmShellProcess` to C# handlers, instead of parsing a string
+
+### Security
+
+- On Windows, a `.cmd` or `.bat` target runs through cmd.exe even when launched directly, and .NET's `ArgumentList` quoting does not protect against cmd.exe (the BatBadBut class, CVE-2024-24576). `ShellExecutor` throws `NotSupportedException` when an `ArgumentList` value for a batch file contains anything other than letters, digits, spaces and `_ - . , / : = @ + \ ~`. Launch the real `.exe` where one exists (the native Claude Code installer ships `claude.exe`)
+
+### Notes
+
+- `Mythetech.Framework`, `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` all move to `0.19.8`. Desktop skips `0.19.7` and WebAssembly skips `0.19.1` through `0.19.7` because those numbers already belong to other packages
+- `QuoteWindows` output changes, but only from wrong to right: nothing correct depended on the old output
+- `Command` is only quoted by the executor in `ArgumentList` mode. With the legacy `Arguments` string it is still inserted into the shell command as given, so existing callers that pre-quote it or pass a shell snippet keep working. Callers that pre-quote `Command` (Horizon's language server preparer) should move to `ArgumentList` and drop the quoting, since a pre-quoted `Command` is used verbatim as `FileName` on Windows and will not launch
+- `Process.Start` with a bare name such as `claude` searches for `.exe` only, never `.cmd`, so npm-installed CLIs need a resolved path on Windows
+- `QuoteWindows` is not safe for batch files either. Prefer `ArgumentList` everywhere; `ShellQuoting` remains for callers building strings
+
 ## [0.19.6] - 2026-09-18
 
 ### Changed

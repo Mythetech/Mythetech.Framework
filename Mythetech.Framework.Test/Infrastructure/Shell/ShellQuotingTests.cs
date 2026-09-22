@@ -122,95 +122,86 @@ public class ShellQuotingTests
     [Fact(DisplayName = "QuoteWindows_SimpleString_WrapsInDoubleQuotes")]
     public void QuoteWindows_SimpleString_WrapsInDoubleQuotes()
     {
-        // Arrange
-        var input = "hello";
-
-        // Act
-        var result = ShellQuoting.QuoteWindows(input);
-
-        // Assert
-        result.ShouldBe("\"hello\"");
+        ShellQuoting.QuoteWindows("hello").ShouldBe("\"hello\"");
     }
 
     [Fact(DisplayName = "QuoteWindows_StringWithDoubleQuote_EscapesQuote")]
     public void QuoteWindows_StringWithDoubleQuote_EscapesQuote()
     {
-        // Arrange
-        var input = "say \"hello\"";
-
-        // Act
-        var result = ShellQuoting.QuoteWindows(input);
-
-        // Assert
-        result.ShouldBe("\"say \\\"hello\\\"\"");
+        ShellQuoting.QuoteWindows("say \"hello\"").ShouldBe("\"say \\\"hello\\\"\"");
     }
 
-    [Fact(DisplayName = "QuoteWindows_StringWithBackslash_EscapesBackslash")]
-    public void QuoteWindows_StringWithBackslash_EscapesBackslash()
+    [Fact(DisplayName = "QuoteWindows_BackslashesNotBeforeQuote_LeftAlone")]
+    public void QuoteWindows_BackslashesNotBeforeQuote_LeftAlone()
     {
-        // Arrange
-        var input = @"C:\Users\john";
+        ShellQuoting.QuoteWindows(@"C:\Users\john").ShouldBe("\"C:\\Users\\john\"");
+    }
 
-        // Act
-        var result = ShellQuoting.QuoteWindows(input);
+    [Fact(DisplayName = "QuoteWindows_TrailingBackslash_DoubledBeforeClosingQuote")]
+    public void QuoteWindows_TrailingBackslash_DoubledBeforeClosingQuote()
+    {
+        ShellQuoting.QuoteWindows(@"C:\dir\").ShouldBe("\"C:\\dir\\\\\"");
+    }
 
-        // Assert
-        result.ShouldBe("\"C:\\\\Users\\\\john\"");
+    [Fact(DisplayName = "QuoteWindows_BackslashBeforeQuote_DoubledAndQuoteEscaped")]
+    public void QuoteWindows_BackslashBeforeQuote_DoubledAndQuoteEscaped()
+    {
+        ShellQuoting.QuoteWindows("a\\\"b").ShouldBe("\"a\\\\\\\"b\"");
     }
 
     [Fact(DisplayName = "QuoteWindows_EmptyString_ReturnsEmptyQuotes")]
     public void QuoteWindows_EmptyString_ReturnsEmptyQuotes()
     {
-        // Arrange
-        var input = "";
-
-        // Act
-        var result = ShellQuoting.QuoteWindows(input);
-
-        // Assert
-        result.ShouldBe("\"\"");
+        ShellQuoting.QuoteWindows("").ShouldBe("\"\"");
     }
 
-    [Fact(DisplayName = "QuoteWindows_StringWithPercent_EscapesPercent")]
-    public void QuoteWindows_StringWithPercent_EscapesPercent()
+    [Theory(DisplayName = "QuoteWindows_CmdMetacharacters_LeftAlone")]
+    [InlineData("100%")]
+    [InlineData("%PATH%")]
+    [InlineData("a^b")]
+    [InlineData("hi!")]
+    public void QuoteWindows_CmdMetacharacters_LeftAlone(string input)
     {
-        // Arrange
-        var input = "%PATH%";
-
-        // Act
-        var result = ShellQuoting.QuoteWindows(input);
-
-        // Assert
-        // % must be doubled in cmd.exe
-        result.ShouldBe("\"%%PATH%%\"");
+        // CreateProcess never involves cmd.exe, so these reach the child verbatim
+        ShellQuoting.QuoteWindows(input).ShouldBe("\"" + input + "\"");
     }
 
-    [Fact(DisplayName = "QuoteWindows_StringWithCaret_EscapesCaret")]
-    public void QuoteWindows_StringWithCaret_EscapesCaret()
+    [Theory(DisplayName = "QuoteWindows_RoundTripsThroughCommandLineToArgvW")]
+    [InlineData("hello")]
+    [InlineData("")]
+    [InlineData("hello world")]
+    [InlineData("100%")]
+    [InlineData("a^b")]
+    [InlineData("hi!")]
+    [InlineData(@"C:\Users\tom")]
+    [InlineData(@"C:\Program Files\dir\")]
+    [InlineData(@"C:\dir\\")]
+    [InlineData("\\")]
+    [InlineData("\\\\")]
+    [InlineData("a\\\"b")]
+    [InlineData("a\\\\\"b")]
+    [InlineData("\"")]
+    [InlineData("\"\"")]
+    [InlineData("say \"hello\" to \"them\"")]
+    [InlineData("tab\there")]
+    [InlineData("  leading and trailing  ")]
+    [InlineData("{\"mcpServers\":{\"fs\":{\"command\":\"C:\\\\tools\\\\fs.exe\",\"args\":[\"C:\\\\\"]}}}")]
+    [InlineData("日本語テスト")]
+    [InlineData("emoji 🚀 and ümlaut")]
+    [InlineData("& | < > ( ) ;")]
+    public void QuoteWindows_RoundTripsThroughCommandLineToArgvW(string input)
     {
-        // Arrange
-        var input = "a^b";
-
-        // Act
-        var result = ShellQuoting.QuoteWindows(input);
-
-        // Assert
-        // ^ is the escape char in cmd.exe, must be doubled
-        result.ShouldBe("\"a^^b\"");
+        WindowsCommandLine.Parse(ShellQuoting.QuoteWindows(input)).ShouldBe([input]);
     }
 
-    [Fact(DisplayName = "QuoteWindows_StringWithExclamation_EscapesExclamation")]
-    public void QuoteWindows_StringWithExclamation_EscapesExclamation()
+    [Fact(DisplayName = "QuoteWindows_MultipleArguments_RoundTripAsSeparateValues")]
+    public void QuoteWindows_MultipleArguments_RoundTripAsSeparateValues()
     {
-        // Arrange
-        var input = "hello!";
+        string[] values = [@"C:\dir\", "--flag", "a \"quoted\" value", "", "50%!"];
 
-        // Act
-        var result = ShellQuoting.QuoteWindows(input);
+        var commandLine = string.Join(" ", values.Select(ShellQuoting.QuoteWindows));
 
-        // Assert
-        // ! is used in delayed expansion, escaped with ^
-        result.ShouldBe("\"hello^!\"");
+        WindowsCommandLine.Parse(commandLine).ShouldBe(values);
     }
 
     #endregion
@@ -307,7 +298,6 @@ public class ShellQuotingTests
         var result = ShellQuoting.QuoteIfNeeded(input);
 
         // Assert
-        // % needs quoting for Windows env var safety
         result.ShouldNotBe("%PATH%");
     }
 
@@ -321,7 +311,6 @@ public class ShellQuotingTests
         var result = ShellQuoting.QuoteIfNeeded(input);
 
         // Assert
-        // ^ needs quoting for cmd.exe safety
         result.ShouldNotBe("a^b");
     }
 
