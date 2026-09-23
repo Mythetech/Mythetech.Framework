@@ -97,6 +97,15 @@
     public string? RoutePrefix { get; set; }
 
     /// <summary>
+    /// When true, route-based highlighting matches only the <see cref="RoutePrefix"/> route itself,
+    /// not the routes nested beneath it. Double clicking still navigates to <see cref="RoutePrefix"/>.
+    /// Use it for an index page whose child pages have panel items of their own, so both icons do not
+    /// light up at once.
+    /// </summary>
+    [Parameter]
+    public bool ExactRouteMatch { get; set; }
+
+    /// <summary>
     /// CSS class applied when the item is active due to route matching.
     /// </summary>
     [Parameter]
@@ -121,7 +130,9 @@
     private bool IsPanelActive => !string.IsNullOrEmpty(ActivePanelId) && ActivePanelId == Id;
 
     private bool IsRouteActive => !string.IsNullOrEmpty(RoutePrefix)
-        && Nav.ToBaseRelativePath(Nav.Uri).StartsWith(RoutePrefix.TrimStart('/'), StringComparison.OrdinalIgnoreCase);
+        && (ExactRouteMatch
+            ? IsOnExactRoute
+            : Nav.ToBaseRelativePath(Nav.Uri).StartsWith(RoutePrefix.TrimStart('/'), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Whether the current route is this panel's route exactly, rather than a page nested beneath it.

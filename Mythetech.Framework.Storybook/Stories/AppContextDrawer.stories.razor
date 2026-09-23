@@ -114,6 +114,46 @@
         </Template>
     </Story>
 
+    <Story Name="Index And Child Routes" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudLayout Style="height: 400px; position: relative;">
+                <MudDrawer Open="true" Variant="DrawerVariant.Mini" Style="overflow: hidden;">
+                    <AppContextDrawer IsOpen="false" ShowPluginPanels="false">
+                        <PanelNavContent>
+                            <ContextPanelItem Id="projects" Icon="@MythetechFrameworkIcons.Round("folder")" Title="Projects"
+                                              RoutePrefix="/projects" ExactRouteMatch="true">
+                                <PanelContent>
+                                    <MudText Typo="Typo.body1">All projects</MudText>
+                                </PanelContent>
+                            </ContextPanelItem>
+
+                            <ContextPanelItem Id="project-alpha" Icon="@MythetechFrameworkIcons.Round("deployed_code")" Title="Alpha"
+                                              RoutePrefix="/projects/alpha">
+                                <PanelContent>
+                                    <MudText Typo="Typo.body1">Project Alpha</MudText>
+                                </PanelContent>
+                            </ContextPanelItem>
+                        </PanelNavContent>
+                    </AppContextDrawer>
+                </MudDrawer>
+
+                <MudMainContent Style="padding: 16px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body1">
+                            <code>Projects</code> sets <code>ExactRouteMatch</code>, so it lights up on <code>/projects</code>
+                            but not on <code>/projects/alpha</code>, where only <code>Alpha</code> lights up. Double clicking
+                            <code>Projects</code> from anywhere still navigates to <code>/projects</code>.
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            Without it, a <code>RoutePrefix</code> matches every route that starts with it, so both icons
+                            would light up on <code>/projects/alpha</code>.
+                        </MudText>
+                    </MudStack>
+                </MudMainContent>
+            </MudLayout>
+        </Template>
+    </Story>
+
 </Stories>
 
 @code {

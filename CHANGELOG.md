@@ -10,6 +10,7 @@
 
 - `ShellCommand.ArgumentList` and `WithArgumentList(...)`, the argument-list form of `Arguments`. Each value reaches the child process exactly as given and callers never quote. On Windows and for direct execution the values go straight into `ProcessStartInfo.ArgumentList`; through the macOS and Linux shell the executor POSIX-quotes `Command` and every argument itself when building the `-c` string. Setting both `Arguments` and `ArgumentList` throws `ArgumentException`
 - `WasmShellExecutor` passes `ArgumentList` to registered C# and JavaScript handlers as-is, and `WasmShellProcess` to C# handlers, instead of parsing a string
+- `ContextPanelItem.ExactRouteMatch`. When true, route highlighting matches only the `RoutePrefix` route itself (ignoring the query string and fragment), not the routes nested beneath it, while double clicking still navigates to `RoutePrefix`. It is for an index page whose child pages have panel items of their own, such as a sessions list beside one item per session: with a plain prefix both icons light up on a child page, and the workaround of passing a null `RoutePrefix` off the index route also took away the double click's destination
 
 ### Security
 

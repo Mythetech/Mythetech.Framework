@@ -1,0 +1,25 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using MudBlazor
+
+<MudPopoverProvider />
+<AppContextDrawer @bind-IsOpen="IsOpen" @bind-ActivePanelId="ActivePanelId"
+                  ShowPluginPanels="false" EnableResizer="false">
+    <PanelNavContent>
+        <ContextPanelItem Id="sessions" Icon="list" Title="Sessions" RoutePrefix="Sessions" ExactRouteMatch="true">
+            <PanelContent>
+                <p>sessions</p>
+            </PanelContent>
+        </ContextPanelItem>
+        <ContextPanelItem Id="session-1" Icon="group" Title="Session 1" RoutePrefix="Sessions/1">
+            <PanelContent>
+                <p>session 1</p>
+            </PanelContent>
+        </ContextPanelItem>
+    </PanelNavContent>
+</AppContextDrawer>
+
+@code {
+    public bool IsOpen { get; set; }
+
+    public string? ActivePanelId { get; set; }
+}
