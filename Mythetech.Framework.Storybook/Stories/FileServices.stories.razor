@@ -277,7 +277,7 @@ var path = await FileSaveService.PromptFileSaveAsync(""myfile"", ""txt"");
 
 ### Error Handling
 
-In WebAssembly, the File System Access API may not be supported in all browsers. Wrap calls in a try-catch to handle `UnsupportedBrowserApiException`:
+In WebAssembly, the File System Access API may not be supported in all browsers. `SaveFileAsync` falls back to a regular browser download there, but `OpenFileAsync`, `OpenFolderAsync` and `PromptFileSaveAsync` have no fallback. Wrap those calls in a try-catch to handle `UnsupportedBrowserApiException`:
 
 ```csharp
 try

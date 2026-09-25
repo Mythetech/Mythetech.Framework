@@ -29,6 +29,11 @@
     </ItemGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="Mythetech.Framework.Test" />
+      <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+    </ItemGroup>
+
+    <ItemGroup>
       <None Include="..\README.md" Pack="true" PackagePath="\"/>
       <None Include="..\icon.png" Pack="true" PackagePath="\"/>
     </ItemGroup>
