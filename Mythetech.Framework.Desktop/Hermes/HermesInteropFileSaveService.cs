@@ -36,6 +36,18 @@ public class HermesInteropFileSaveService : IFileSaveService
     }
 
     /// <inheritdoc />
+    public async Task<bool> SaveFileAsync(string fileName, byte[] data)
+    {
+        var location = PromptForLocation(fileName);
+
+        if (location is null)
+            return false;
+
+        await File.WriteAllBytesAsync(location, data);
+        return true;
+    }
+
+    /// <inheritdoc />
     public Task<string?> PromptFileSaveAsync(string fileName, string extension = "txt")
     {
         var location = _dialog.ShowSaveFile(fileName, extension);

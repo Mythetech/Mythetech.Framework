@@ -38,6 +38,34 @@ public class FileSystemAccessFileSaveServiceTests
             Arg.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes("id,name\n1,Zoë"))));
     }
 
+    [Fact(DisplayName = "SaveFileAsync writes binary data unchanged to the picked file")]
+    public async Task SaveFileAsync_Bytes_WritesDataToPickedFile()
+    {
+        var handle = CreateHandle();
+        PickerReturns(handle);
+        byte[] data = [0x50, 0x4B, 0x03, 0x04, 0x00, 0xFF];
+
+        var result = await _service.SaveFileAsync("report.xlsx", data);
+
+        result.ShouldBeTrue();
+        await _fileWriter.Received(1).WriteAsync(handle, Arg.Is<byte[]>(bytes => bytes.SequenceEqual(data)));
+    }
+
+    [Fact(DisplayName = "SaveFileAsync downloads binary data with its MIME type when the API is unavailable")]
+    public async Task SaveFileAsync_Bytes_ApiUnavailable_FallsBackToDownload()
+    {
+        PickerThrows(PickerMissingMessage);
+        byte[] data = [0x50, 0x4B, 0x03, 0x04];
+
+        var result = await _service.SaveFileAsync("report.xlsx", data);
+
+        result.ShouldBeTrue();
+        await _fileWriter.Received(1).DownloadAsync(
+            "report.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            Arg.Is<byte[]>(bytes => bytes.SequenceEqual(data)));
+    }
+
     [Fact(DisplayName = "SaveFileAsync returns false and writes nothing when the user cancels")]
     public async Task SaveFileAsync_UserCancels_ReturnsFalse()
     {

@@ -38,32 +38,11 @@ public class FileSystemAccessFileSaveService : IFileSaveService
     /// <inheritdoc />
     public async Task<bool> SaveFileAsync(string fileName, string data)
     {
-        return await SaveBytesAsync(fileName, Encoding.UTF8.GetBytes(data));
+        return await SaveFileAsync(fileName, Encoding.UTF8.GetBytes(data));
     }
 
     /// <inheritdoc />
-    public async Task<string?> PromptFileSaveAsync(string fileName, string extension = "txt")
-    {
-        try
-        {
-            var fileHandle = await _fileSystemAccess.ShowSaveFilePickerAsync(CreatePickerOptions(fileName, extension));
-
-            if (fileHandle is null)
-                return null;
-
-            return await fileHandle.GetNameAsync();
-        }
-        catch (JSException ex) when (IsUserCancellation(ex))
-        {
-            return null;
-        }
-        catch (JSException ex)
-        {
-            throw new UnsupportedBrowserApiException("File System Access", ex);
-        }
-    }
-
-    private async Task<bool> SaveBytesAsync(string fileName, byte[] data)
+    public async Task<bool> SaveFileAsync(string fileName, byte[] data)
     {
         var extension = GetPickerExtension(fileName);
         FileSystemFileHandle? fileHandle;
@@ -89,6 +68,28 @@ public class FileSystemAccessFileSaveService : IFileSaveService
 
         await _fileWriter.WriteAsync(fileHandle, data);
         return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> PromptFileSaveAsync(string fileName, string extension = "txt")
+    {
+        try
+        {
+            var fileHandle = await _fileSystemAccess.ShowSaveFilePickerAsync(CreatePickerOptions(fileName, extension));
+
+            if (fileHandle is null)
+                return null;
+
+            return await fileHandle.GetNameAsync();
+        }
+        catch (JSException ex) when (IsUserCancellation(ex))
+        {
+            return null;
+        }
+        catch (JSException ex)
+        {
+            throw new UnsupportedBrowserApiException("File System Access", ex);
+        }
     }
 
     private static SaveFilePickerOptionsStartInWellKnownDirectory CreatePickerOptions(string fileName, string? extension)

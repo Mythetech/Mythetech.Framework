@@ -271,7 +271,12 @@ var folders = await FileOpenService.OpenFolderAsync(""Select a folder"");
 // Prompt and save
 var success = await FileSaveService.SaveFileAsync(""myfile.txt"", ""content"");
 
-// Just get the save location
+// Binary content, such as a spreadsheet
+using var stream = new MemoryStream();
+workbook.SaveAs(stream);
+var saved = await FileSaveService.SaveFileAsync(""report.xlsx"", stream.ToArray());
+
+// Just get the save location (only a file name on WebAssembly, not a writable path)
 var path = await FileSaveService.PromptFileSaveAsync(""myfile"", ""txt"");
 ```
 

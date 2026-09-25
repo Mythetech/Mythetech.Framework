@@ -34,14 +34,29 @@ public class HermesInteropFileSaveServiceTests : IDisposable
         (await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).ShouldBe("id,name\n1,Zoë");
     }
 
+    [Fact(DisplayName = "SaveFileAsync writes binary data unchanged to the chosen path")]
+    public async Task SaveFileAsync_Bytes_WritesToChosenPath()
+    {
+        var path = Path.Combine(_directory, "report.xlsx");
+        _dialog.ShowSaveFile(Arg.Any<string>(), Arg.Any<string?>()).Returns(path);
+        byte[] data = [0x50, 0x4B, 0x03, 0x04, 0x00, 0xFF];
+
+        var result = await _service.SaveFileAsync("report.xlsx", data);
+
+        result.ShouldBeTrue();
+        (await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken)).ShouldBe(data);
+    }
+
     [Fact(DisplayName = "SaveFileAsync returns false and writes nothing when the dialog is cancelled")]
     public async Task SaveFileAsync_Cancelled_ReturnsFalse()
     {
         _dialog.ShowSaveFile(Arg.Any<string>(), Arg.Any<string?>()).Returns((string?)null);
 
-        var result = await _service.SaveFileAsync("export.csv", "id,name");
+        var textResult = await _service.SaveFileAsync("export.csv", "id,name");
+        var bytesResult = await _service.SaveFileAsync("report.xlsx", new byte[] { 0x50, 0x4B });
 
-        result.ShouldBeFalse();
+        textResult.ShouldBeFalse();
+        bytesResult.ShouldBeFalse();
         Directory.EnumerateFileSystemEntries(_directory).ShouldBeEmpty();
     }
 
