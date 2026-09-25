@@ -36,6 +36,7 @@
 
     <ItemGroup>
       <InternalsVisibleTo Include="Mythetech.Framework.Test" />
+      <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
     <ItemGroup>
