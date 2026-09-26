@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.19.10] - 2026-09-25
+
+### Fixed
+
+- WebAssembly `SaveFileAsync` closed the picked file's writable stream twice: once explicitly and again when the stream was disposed, because `WritableStream.DisposeAsync` closes the stream itself. Chromium browsers reject the second close with "Cannot close a CLOSED writable stream", so every save through the picker in Chrome and Edge wrote the file and then threw, and apps reported a failed export. The stream is now closed once, by disposal. Firefox, Safari and Desktop were not affected
+
 ## [0.19.9] - 2026-09-25
 
 ### Fixed
