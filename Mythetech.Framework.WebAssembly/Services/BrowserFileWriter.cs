@@ -35,11 +35,10 @@ internal sealed class BrowserFileWriter : IBrowserFileWriter
 
     public async Task WriteAsync(FileSystemFileHandle fileHandle, byte[] data)
     {
+        // The browser writes to a swap file and only replaces the real file on close. Disposing the stream closes it,
+        // and browsers reject a second close, so disposal must be the only close.
         await using var writable = await fileHandle.CreateWritableAsync();
         await writable.WriteAsync(data);
-
-        // The browser writes to a swap file and only replaces the real file on close; disposing just releases the JS reference.
-        await writable.CloseAsync();
     }
 
     public async Task DownloadAsync(string fileName, string mimeType, byte[] data)
