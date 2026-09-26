@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.19.9] - 2026-09-25
+
+### Fixed
+
+- `FileSystemAccessFileSaveService.SaveFileAsync` (WebAssembly) showed the save picker and returned `true` without writing anything, so exports reported success and left the user an empty file. It now writes the data through the file handle's writable stream and returns `true` only after the stream closes, or `false` when the user cancels
+- On browsers without `showSaveFilePicker`, such as Firefox and Safari, WebAssembly `SaveFileAsync` threw `UnsupportedBrowserApiException`. It now falls back to a regular browser download through `file-download.js`, a module the service imports itself, so apps add no script tag. The same fallback covers Chromium refusing the picker once the click's user activation has expired
+- The WebAssembly save picker always offered `.txt` files. `SaveFileAsync` now takes the accept type and MIME type from the file name's extension, with no type filter when there is none, and knows the MIME types for `xlsx`, `xls`, `sql`, `md` and `tsv`
+- `HermesInteropFileSaveService.SaveFileAsync` (Desktop) filtered the save dialog to `.txt` whatever the file was. The filter now comes from the file name's extension and is named after the extension rather than the file
+
+### Added
+
+- `IFileSaveService.SaveFileAsync(string fileName, byte[] data)` for binary content such as spreadsheets. WebAssembly writes the bytes to the picked file or downloads them, and Desktop writes them to the chosen path. Use it instead of calling `PromptFileSaveAsync` and writing to the returned location, which on WebAssembly is only a file name
+
+### Changed
+
+- `FileSystemAccessFileSaveService`'s public constructor takes an `IJSRuntime` alongside `IFileSystemAccessService`. Apps that register it through `AddFileSaveService` or `AddWebAssemblyServices` need no change
+- `IFileSaveService` has a new member, so custom implementations must add the byte array overload
+
+### Notes
+
+- `PromptFileSaveAsync` behaves as before: on WebAssembly it returns only the chosen file's name and still throws `UnsupportedBrowserApiException` where the API is missing
+
 ## [0.19.8] - 2026-09-22
 
 ### Fixed

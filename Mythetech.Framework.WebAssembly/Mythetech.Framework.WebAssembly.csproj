@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.WebAssembly</PackageId>
-        <VersionPrefix>0.19.8</VersionPrefix>
+        <VersionPrefix>0.19.9</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Description>WebAssembly-specific components for building blazor applications</Description>
         <PackageTags>blazor;wasm;webassembly;components;ui;framework</PackageTags>
@@ -26,6 +26,11 @@
            directly until SqliteWasmBlazor is upgraded to 0.9.x, which ships 3.1.8. -->
       <PackageReference Include="MessagePack" Version="3.1.8" />
       <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <InternalsVisibleTo Include="Mythetech.Framework.Test" />
+      <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
     <ItemGroup>
