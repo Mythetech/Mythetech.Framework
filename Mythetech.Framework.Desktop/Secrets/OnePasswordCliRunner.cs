@@ -12,15 +12,29 @@ internal sealed class OnePasswordCliRunner : IOnePasswordCliRunner
     // default redirect encoding follows the console code page, and keeps a BOM out of the piped JSON.
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
-    private readonly string _executable;
+    private readonly Func<string> _locateExecutable;
+
+    /// <summary>
+    /// Creates a runner for the installed 1Password CLI. op is located on every run, so installing it while
+    /// the app is open works without a restart; the lookup is only a few file checks.
+    /// </summary>
+    public OnePasswordCliRunner()
+        : this(OnePasswordCliLocator.Locate)
+    {
+    }
 
     /// <summary>
     /// Creates a runner for the given executable.
     /// </summary>
-    /// <param name="executable">The CLI to start. Defaults to "op" resolved from PATH.</param>
-    public OnePasswordCliRunner(string executable = "op")
+    /// <param name="executable">The full path of the executable to start.</param>
+    public OnePasswordCliRunner(string executable)
+        : this(() => executable)
     {
-        _executable = executable;
+    }
+
+    private OnePasswordCliRunner(Func<string> locateExecutable)
+    {
+        _locateExecutable = locateExecutable;
     }
 
     /// <inheritdoc />
@@ -31,7 +45,7 @@ internal sealed class OnePasswordCliRunner : IOnePasswordCliRunner
     {
         var startInfo = new ProcessStartInfo
         {
-            FileName = _executable,
+            FileName = _locateExecutable(),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = standardInput != null,
