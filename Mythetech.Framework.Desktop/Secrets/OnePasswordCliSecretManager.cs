@@ -1,24 +1,47 @@
-using System.Diagnostics;
-using System.Text;
+using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Secrets;
 
 namespace Mythetech.Framework.Desktop.Secrets;
 
 /// <summary>
-/// 1Password CLI implementation of ISecretManager
+/// 1Password CLI implementation of ISecretManager. Reads, lists and writes items through the "op" CLI.
 /// </summary>
-public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher
+public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISecretWriter
 {
-    private readonly ILogger<OnePasswordCliSecretManager> _logger;
+    private const string PasswordFieldId = "password";
+    private const string NotFoundSignal = "isn't an item";
 
+    // op's wording when it is signed out, its session expired, or the 1Password app is locked or the unlock
+    // prompt was dismissed or timed out. All of them mean the user has to unlock 1Password before a write works.
+    private static readonly string[] AccessDeniedSignals =
+    [
+        "not signed in",
+        "not currently signed in",
+        "session expired",
+        "is locked",
+        "authorization prompt dismissed",
+        "authorization timeout"
+    ];
+
+    private readonly ILogger<OnePasswordCliSecretManager> _logger;
+    private readonly IOnePasswordCliRunner _runner;
+
+    /// <summary>
+    /// Creates a manager that runs the 1Password CLI ("op") from PATH.
+    /// </summary>
     public OnePasswordCliSecretManager(ILogger<OnePasswordCliSecretManager> logger)
+        : this(logger, new OnePasswordCliRunner())
     {
-        _logger = logger;
     }
 
-    private const string OpCommand = "op";
+    internal OnePasswordCliSecretManager(ILogger<OnePasswordCliSecretManager> logger, IOnePasswordCliRunner runner)
+    {
+        _logger = logger;
+        _runner = runner;
+    }
 
     /// <inheritdoc />
     public string Name => "1Password CLI";
@@ -175,71 +198,188 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher
         return SecretOperationResult<IEnumerable<Secret>>.Ok(filtered);
     }
     
-    private async Task<string> ExecuteOpCommandAsync(string[] arguments, CancellationToken cancellationToken)
+    /// <summary>
+    /// Stores <paramref name="value"/> in the password field of the item titled <paramref name="key"/>, creating a
+    /// Password item in the default vault when no item has that title. The value is piped to op as item JSON on
+    /// stdin and never appears in op's arguments, which other processes on the machine can read.
+    /// </summary>
+    public Task<SecretOperationResult> SetSecretAsync(string key, string value, CancellationToken cancellationToken = default)
     {
-        var startInfo = new ProcessStartInfo
+        if (string.IsNullOrWhiteSpace(key))
         {
-            FileName = OpCommand,
-            Arguments = string.Join(" ", arguments.Select(arg => $"\"{arg}\"")),
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        
-        using var process = new Process { StartInfo = startInfo };
-        
-        var outputBuilder = new StringBuilder();
-        var errorBuilder = new StringBuilder();
-        
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data != null)
-            {
-                outputBuilder.AppendLine(e.Data);
-            }
-        };
-        
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data != null)
-            {
-                errorBuilder.AppendLine(e.Data);
-            }
-        };
-        
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        
-        try
-        {
-            await process.WaitForExitAsync(cancellationToken);
+            return Task.FromResult(SecretOperationResult.Fail(
+                "Key cannot be null or empty.",
+                SecretOperationErrorKind.InvalidKey));
         }
-        catch (OperationCanceledException)
+
+        ArgumentNullException.ThrowIfNull(value);
+
+        return RunWriteAsync("store", () => StorePasswordAsync(key, value, cancellationToken), cancellationToken);
+    }
+
+    /// <summary>
+    /// Permanently deletes the item titled (or with the ID) <paramref name="key"/>.
+    /// </summary>
+    public Task<SecretOperationResult> DeleteSecretAsync(string key, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
         {
-            try
+            return Task.FromResult(SecretOperationResult.Fail(
+                "Key cannot be null or empty.",
+                SecretOperationErrorKind.InvalidKey));
+        }
+
+        return RunWriteAsync("delete", async () =>
+        {
+            var result = await _runner.RunAsync(["item", "delete", key], null, cancellationToken);
+            return result.ExitCode == 0 ? SecretOperationResult.Ok() : MapWriteFailure(key, "delete", result);
+        }, cancellationToken);
+    }
+
+    private async Task<SecretOperationResult> StorePasswordAsync(string key, string value, CancellationToken cancellationToken)
+    {
+        var existing = await _runner.RunAsync(["item", "get", key, "--format", "json"], null, cancellationToken);
+
+        if (existing.ExitCode == 0)
+        {
+            return await UpdatePasswordAsync(key, existing.StandardOutput, value, cancellationToken);
+        }
+
+        if (!existing.StandardError.Contains(NotFoundSignal, StringComparison.OrdinalIgnoreCase))
+        {
+            return MapWriteFailure(key, "store", existing);
+        }
+
+        var created = await _runner.RunAsync(["item", "create", "-"], BuildPasswordItemTemplate(key, value), cancellationToken);
+        return created.ExitCode == 0 ? SecretOperationResult.Ok() : MapWriteFailure(key, "store", created);
+    }
+
+    /// <summary>
+    /// Updates through op's documented template flow: the item's own JSON from 'op item get', with only the
+    /// password value changed, piped to 'op item edit'. Other fields, notes and history stay as they were, and
+    /// editing by ID keeps the item's identity, which recreating it would not.
+    /// </summary>
+    private async Task<SecretOperationResult> UpdatePasswordAsync(
+        string key,
+        string itemJson,
+        string value,
+        CancellationToken cancellationToken)
+    {
+        if (JsonNode.Parse(itemJson) is not JsonObject item
+            || item["id"] is not JsonValue idNode
+            || !idNode.TryGetValue<string>(out var id)
+            || string.IsNullOrWhiteSpace(id))
+        {
+            return SecretOperationResult.Fail(
+                $"Failed to store secret: 1Password CLI returned an unexpected item for '{key}'.",
+                SecretOperationErrorKind.Unknown);
+        }
+
+        if (FindPasswordField(item) is not { } passwordField)
+        {
+            return SecretOperationResult.Fail(
+                $"The 1Password item '{key}' has no password field, so it can't hold this secret.",
+                SecretOperationErrorKind.InvalidKey);
+        }
+
+        passwordField["value"] = value;
+
+        var edited = await _runner.RunAsync(["item", "edit", id], item.ToJsonString(), cancellationToken);
+        return edited.ExitCode == 0 ? SecretOperationResult.Ok() : MapWriteFailure(key, "store", edited);
+    }
+
+    // Matches the field ExtractPasswordValue reads, so a stored value reads back through GetSecretAsync.
+    private static JsonObject? FindPasswordField(JsonObject item) =>
+        (item["fields"] as JsonArray)?
+            .OfType<JsonObject>()
+            .FirstOrDefault(field => field["id"] is JsonValue idNode
+                                     && idNode.TryGetValue<string>(out var id)
+                                     && id == PasswordFieldId);
+
+    private static string BuildPasswordItemTemplate(string key, string value)
+    {
+        var template = new JsonObject
+        {
+            ["title"] = key,
+            ["category"] = "PASSWORD",
+            ["fields"] = new JsonArray
             {
-                if (!process.HasExited)
+                new JsonObject
                 {
-                    process.Kill();
+                    ["id"] = PasswordFieldId,
+                    ["type"] = "CONCEALED",
+                    ["purpose"] = "PASSWORD",
+                    ["label"] = PasswordFieldId,
+                    ["value"] = value
                 }
             }
-            catch
-            {
-                // Ignore errors when killing the process
-            }
+        };
+
+        return template.ToJsonString();
+    }
+
+    private static async Task<SecretOperationResult> RunWriteAsync(
+        string action,
+        Func<Task<SecretOperationResult>> write,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await write();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             throw;
         }
-        
-        if (process.ExitCode != 0)
+        catch (Win32Exception)
         {
-            throw new InvalidOperationException($"1Password CLI command failed with exit code {process.ExitCode}: {errorBuilder}");
+            return SecretOperationResult.Fail(
+                "1Password CLI (op) is not installed or not in PATH.",
+                SecretOperationErrorKind.ConnectionFailed);
         }
-        
-        return outputBuilder.ToString().Trim();
+        catch (Exception ex)
+        {
+            return SecretOperationResult.Fail(
+                $"Failed to {action} secret: {ex.Message}",
+                SecretOperationErrorKind.Unknown);
+        }
     }
-    
+
+    private static SecretOperationResult MapWriteFailure(string key, string action, OnePasswordCliResult result)
+    {
+        var error = result.StandardError.Trim();
+
+        if (AccessDeniedSignals.Any(signal => error.Contains(signal, StringComparison.OrdinalIgnoreCase)))
+        {
+            return SecretOperationResult.Fail(
+                "1Password CLI is not signed in or 1Password is locked. Unlock 1Password or run 'op signin', then try again.",
+                SecretOperationErrorKind.AccessDenied);
+        }
+
+        if (error.Contains(NotFoundSignal, StringComparison.OrdinalIgnoreCase))
+        {
+            return SecretOperationResult.Fail(
+                $"Secret '{key}' not found.",
+                SecretOperationErrorKind.NotFound);
+        }
+
+        return SecretOperationResult.Fail(
+            $"Failed to {action} secret: 1Password CLI command failed with exit code {result.ExitCode}: {error}",
+            SecretOperationErrorKind.Unknown);
+    }
+
+    private async Task<string> ExecuteOpCommandAsync(string[] arguments, CancellationToken cancellationToken)
+    {
+        var result = await _runner.RunAsync(arguments, null, cancellationToken);
+
+        if (result.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"1Password CLI command failed with exit code {result.ExitCode}: {result.StandardError}");
+        }
+
+        return result.StandardOutput.Trim();
+    }
+
     private IEnumerable<Secret> ParseItemList(string json)
     {
         try
