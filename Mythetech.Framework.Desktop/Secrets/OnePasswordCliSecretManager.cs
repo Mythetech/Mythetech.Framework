@@ -13,9 +13,14 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
 {
     private const string PasswordFieldId = "password";
     private const string NotFoundSignal = "isn't an item";
+    private const string AccessDeniedMessage =
+        "1Password CLI is not signed in or 1Password is locked. Unlock 1Password or run 'op signin', then try again.";
+    private const string CliMissingMessage =
+        "1Password CLI (op) was not found on PATH or in its usual install locations.";
 
     // op's wording when it is signed out, its session expired, or the 1Password app is locked or the unlock
-    // prompt was dismissed or timed out. All of them mean the user has to unlock 1Password before a write works.
+    // prompt was dismissed or timed out. All of them mean the user has to unlock 1Password before reading or
+    // writing works.
     private static readonly string[] AccessDeniedSignals =
     [
         "not signed in",
@@ -59,16 +64,16 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
 
             return SecretOperationResult<IEnumerable<Secret>>.Ok(ParseItemList(result));
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("not signed in"))
+        catch (InvalidOperationException ex) when (IsAccessDenied(ex.Message))
         {
             return SecretOperationResult<IEnumerable<Secret>>.Fail(
-                "1Password CLI is not signed in. Please run 'op signin' first.",
+                AccessDeniedMessage,
                 SecretOperationErrorKind.AccessDenied);
         }
-        catch (Exception ex) when (ex.Message.Contains("command not found") || ex.Message.Contains("not recognized"))
+        catch (Exception ex) when (IsCliMissing(ex))
         {
             return SecretOperationResult<IEnumerable<Secret>>.Fail(
-                "1Password CLI (op) is not installed or not in PATH.",
+                CliMissingMessage,
                 SecretOperationErrorKind.ConnectionFailed);
         }
         catch (Exception ex)
@@ -109,17 +114,23 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
 
             return SecretOperationResult<Secret>.Ok(secret);
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("isn't an item"))
+        catch (InvalidOperationException ex) when (IsNotFound(ex.Message))
         {
             return SecretOperationResult<Secret>.Fail(
                 $"Secret '{key}' not found.",
                 SecretOperationErrorKind.NotFound);
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("not signed in"))
+        catch (InvalidOperationException ex) when (IsAccessDenied(ex.Message))
         {
             return SecretOperationResult<Secret>.Fail(
-                "1Password CLI is not signed in. Please run 'op signin' first.",
+                AccessDeniedMessage,
                 SecretOperationErrorKind.AccessDenied);
+        }
+        catch (Exception ex) when (IsCliMissing(ex))
+        {
+            return SecretOperationResult<Secret>.Fail(
+                CliMissingMessage,
+                SecretOperationErrorKind.ConnectionFailed);
         }
         catch (Exception ex)
         {
@@ -154,13 +165,19 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
             }
 
             return SecretOperationResult.Fail(
-                "1Password CLI is not signed in. Please run 'op signin' first.",
+                AccessDeniedMessage,
                 SecretOperationErrorKind.AccessDenied);
         }
-        catch (Exception ex) when (ex.Message.Contains("command not found") || ex.Message.Contains("not recognized"))
+        catch (InvalidOperationException ex) when (IsAccessDenied(ex.Message))
         {
             return SecretOperationResult.Fail(
-                "1Password CLI (op) is not installed or not in PATH.",
+                AccessDeniedMessage,
+                SecretOperationErrorKind.AccessDenied);
+        }
+        catch (Exception ex) when (IsCliMissing(ex))
+        {
+            return SecretOperationResult.Fail(
+                CliMissingMessage,
                 SecretOperationErrorKind.ConnectionFailed);
         }
         catch (Exception ex)
@@ -245,7 +262,7 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
             return await UpdatePasswordAsync(key, existing.StandardOutput, value, cancellationToken);
         }
 
-        if (!existing.StandardError.Contains(NotFoundSignal, StringComparison.OrdinalIgnoreCase))
+        if (!IsNotFound(existing.StandardError))
         {
             return MapWriteFailure(key, "store", existing);
         }
@@ -331,10 +348,10 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
         {
             throw;
         }
-        catch (Win32Exception)
+        catch (Exception ex) when (IsCliMissing(ex))
         {
             return SecretOperationResult.Fail(
-                "1Password CLI (op) is not installed or not in PATH.",
+                CliMissingMessage,
                 SecretOperationErrorKind.ConnectionFailed);
         }
         catch (Exception ex)
@@ -349,14 +366,14 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
     {
         var error = result.StandardError.Trim();
 
-        if (AccessDeniedSignals.Any(signal => error.Contains(signal, StringComparison.OrdinalIgnoreCase)))
+        if (IsAccessDenied(error))
         {
             return SecretOperationResult.Fail(
-                "1Password CLI is not signed in or 1Password is locked. Unlock 1Password or run 'op signin', then try again.",
+                AccessDeniedMessage,
                 SecretOperationErrorKind.AccessDenied);
         }
 
-        if (error.Contains(NotFoundSignal, StringComparison.OrdinalIgnoreCase))
+        if (IsNotFound(error))
         {
             return SecretOperationResult.Fail(
                 $"Secret '{key}' not found.",
@@ -367,6 +384,19 @@ public class OnePasswordCliSecretManager : ISecretManager, ISecretSearcher, ISec
             $"Failed to {action} secret: 1Password CLI command failed with exit code {result.ExitCode}: {error}",
             SecretOperationErrorKind.Unknown);
     }
+
+    private static bool IsAccessDenied(string error) =>
+        AccessDeniedSignals.Any(signal => error.Contains(signal, StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsNotFound(string error) =>
+        error.Contains(NotFoundSignal, StringComparison.OrdinalIgnoreCase);
+
+    // Process.Start throws Win32Exception when op cannot be found or started. The message checks cover a
+    // shell's own "command not found" wording.
+    private static bool IsCliMissing(Exception ex) =>
+        ex is Win32Exception
+        || ex.Message.Contains("command not found")
+        || ex.Message.Contains("not recognized");
 
     private async Task<string> ExecuteOpCommandAsync(string[] arguments, CancellationToken cancellationToken)
     {

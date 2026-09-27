@@ -47,6 +47,20 @@ public class OnePasswordCliSecretManagerTests
         }
         """;
 
+    /// <summary>
+    /// What op 2.32 prints when it is signed out, its session expired, or the 1Password app is locked or the
+    /// unlock prompt was dismissed or timed out.
+    /// </summary>
+    public static TheoryData<string> SignedOutOrLockedErrors => new()
+    {
+        "[ERROR] 2026/09/26 12:00:00 You are not currently signed in. Please run `op signin --help` for instructions",
+        "[ERROR] 2026/09/26 12:00:00 account is not signed in",
+        "[ERROR] 2026/09/26 12:00:00 1Password app is locked. Please open 1Password, unlock it with your password, and then try again",
+        "[ERROR] 2026/09/26 12:00:00 authorization prompt dismissed, please try again",
+        "[ERROR] 2026/09/26 12:00:00 authorization timeout",
+        "[ERROR] 2026/09/26 12:00:00 session expired, sign in to create a new session",
+    };
+
     private readonly FakeOnePasswordCliRunner _runner = new();
     private readonly OnePasswordCliSecretManager _manager;
 
@@ -83,15 +97,56 @@ public class OnePasswordCliSecretManagerTests
         result.ErrorKind.ShouldBe(SecretOperationErrorKind.NotFound);
     }
 
-    [Fact(DisplayName = "GetSecretAsync maps 'not signed in' to AccessDenied")]
-    public async Task GetSecretAsync_NotSignedIn_ReturnsAccessDenied()
+    [Theory(DisplayName = "GetSecretAsync maps signed-out and locked errors to AccessDenied")]
+    [MemberData(nameof(SignedOutOrLockedErrors))]
+    public async Task GetSecretAsync_NotSignedInOrLocked_ReturnsAccessDenied(string error)
     {
-        _runner.On("item get", Failed("[ERROR] 2026/09/26 12:00:00 account is not signed in\n"));
+        _runner.On("item get", Failed(error));
 
         var result = await _manager.GetSecretAsync(Key, TestContext.Current.CancellationToken);
 
         result.Success.ShouldBeFalse();
         result.ErrorKind.ShouldBe(SecretOperationErrorKind.AccessDenied);
+    }
+
+    [Theory(DisplayName = "ListSecretsAsync maps signed-out and locked errors to AccessDenied")]
+    [MemberData(nameof(SignedOutOrLockedErrors))]
+    public async Task ListSecretsAsync_NotSignedInOrLocked_ReturnsAccessDenied(string error)
+    {
+        _runner.On("item list", Failed(error));
+
+        var result = await _manager.ListSecretsAsync(TestContext.Current.CancellationToken);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorKind.ShouldBe(SecretOperationErrorKind.AccessDenied);
+    }
+
+    [Theory(DisplayName = "TestConnectionAsync maps signed-out and locked errors to AccessDenied")]
+    [MemberData(nameof(SignedOutOrLockedErrors))]
+    public async Task TestConnectionAsync_NotSignedInOrLocked_ReturnsAccessDenied(string error)
+    {
+        _runner.On("account list", Failed(error));
+        _runner.On("whoami", Failed(error));
+
+        var result = await _manager.TestConnectionAsync(TestContext.Current.CancellationToken);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorKind.ShouldBe(SecretOperationErrorKind.AccessDenied);
+    }
+
+    [Fact(DisplayName = "Reads report ConnectionFailed when op cannot be started")]
+    public async Task Reads_OpNotInstalled_ReturnConnectionFailed()
+    {
+        var missing = new Win32Exception(2, "No such file or directory");
+        _runner.Throws("item get", missing);
+        _runner.Throws("item list", missing);
+        _runner.Throws("account list", missing);
+        _runner.Throws("whoami", missing);
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        (await _manager.GetSecretAsync(Key, cancellationToken)).ErrorKind.ShouldBe(SecretOperationErrorKind.ConnectionFailed);
+        (await _manager.ListSecretsAsync(cancellationToken)).ErrorKind.ShouldBe(SecretOperationErrorKind.ConnectionFailed);
+        (await _manager.TestConnectionAsync(cancellationToken)).ErrorKind.ShouldBe(SecretOperationErrorKind.ConnectionFailed);
     }
 
     [Fact(DisplayName = "ListSecretsAsync parses the output of 'op item list'")]
@@ -215,12 +270,7 @@ public class OnePasswordCliSecretManagerTests
     }
 
     [Theory(DisplayName = "SetSecretAsync maps signed-out and locked errors to AccessDenied without writing")]
-    [InlineData("[ERROR] 2026/09/26 12:00:00 You are not currently signed in. Please run `op signin --help` for instructions")]
-    [InlineData("[ERROR] 2026/09/26 12:00:00 account is not signed in")]
-    [InlineData("[ERROR] 2026/09/26 12:00:00 1Password app is locked. Please open 1Password, unlock it with your password, and then try again")]
-    [InlineData("[ERROR] 2026/09/26 12:00:00 authorization prompt dismissed, please try again")]
-    [InlineData("[ERROR] 2026/09/26 12:00:00 authorization timeout")]
-    [InlineData("[ERROR] 2026/09/26 12:00:00 session expired, sign in to create a new session")]
+    [MemberData(nameof(SignedOutOrLockedErrors))]
     public async Task SetSecretAsync_NotSignedInOrLocked_ReturnsAccessDenied(string error)
     {
         _runner.On("item get", Failed(error));
@@ -324,10 +374,11 @@ public class OnePasswordCliSecretManagerTests
         result.ErrorKind.ShouldBe(SecretOperationErrorKind.NotFound);
     }
 
-    [Fact(DisplayName = "DeleteSecretAsync maps a locked 1Password to AccessDenied")]
-    public async Task DeleteSecretAsync_Locked_ReturnsAccessDenied()
+    [Theory(DisplayName = "DeleteSecretAsync maps signed-out and locked errors to AccessDenied")]
+    [MemberData(nameof(SignedOutOrLockedErrors))]
+    public async Task DeleteSecretAsync_NotSignedInOrLocked_ReturnsAccessDenied(string error)
     {
-        _runner.On("item delete", Failed("[ERROR] 2026/09/26 12:00:00 1Password app is locked. Please open 1Password, unlock it with your password, and then try again"));
+        _runner.On("item delete", Failed(error));
 
         var result = await _manager.DeleteSecretAsync(Key, TestContext.Current.CancellationToken);
 
