@@ -29,3 +29,67 @@ jobs:
       env:
         Configuration: Release
 
+
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            app: samples/SampleHost.Desktop/bin/Release/net11.0/SampleHost.Desktop.exe
+          - os: ubuntu-latest
+            platform: linux
+            app: samples/SampleHost.Desktop/bin/Release/net11.0/SampleHost.Desktop
+          - os: macos-latest
+            platform: macos
+            app: samples/SampleHost.Desktop/bin/Release/net11.0/SampleHost.Desktop
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev xvfb
+
+    - name: Start Virtual Display (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        Xvfb :99 -screen 0 1920x1080x24 &
+        sleep 2
+
+    - name: Build SampleHost.Desktop
+      run: dotnet build samples/SampleHost.Desktop -c Release
+
+    - name: Checkout shared smoke verdict
+      uses: actions/checkout@v4
+      with:
+        repository: Mythetech/workflows
+        ref: ee89ad87716e8be5b93dfae1c80050a671e28b4c
+        path: .workflows
+
+    - name: Smoke test SampleHost.Desktop
+      shell: pwsh
+      env:
+        DISPLAY: ':99'
+        GDK_BACKEND: x11
+        SMOKE_APP: ${{ matrix.app }}
+      run: ./.github/scripts/Invoke-SampleHostSmoke.ps1 -AppPath $env:SMOKE_APP -VerdictScript .workflows/actions/smoke-verdict/SmokeVerdict.ps1 -OutputDir smoke-output
+
+    - name: Upload smoke output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: smoke-output-${{ matrix.platform }}
+        path: smoke-output
+        retention-days: 14

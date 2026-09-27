@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Privacy;
 using Mythetech.Framework.Infrastructure.Settings;
+using Mythetech.Framework.Infrastructure.Smoke;
 using NSubstitute;
 using Shouldly;
 
@@ -80,5 +81,41 @@ public class PrivacySettingsExtensionsTests
         _provider.GetSettings<PrivacySettings>().Returns((PrivacySettings?)null);
 
         _provider.HasSeenPrivacyDialog().ShouldBeFalse();
+    }
+}
+
+public class PrivacyDialogSmokeRunTests
+{
+    [Fact(DisplayName = "HasSeenPrivacyDialog reports true in a smoke run without recording consent")]
+    public void Reports_Seen_In_A_Smoke_Run()
+    {
+        var context = Substitute.For<ISmokeTestContext>();
+        context.IsEnabled.Returns(true);
+        var provider = CreateProvider(services => services.AddSingleton(context));
+        var settings = new PrivacySettings();
+        provider.RegisterSettings(settings);
+
+        provider.HasSeenPrivacyDialog().ShouldBeTrue();
+        settings.HasSeenPrivacyDialog.ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "HasSeenPrivacyDialog follows the stored setting when no smoke context is registered")]
+    public void Follows_The_Setting_Without_A_Smoke_Context()
+    {
+        var provider = CreateProvider(_ => { });
+        provider.RegisterSettings(new PrivacySettings());
+
+        provider.HasSeenPrivacyDialog().ShouldBeFalse();
+    }
+
+    private static SettingsProvider CreateProvider(Action<IServiceCollection> configure)
+    {
+        var services = new ServiceCollection();
+        configure(services);
+        return new SettingsProvider(
+            Substitute.For<IMessageBus>(),
+            Substitute.For<ILogger<SettingsProvider>>(),
+            services.BuildServiceProvider(),
+            Options.Create(new SettingsRegistrationOptions()));
     }
 }

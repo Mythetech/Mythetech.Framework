@@ -28,6 +28,7 @@
 
     <ItemGroup>
       <InternalsVisibleTo Include="Mythetech.Framework.Test" />
+      <InternalsVisibleTo Include="Mythetech.Framework.Desktop" />
     </ItemGroup>
 
     <ItemGroup>

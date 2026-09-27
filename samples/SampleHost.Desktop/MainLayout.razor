@@ -1,6 +1,7 @@
 @namespace SampleHost.Desktop
 @using MudBlazor
 @using Mythetech.Framework.Infrastructure.Files
+@using Mythetech.Framework.Infrastructure.Initialization
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.Plugins.Components
 @using Mythetech.Framework.Infrastructure.Settings
@@ -12,6 +13,7 @@
 @inject IShowFileService ShowFileService
 @inject ISettingsProvider SettingsProvider
 @inject IDialogService DialogService
+@inject IAsyncInitializationHost InitializationHost
 @implements IDisposable
 
 <MudLayout>
@@ -83,6 +85,11 @@
             _pluginLoadingStarted = true;
             await InitializePluginsAsync();
         }
+
+        // Runs the initialization hooks and publishes ApplicationReady, which in a smoke run is what
+        // releases the checks.
+        if (firstRender)
+            await InitializationHost.InitializeAsync();
     }
 
     private async Task InitializePluginsAsync()

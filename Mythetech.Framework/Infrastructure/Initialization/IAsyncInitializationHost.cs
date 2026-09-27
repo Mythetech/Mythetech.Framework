@@ -14,7 +14,12 @@ public interface IAsyncInitializationHost
     Task InitializeAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Whether initialization has completed.
+    /// Whether initialization has finished running every hook.
     /// </summary>
     bool IsInitialized { get; }
+
+    /// <summary>
+    /// The outcome of each hook that has run, in the order they ran.
+    /// </summary>
+    IReadOnlyList<InitializationHookResult> Results => [];
 }

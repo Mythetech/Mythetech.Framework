@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Settings.Events;
+using Mythetech.Framework.Infrastructure.Smoke;
 
 namespace Mythetech.Framework.Infrastructure.Settings;
 
@@ -33,6 +34,7 @@ public class SettingsProvider : ISettingsProvider
     {
         _bus = bus;
         _logger = logger;
+        IsSmokeRun = serviceProvider.GetService<ISmokeTestContext>()?.IsEnabled ?? false;
 
         // Auto-register settings that were discovered during service configuration
         foreach (var type in options.Value.DiscoveredSettingsTypes)
@@ -41,6 +43,11 @@ public class SettingsProvider : ISettingsProvider
             RegisterSettings(instance);
         }
     }
+
+    /// <summary>
+    /// Whether this process is a smoke run, for prompts that must never appear in one.
+    /// </summary>
+    internal bool IsSmokeRun { get; }
 
     /// <inheritdoc />
     public IReadOnlyList<SettingsBase> GetAllSettings()
