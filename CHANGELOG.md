@@ -24,6 +24,29 @@
 - `align-items-center` utility class, which was unused and duplicated MudBlazor's `align-center`
 - `HoverContext`, replaced by `HoverStack.Actions` (see Changed)
 
+## [0.21.1] - 2026-09-28
+
+### Added
+
+- `OnePasswordCliSecretManager` implements `ISecretWriter`. `SetSecretAsync` stores the value in the password field of the item titled with the key, creating a Password item in the default vault when none has that title and editing the existing item otherwise, so the value reads back through `GetSecretAsync`. `DeleteSecretAsync` permanently deletes the item. A missing item is `NotFound`, and signed-out, expired-session, locked and dismissed or timed-out unlock errors are `AccessDenied`
+- The active secret manager survives restarts. `SecretManagerState.SetActiveManagerAsync` switches manager and saves its name in `SecretManagerSettings`, a hidden settings section that `AddSecretManagerFramework` registers. The saved manager becomes active again when it registers or when persisted settings load, whichever comes last, and a saved manager that is no longer registered leaves the first registered one active. The Secret Manager dialog's manager switch saves the choice
+- `SecretManagerState.GetManager(string name)`, a case-insensitive lookup of a registered manager, for apps that record which manager holds a secret
+
+### Security
+
+- 1Password writes never put the secret on `op`'s command line, which other processes can read. A new item's JSON template is piped to `op item create -`, and an existing item's own JSON from `op item get`, with only the password value changed, is piped to `op item edit <id>`
+
+### Changed
+
+- `SecretManagerState`'s constructor takes optional `SecretManagerSettings` and `ISettingsProvider` parameters, which DI supplies. `new SecretManagerState()` still compiles and keeps the choice for the session only; code compiled against an earlier version must be recompiled
+- The synchronous `SetActiveManager` overloads still switch manager for the session only. Use `SetActiveManagerAsync` to remember the choice
+- `OnePasswordCliSecretManager` passes `op` its arguments as a list instead of a quoted string and reads its output as UTF-8 on every platform, which was already the default on macOS and Linux. Reads, listing and connection tests otherwise behave as before
+
+### Notes
+
+- Remembering the choice needs the settings framework (`AddSettingsFramework`, `UseSettingsFramework` and an `ISettingsStorage`) as well as `UseSecretManager`. Hosts that load settings in `SettingsInitializationHook` get the saved manager back when that hook runs, so startup work that depends on the restored manager should run after it
+- `Mythetech.Framework`, `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` all move to `0.20.0`
+
 ## [0.20.0] - 2026-09-27
 
 ### Added
