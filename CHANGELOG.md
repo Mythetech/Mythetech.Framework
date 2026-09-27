@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.20.0] - 2026-09-27
+
+### Added
+
+- **Smoke checks** for Hermes smoke mode (Hermes 1.4.1). `services.AddSmokeChecks()` opts an app into the general Framework checks and returns a builder for its own: `.WithSmokeCheck<T>()` registers an `ISmokeCheck`. In a smoke run (`HERMES_SMOKE_TEST=1`) the checks run after the first render and after startup initialization, and each appears in the Hermes verdict; outside one nothing is created. `AddSmokeChecks()` can be called before or after the parts it checks
+  - `framework/initialization`, for apps with an `IAsyncInitializationHost`: every initialization hook succeeded. A failure names each failed hook and its exception, which the host otherwise only logs
+  - `framework/storage`, for apps with an `ISettingsStorage`: the settings store opens and its settings can be read. It never writes, so a local smoke run leaves real settings untouched
+  - `framework/plugins`, for apps using the plugin framework: plugin loading completed within 30 seconds
+- `ISmokeTestContext`, the switch for services and components: inject it to turn off side effects such as telemetry in a smoke run. `AddDesktopServices` registers one backed by Hermes smoke mode, and `AddSmokeChecks()` registers a disabled one for other hosts
+- `ApplicationReady`, published on the message bus on every launch once async initialization finishes, carrying each hook's outcome. Consume it to dismiss a splash screen or start post-startup work. Apps that do not use `IAsyncInitializationHost` can publish it themselves
+- `InitializationHookResult` and `IAsyncInitializationHost.Results`: each hook's name, order, duration and exception
+- Desktop: in a smoke run `AddDesktopServices` connects all of this to Hermes. The checks wait for an `app-ready` gate that `ApplicationReady` completes, so an app that never runs its initialization host fails with `timed out waiting for app-ready`. Apps without an `IAsyncInitializationHost` do not wait for it
+- SampleHost.Desktop registers smoke checks and runs its initialization host, and PR CI smoke tests it on Windows, macOS and Linux
+
+### Changed
+
+- `IAsyncInitializationHost.IsInitialized` becomes true once every hook has finished, not when initialization starts
+- `AsyncInitializationHost` takes an optional `IMessageBus` to publish `ApplicationReady`
+- `HasSeenPrivacyDialog()` returns true in a smoke run, so apps that check it before showing `PrivacyConsentDialog` never show the dialog there. Nothing is written to the privacy settings
+- Mythetech.Framework.Desktop depends on Hermes 1.4.1
+
+### Notes
+
+- `IAsyncInitializationHost.Results` has a default implementation, so custom hosts keep compiling and report no results. A custom host in a smoke run must publish `ApplicationReady` itself, or the run times out on `app-ready`
+
 ## [0.19.10] - 2026-09-25
 
 ### Fixed
