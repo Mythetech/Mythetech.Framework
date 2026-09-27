@@ -1,3 +1,5 @@
+using Mythetech.Framework.Infrastructure.Settings;
+
 namespace Mythetech.Framework.Infrastructure.Secrets;
 
 /// <summary>
@@ -8,8 +10,22 @@ public class SecretManagerState : IDisposable
 {
     private readonly List<Secret> _secrets = [];
     private readonly List<ISecretManager> _availableManagers = [];
+    private readonly SecretManagerSettings? _settings;
+    private readonly ISettingsProvider? _settingsProvider;
     private ISecretManager? _currentManager;
     private bool _disposed;
+
+    /// <summary>
+    /// Creates the state. With settings, the active manager is remembered across launches; without them it
+    /// resets to the first registered manager each launch.
+    /// </summary>
+    /// <param name="settings">Where the chosen manager's name is kept.</param>
+    /// <param name="settingsProvider">Persists <paramref name="settings"/> when the choice changes.</param>
+    public SecretManagerState(SecretManagerSettings? settings = null, ISettingsProvider? settingsProvider = null)
+    {
+        _settings = settings;
+        _settingsProvider = settingsProvider;
+    }
 
     /// <summary>
     /// Raised when any secret state changes (secrets refreshed, manager registered, etc.)
@@ -54,7 +70,9 @@ public class SecretManagerState : IDisposable
     public bool HasActiveManager => _currentManager != null;
 
     /// <summary>
-    /// Register a secret manager to the available list
+    /// Register a secret manager to the available list.
+    /// The first manager registered becomes active, unless the manager saved from an earlier launch
+    /// registers, which then takes over.
     /// </summary>
     public void RegisterManager(ISecretManager manager)
     {
@@ -66,15 +84,17 @@ public class SecretManagerState : IDisposable
             NotifyStateChanged();
         }
 
-        // If no active manager, set this as the active one
-        if (_currentManager == null)
+        // Managers register in DI order, so the saved one may arrive after another has already become the
+        // fallback. Only the saved manager may replace an active manager here.
+        if (_currentManager == null || (IsSavedManager(manager) && !IsSavedManager(_currentManager)))
         {
             CurrentManager = manager;
         }
     }
 
     /// <summary>
-    /// Set the active secret manager
+    /// Set the active secret manager for this session only.
+    /// Use <see cref="SetActiveManagerAsync(ISecretManager)"/> to also remember the choice across launches.
     /// </summary>
     public void SetActiveManager(ISecretManager manager)
     {
@@ -89,18 +109,59 @@ public class SecretManagerState : IDisposable
     }
 
     /// <summary>
-    /// Set the active secret manager by name
+    /// Set the active secret manager by name for this session only.
+    /// Use <see cref="SetActiveManagerAsync(string)"/> to also remember the choice across launches.
     /// </summary>
     public void SetActiveManager(string managerName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managerName);
 
-        var manager = _availableManagers.FirstOrDefault(m =>
-            m.Name.Equals(managerName, StringComparison.OrdinalIgnoreCase));
+        var manager = GetManager(managerName);
 
         if (manager == null)
         {
             throw new InvalidOperationException($"Manager '{managerName}' not found. Available managers: {string.Join(", ", _availableManagers.Select(m => m.Name))}");
+        }
+
+        CurrentManager = manager;
+    }
+
+    /// <summary>
+    /// Set the active secret manager and remember the choice across launches
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The manager is not registered.</exception>
+    public async Task SetActiveManagerAsync(ISecretManager manager)
+    {
+        SetActiveManager(manager);
+        await PersistActiveManagerAsync();
+    }
+
+    /// <summary>
+    /// Set the active secret manager by name and remember the choice across launches
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No manager with that name is registered.</exception>
+    public async Task SetActiveManagerAsync(string managerName)
+    {
+        SetActiveManager(managerName);
+        await PersistActiveManagerAsync();
+    }
+
+    /// <summary>
+    /// Get a registered secret manager by its <see cref="ISecretManager.Name"/>, ignoring case
+    /// </summary>
+    /// <returns>The manager, or null when no manager with that name is registered.</returns>
+    public ISecretManager? GetManager(string managerName) =>
+        _availableManagers.FirstOrDefault(m => m.Name.Equals(managerName, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Makes the saved manager active if it is registered. Persisted settings load asynchronously after startup,
+    /// usually once the managers are already registered, so the saved choice is applied when it arrives.
+    /// </summary>
+    internal void RestoreActiveManager(string? managerName)
+    {
+        if (string.IsNullOrWhiteSpace(managerName) || GetManager(managerName) is not { } manager)
+        {
+            return;
         }
 
         CurrentManager = manager;
@@ -233,6 +294,28 @@ public class SecretManagerState : IDisposable
         );
 
         return Task.FromResult(results);
+    }
+
+    private bool IsSavedManager(ISecretManager manager) =>
+        _settings?.ActiveManagerName is { } savedName
+        && manager.Name.Equals(savedName, StringComparison.OrdinalIgnoreCase);
+
+    private async Task PersistActiveManagerAsync()
+    {
+        if (_settings == null)
+        {
+            return;
+        }
+
+        _settings.ActiveManagerName = _currentManager?.Name;
+
+        if (_settingsProvider == null)
+        {
+            return;
+        }
+
+        _settings.MarkDirty();
+        await _settingsProvider.NotifySettingsChangedAsync(_settings);
     }
 
     /// <summary>

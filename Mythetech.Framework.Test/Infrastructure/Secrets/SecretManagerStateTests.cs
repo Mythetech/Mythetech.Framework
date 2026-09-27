@@ -1,4 +1,7 @@
 using Mythetech.Framework.Infrastructure.Secrets;
+using Mythetech.Framework.Infrastructure.Secrets.Consumers;
+using Mythetech.Framework.Infrastructure.Settings;
+using Mythetech.Framework.Infrastructure.Settings.Events;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Shouldly;
@@ -340,6 +343,185 @@ public class SecretManagerStateTests
 
         // Assert
         _state.CurrentManager.ShouldBe(manager2);
+    }
+
+    [Fact(DisplayName = "GetManager_ByName_ReturnsRegisteredManagerIgnoringCase")]
+    public void GetManager_ByName_ReturnsRegisteredManagerIgnoringCase()
+    {
+        // Arrange
+        var manager2 = NamedManager("Manager 2");
+        _state.RegisterManager(_mockManager);
+        _state.RegisterManager(manager2);
+
+        // Act & Assert
+        _state.GetManager("manager 2").ShouldBe(manager2);
+        _state.GetManager("Not Registered").ShouldBeNull();
+    }
+
+    #endregion
+
+    #region Persisted Active Manager Tests
+
+    [Fact(DisplayName = "RegisterManager_SavedManagerRegisteredAfterFirst_BecomesActive")]
+    public void RegisterManager_SavedManagerRegisteredAfterFirst_BecomesActive()
+    {
+        // Arrange
+        var state = new SecretManagerState(new SecretManagerSettings { ActiveManagerName = "1Password CLI" });
+        var keychain = NamedManager("macOS Keychain");
+        var onePassword = NamedManager("1Password CLI");
+
+        // Act
+        state.RegisterManager(keychain);
+        state.RegisterManager(onePassword);
+
+        // Assert
+        state.CurrentManager.ShouldBe(onePassword);
+    }
+
+    [Fact(DisplayName = "RegisterManager_SavedManagerRegisteredFirst_StaysActive")]
+    public void RegisterManager_SavedManagerRegisteredFirst_StaysActive()
+    {
+        // Arrange
+        var state = new SecretManagerState(new SecretManagerSettings { ActiveManagerName = "1Password CLI" });
+        var keychain = NamedManager("macOS Keychain");
+        var onePassword = NamedManager("1Password CLI");
+
+        // Act
+        state.RegisterManager(onePassword);
+        state.RegisterManager(keychain);
+
+        // Assert
+        state.CurrentManager.ShouldBe(onePassword);
+    }
+
+    [Fact(DisplayName = "RegisterManager_SavedManagerNotRegistered_FallsBackToFirst")]
+    public void RegisterManager_SavedManagerNotRegistered_FallsBackToFirst()
+    {
+        // Arrange
+        var state = new SecretManagerState(new SecretManagerSettings { ActiveManagerName = "Retired Vault" });
+        var keychain = NamedManager("macOS Keychain");
+        var onePassword = NamedManager("1Password CLI");
+
+        // Act
+        state.RegisterManager(keychain);
+        state.RegisterManager(onePassword);
+
+        // Assert
+        state.CurrentManager.ShouldBe(keychain);
+    }
+
+    [Fact(DisplayName = "SetActiveManagerAsync_ByName_SwitchesAndPersistsChoice")]
+    public async Task SetActiveManagerAsync_ByName_SwitchesAndPersistsChoice()
+    {
+        // Arrange
+        var settings = new SecretManagerSettings();
+        var settingsProvider = Substitute.For<ISettingsProvider>();
+        var state = new SecretManagerState(settings, settingsProvider);
+        var onePassword = NamedManager("1Password CLI");
+        state.RegisterManager(NamedManager("macOS Keychain"));
+        state.RegisterManager(onePassword);
+
+        // Act
+        await state.SetActiveManagerAsync("1Password CLI");
+
+        // Assert
+        state.CurrentManager.ShouldBe(onePassword);
+        settings.ActiveManagerName.ShouldBe("1Password CLI");
+        await settingsProvider.Received(1).NotifySettingsChangedAsync(settings);
+    }
+
+    [Fact(DisplayName = "SetActiveManagerAsync_ByInstance_SwitchesAndPersistsChoice")]
+    public async Task SetActiveManagerAsync_ByInstance_SwitchesAndPersistsChoice()
+    {
+        // Arrange
+        var settings = new SecretManagerSettings();
+        var settingsProvider = Substitute.For<ISettingsProvider>();
+        var state = new SecretManagerState(settings, settingsProvider);
+        var onePassword = NamedManager("1Password CLI");
+        state.RegisterManager(NamedManager("macOS Keychain"));
+        state.RegisterManager(onePassword);
+
+        // Act
+        await state.SetActiveManagerAsync(onePassword);
+
+        // Assert
+        state.CurrentManager.ShouldBe(onePassword);
+        settings.ActiveManagerName.ShouldBe("1Password CLI");
+        await settingsProvider.Received(1).NotifySettingsChangedAsync(settings);
+    }
+
+    [Fact(DisplayName = "SetActiveManagerAsync_UnregisteredManager_ThrowsWithoutPersisting")]
+    public async Task SetActiveManagerAsync_UnregisteredManager_ThrowsWithoutPersisting()
+    {
+        // Arrange
+        var settings = new SecretManagerSettings();
+        var settingsProvider = Substitute.For<ISettingsProvider>();
+        var state = new SecretManagerState(settings, settingsProvider);
+        state.RegisterManager(NamedManager("macOS Keychain"));
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() => state.SetActiveManagerAsync("Not Registered"));
+        settings.ActiveManagerName.ShouldBeNull();
+        await settingsProvider.DidNotReceive().NotifySettingsChangedAsync(Arg.Any<SettingsBase>());
+    }
+
+    [Fact(DisplayName = "SetActiveManagerAsync_WithoutSettings_SwitchesForTheSession")]
+    public async Task SetActiveManagerAsync_WithoutSettings_SwitchesForTheSession()
+    {
+        // Arrange
+        var manager2 = NamedManager("Manager 2");
+        _state.RegisterManager(_mockManager);
+        _state.RegisterManager(manager2);
+
+        // Act
+        await _state.SetActiveManagerAsync("Manager 2");
+
+        // Assert
+        _state.CurrentManager.ShouldBe(manager2);
+    }
+
+    [Fact(DisplayName = "SettingsLoaded_SavedManagerRegistered_BecomesActive")]
+    public async Task SettingsLoaded_SavedManagerRegistered_BecomesActive()
+    {
+        // Arrange
+        var keychain = NamedManager("macOS Keychain");
+        var onePassword = NamedManager("1Password CLI");
+        _state.RegisterManager(keychain);
+        _state.RegisterManager(onePassword);
+        var consumer = new SecretManagerSettingsConsumer(_state);
+
+        // Act
+        await consumer.Consume(new SettingsModelChanged<SecretManagerSettings>(
+            new SecretManagerSettings { ActiveManagerName = "1Password CLI" }));
+
+        // Assert
+        _state.CurrentManager.ShouldBe(onePassword);
+    }
+
+    [Theory(DisplayName = "SettingsLoaded_NoUsableSavedManager_KeepsCurrent")]
+    [InlineData(null)]
+    [InlineData("Retired Vault")]
+    public async Task SettingsLoaded_NoUsableSavedManager_KeepsCurrent(string? savedName)
+    {
+        // Arrange
+        var keychain = NamedManager("macOS Keychain");
+        _state.RegisterManager(keychain);
+        _state.RegisterManager(NamedManager("1Password CLI"));
+        var consumer = new SecretManagerSettingsConsumer(_state);
+
+        // Act
+        await consumer.Consume(new SettingsModelChanged<SecretManagerSettings>(
+            new SecretManagerSettings { ActiveManagerName = savedName }));
+
+        // Assert
+        _state.CurrentManager.ShouldBe(keychain);
+    }
+
+    private static ISecretManager NamedManager(string name)
+    {
+        var manager = Substitute.For<ISecretManager>();
+        manager.Name.Returns(name);
+        return manager;
     }
 
     #endregion
