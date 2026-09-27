@@ -8,11 +8,13 @@ using Mythetech.Framework.Desktop.Hermes;
 using Mythetech.Framework.Desktop.Storage.LiteDb;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Infrastructure.FeatureFlags;
+using Mythetech.Framework.Infrastructure.Initialization;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Mcp;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Secrets;
 using Mythetech.Framework.Infrastructure.Settings;
+using Mythetech.Framework.Infrastructure.Smoke;
 using SampleHost.Desktop;
 using SampleHost.Shared.Settings;
 
@@ -73,6 +75,10 @@ class Program
         builder.Services.AddFeatureFlags();
         builder.Services.AddDesktopSettingsStorage("SampleHost");
         builder.Services.AddPluginStateProvider("SampleHost");
+        builder.Services.AddAsyncInitialization();
+        builder.Services.AddInitializationHook<SampleStartupHook>();
+        builder.Services.AddSmokeChecks()
+            .WithSmokeCheck<SampleSettingsSmokeCheck>();
 
         // Register settings from assemblies (new DI-friendly API)
         builder.Services.RegisterSettingsFromAssembly(typeof(SampleAppSettings).Assembly);

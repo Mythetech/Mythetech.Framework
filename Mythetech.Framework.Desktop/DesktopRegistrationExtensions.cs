@@ -1,9 +1,11 @@
+using Hermes.Contracts.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Mythetech.Framework.Components.Kbd;
 using Mythetech.Framework.Desktop.Components;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Desktop.Hermes;
 using Mythetech.Framework.Desktop.Services;
+using Mythetech.Framework.Desktop.Smoke;
 using Mythetech.Framework.Desktop.Storage.LiteDb;
 using Mythetech.Framework.Infrastructure;
 using Mythetech.Framework.Infrastructure.Environment;
@@ -33,6 +35,7 @@ public static class DesktopRegistrationExtensions
         services.AddShowFileService();
         services.AddShellExecutor();
         services.AddSingleton<IPlatformDetector, DesktopPlatformDetector>();
+        services.AddFrameworkSmokeBridge(HermesSmokeTest.IsEnabled);
 
         return services;
     }

@@ -1,5 +1,6 @@
 using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mythetech.Framework.Components.Kbd;
 using Mythetech.Framework.Infrastructure;
 using Mythetech.Framework.WebAssembly.Components;
@@ -8,6 +9,7 @@ using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Shell;
+using Mythetech.Framework.Infrastructure.Smoke;
 using Mythetech.Framework.WebAssembly.Environment;
 using Mythetech.Framework.WebAssembly.Services;
 using Mythetech.Framework.WebAssembly.Shell;
@@ -93,6 +95,9 @@ public static class WebAssemblyRegistrationExtensions
         services.AddPluginStorage();
         services.AddShowFileService();
         services.AddSingleton<IPlatformDetector, WebAssemblyPlatformDetector>();
+
+        // WebAssembly has no smoke mode; registering the disabled context lets shared components inject it.
+        services.TryAddSingleton<ISmokeTestContext>(DisabledSmokeTestContext.Instance);
 
         return services;
     }

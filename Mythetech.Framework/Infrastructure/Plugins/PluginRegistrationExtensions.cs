@@ -125,6 +125,7 @@ public static class PluginRegistrationExtensions
         var loader = services.GetRequiredService<PluginLoader>();
         var state = services.GetRequiredService<PluginState>();
 
+        state.PluginsLoadingStarted = true;
         var fullPath = Path.GetFullPath(pluginDirectory);
         state.SetPluginDirectory(fullPath);
 

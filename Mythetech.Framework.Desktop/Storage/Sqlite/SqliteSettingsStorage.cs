@@ -4,10 +4,11 @@ using Mythetech.Framework.Infrastructure.Settings;
 
 namespace Mythetech.Framework.Desktop.Storage.Sqlite;
 
-public class SqliteSettingsStorage : ISettingsStorage, IDisposable
+public class SqliteSettingsStorage : ISettingsStorage, ISettingsStorageProbe, IDisposable
 {
     private readonly Lazy<string?> _connectionString;
     private readonly ILogger<SqliteSettingsStorage>? _logger;
+    private Exception? _openError;
 
     public SqliteSettingsStorage(string databasePath, ILogger<SqliteSettingsStorage>? logger = null)
     {
@@ -37,6 +38,7 @@ public class SqliteSettingsStorage : ISettingsStorage, IDisposable
             }
             catch (Exception ex)
             {
+                _openError = ex;
                 _logger?.LogError(ex, "Failed to initialize settings storage at {DatabasePath}. Settings persistence will be unavailable.", databasePath);
                 return null;
             }
@@ -128,6 +130,18 @@ public class SqliteSettingsStorage : ISettingsStorage, IDisposable
         }
 
         return Task.FromResult(result);
+    }
+
+    Task ISettingsStorageProbe.ProbeAsync(CancellationToken cancellationToken)
+    {
+        var connectionString = _connectionString.Value
+            ?? throw new InvalidOperationException($"The settings store could not be opened: {_openError?.Message}", _openError);
+        using var connection = new SqliteConnection(connectionString);
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM settings";
+        command.ExecuteScalar();
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
