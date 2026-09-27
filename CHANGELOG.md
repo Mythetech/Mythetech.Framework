@@ -32,6 +32,11 @@
 - The active secret manager survives restarts. `SecretManagerState.SetActiveManagerAsync` switches manager and saves its name in `SecretManagerSettings`, a hidden settings section that `AddSecretManagerFramework` registers. The saved manager becomes active again when it registers or when persisted settings load, whichever comes last, and a saved manager that is no longer registered leaves the first registered one active. The Secret Manager dialog's manager switch saves the choice
 - `SecretManagerState.GetManager(string name)`, a case-insensitive lookup of a registered manager, for apps that record which manager holds a secret
 
+### Fixed
+
+- `OnePasswordCliSecretManager` started `op` by name, so it failed in a macOS app launched from Finder (or a Linux app started from a desktop launcher), whose minimal PATH has no Homebrew or `/usr/local/bin`, even with the CLI installed. It now looks for `op` on PATH first and then in the usual install locations: `/opt/homebrew/bin` and `/usr/local/bin` on macOS, `/usr/bin` and `/usr/local/bin` on Linux, and 1Password's documented `C:\Program Files\1Password CLI` on Windows. Empty and relative PATH entries are skipped, and `op` is looked up on every call, so installing it while the app runs needs no restart
+- 1Password reads recognised only op's "not signed in" wording, so "You are not currently signed in", a locked 1Password app, an expired session and a dismissed or timed-out unlock prompt came back from `GetSecretAsync`, `ListSecretsAsync` and `TestConnectionAsync` as `Unknown`. Reads now map them to `AccessDenied` exactly as writes do, and an `op` that cannot be started to `ConnectionFailed`
+
 ### Security
 
 - 1Password writes never put the secret on `op`'s command line, which other processes can read. A new item's JSON template is piped to `op item create -`, and an existing item's own JSON from `op item get`, with only the password value changed, is piped to `op item edit <id>`
@@ -40,7 +45,7 @@
 
 - `SecretManagerState`'s constructor takes optional `SecretManagerSettings` and `ISettingsProvider` parameters, which DI supplies. `new SecretManagerState()` still compiles and keeps the choice for the session only; code compiled against an earlier version must be recompiled
 - The synchronous `SetActiveManager` overloads still switch manager for the session only. Use `SetActiveManagerAsync` to remember the choice
-- `OnePasswordCliSecretManager` passes `op` its arguments as a list instead of a quoted string and reads its output as UTF-8 on every platform, which was already the default on macOS and Linux. Reads, listing and connection tests otherwise behave as before
+- `OnePasswordCliSecretManager` passes `op` its arguments as a list instead of a quoted string and reads its output as UTF-8 on every platform, which was already the default on macOS and Linux. Reads and writes share the same `AccessDenied` and `ConnectionFailed` messages
 
 ### Notes
 
