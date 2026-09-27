@@ -76,6 +76,7 @@ class Program
         builder.Services.AddDesktopSettingsStorage("SampleHost");
         builder.Services.AddPluginStateProvider("SampleHost");
         builder.Services.AddAsyncInitialization();
+        builder.Services.AddInitializationHook<SampleStartupHook>();
         builder.Services.AddSmokeChecks()
             .WithSmokeCheck<SampleSettingsSmokeCheck>();
 

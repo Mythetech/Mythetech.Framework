@@ -31,6 +31,7 @@ jobs:
 
 
   smoke:
+    name: smoke (${{ matrix.platform }})
     strategy:
       fail-fast: false
       matrix:

@@ -65,10 +65,12 @@ internal sealed class FrameworkSmokeCheckSource(IHermesSmokeSession session) : I
 {
     public IEnumerable<IHermesSmokeCheck> GetChecks(IServiceProvider scopedServices)
     {
-        // Hermes asks for checks at first render, before it waits on gates, so this is where apps that never
-        // run the Framework's initialization host get app-ready released instead of timing out on it.
+        // Hermes asks for checks at first render, before it waits on gates, so this is where app-ready is
+        // released for apps that cannot publish ApplicationReady through the host: those without the
+        // Framework's initialization host, and those without a message bus to publish it on. The latter get
+        // framework/initialization reporting an unfinished run instead of a misleading gate timeout.
         var registered = scopedServices.GetRequiredService<IServiceProviderIsService>();
-        if (!registered.IsService(typeof(IAsyncInitializationHost)))
+        if (!registered.IsService(typeof(IAsyncInitializationHost)) || !registered.IsService(typeof(IMessageBus)))
             session.CompleteGate(FrameworkSmokeBridge.AppReadyGate);
 
         var general = scopedServices.GetService<FrameworkSmokeChecks>()?.GetChecks(scopedServices) ?? [];

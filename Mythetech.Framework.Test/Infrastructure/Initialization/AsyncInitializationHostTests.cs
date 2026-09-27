@@ -75,6 +75,40 @@ public class AsyncInitializationHostTests
         initializedWhenPublished.ShouldBe(true);
     }
 
+    [Fact(DisplayName = "A second caller waits for the first run to finish")]
+    public async Task Second_Caller_Waits_For_The_First_Run()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var host = CreateHost(null, new TestHook("Blocking", 100, waitFor: release.Task));
+
+        var first = host.InitializeAsync(TestContext.Current.CancellationToken);
+        var second = host.InitializeAsync(TestContext.Current.CancellationToken);
+
+        second.IsCompleted.ShouldBeFalse();
+        release.SetResult();
+        await second;
+        host.IsInitialized.ShouldBeTrue();
+        await first;
+    }
+
+    [Fact(DisplayName = "A cancelled run records the hooks it skipped as cancelled")]
+    public async Task Cancelled_Run_Records_Skipped_Hooks()
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var bus = Substitute.For<IMessageBus>();
+        var host = CreateHost(bus,
+            new TestHook("Cancelling", 100, onRun: cts.Cancel),
+            new TestHook("Skipped", 200));
+
+        await host.InitializeAsync(cts.Token);
+
+        host.IsInitialized.ShouldBeTrue();
+        host.Results.Select(r => r.Name).ShouldBe(["Cancelling", "Skipped"]);
+        host.Results[0].Succeeded.ShouldBeTrue();
+        host.Results[1].Error.ShouldBeOfType<OperationCanceledException>();
+        await bus.Received(1).PublishAsync(Arg.Is<ApplicationReady>(ready => ready.Hooks.Count == 2));
+    }
+
     [Fact(DisplayName = "A second call runs no hooks and publishes nothing")]
     public async Task Second_Call_Is_A_NoOp()
     {
@@ -110,7 +144,7 @@ public class AsyncInitializationHostTests
         await bus.Received(1).PublishAsync(Arg.Any<ApplicationReady>());
     }
 
-    private sealed class TestHook(string name, int order, Exception? failure = null, Task? waitFor = null) : IAsyncInitializationHook
+    private sealed class TestHook(string name, int order, Exception? failure = null, Task? waitFor = null, Action? onRun = null) : IAsyncInitializationHook
     {
         public int Runs { get; private set; }
 
@@ -121,6 +155,7 @@ public class AsyncInitializationHostTests
         public async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
             Runs++;
+            onRun?.Invoke();
             if (waitFor is not null)
                 await waitFor;
             if (failure is not null)

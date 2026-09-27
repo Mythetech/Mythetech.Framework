@@ -3,6 +3,7 @@ using Mythetech.Framework.Infrastructure.Initialization;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Smoke;
+using Mythetech.Framework.WebAssembly;
 using NSubstitute;
 using Shouldly;
 
@@ -15,6 +16,15 @@ public class SmokeCheckRegistrationTests
     {
         var services = new ServiceCollection();
         services.AddSmokeChecks();
+
+        services.BuildServiceProvider().GetRequiredService<ISmokeTestContext>().IsEnabled.ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "AddWebAssemblyServices registers a disabled smoke context")]
+    public void WebAssembly_Registers_A_Disabled_Context()
+    {
+        var services = new ServiceCollection();
+        services.AddWebAssemblyServices();
 
         services.BuildServiceProvider().GetRequiredService<ISmokeTestContext>().IsEnabled.ShouldBeFalse();
     }

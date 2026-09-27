@@ -14,7 +14,7 @@ public class AsyncInitializationHost : IAsyncInitializationHost
     private readonly IEnumerable<IAsyncInitializationHook> _hooks;
     private readonly ILogger<AsyncInitializationHost> _logger;
     private readonly IMessageBus? _messageBus;
-    private int _started;
+    private Task? _run;
     private volatile bool _completed;
     private volatile InitializationHookResult[] _results = [];
 
@@ -41,23 +41,51 @@ public class AsyncInitializationHost : IAsyncInitializationHost
     public IReadOnlyList<InitializationHookResult> Results => _results;
 
     /// <inheritdoc />
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        // Ensure single execution
-        if (Interlocked.Exchange(ref _started, 1) == 1)
+        // Later callers share the first run rather than returning while it is still going, so IsInitialized
+        // is true for every caller once its await completes. The run is claimed before any hook starts, so a
+        // hook that calls back in cannot start a second run.
+        var run = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var existing = Interlocked.CompareExchange(ref _run, run.Task, null);
+        if (existing is not null)
         {
-            _logger.LogDebug("Initialization already complete or in progress, skipping");
-            return;
+            _logger.LogDebug("Initialization already started, waiting for it to finish");
+            return existing;
         }
 
+        return RunAsync(run, cancellationToken);
+    }
+
+    private async Task RunAsync(TaskCompletionSource run, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await RunHooksAsync(cancellationToken);
+        }
+        finally
+        {
+            // Later callers only wait for the run to end. A failure is reported once, to the caller that ran
+            // it; faulting the shared task too would leave an unobserved exception when nobody else waits.
+            run.SetResult();
+        }
+    }
+
+    private async Task RunHooksAsync(CancellationToken cancellationToken)
+    {
         var orderedHooks = _hooks.OrderBy(h => h.Order).ToList();
         _logger.LogDebug("Starting async initialization with {Count} hooks", orderedHooks.Count);
 
-        foreach (var hook in orderedHooks)
+        for (var i = 0; i < orderedHooks.Count; i++)
         {
+            var hook = orderedHooks[i];
             if (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("Initialization cancelled before {HookName}", hook.Name);
+                // Hooks that never ran are recorded as cancelled, so a cancelled run never reads as a
+                // successful one.
+                var cancelled = new OperationCanceledException(cancellationToken);
+                _results = [.. _results, .. orderedHooks.Skip(i).Select(h => new InitializationHookResult(h.Name, h.Order, TimeSpan.Zero, cancelled))];
                 break;
             }
 

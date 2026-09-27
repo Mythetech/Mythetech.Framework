@@ -60,7 +60,8 @@ public class FrameworkSmokeBridgeTests
     public async Task Adapted_Checks_Run_The_App_Check()
     {
         var provider = BuildSmokeProvider(services => services.AddSmokeChecks().WithSmokeCheck<AppCheck>());
-        var check = ResolveHermesChecks(provider).Single();
+        using var scope = provider.CreateScope();
+        var check = ResolveHermesChecks(scope.ServiceProvider).Single();
 
         var ex = await Should.ThrowAsync<InvalidOperationException>(() => check.RunAsync(TestContext.Current.CancellationToken));
 
@@ -77,8 +78,23 @@ public class FrameworkSmokeBridgeTests
         _session.Received(1).CompleteGate(FrameworkSmokeBridge.AppReadyGate);
     }
 
-    [Fact(DisplayName = "App-ready waits for ApplicationReady when the app has an initialization host")]
+    [Fact(DisplayName = "App-ready waits for ApplicationReady when the app has an initialization host and a bus")]
     public void Waits_For_ApplicationReady_With_An_Initialization_Host()
+    {
+        var provider = BuildSmokeProvider(services =>
+        {
+            services.AddMessageBus();
+            services.AddAsyncInitialization();
+            services.AddSmokeChecks();
+        });
+
+        ResolveHermesChecks(provider);
+
+        _session.DidNotReceive().CompleteGate(Arg.Any<string>());
+    }
+
+    [Fact(DisplayName = "App-ready is released at check resolution when there is no bus to publish ApplicationReady on")]
+    public void Releases_App_Ready_Without_A_Message_Bus()
     {
         var provider = BuildSmokeProvider(services =>
         {
@@ -88,7 +104,7 @@ public class FrameworkSmokeBridgeTests
 
         ResolveHermesChecks(provider);
 
-        _session.DidNotReceive().CompleteGate(Arg.Any<string>());
+        _session.Received(1).CompleteGate(FrameworkSmokeBridge.AppReadyGate);
     }
 
     [Fact(DisplayName = "Running initialization completes app-ready through the message bus")]
@@ -125,12 +141,16 @@ public class FrameworkSmokeBridgeTests
         return services.BuildServiceProvider();
     }
 
-    private static List<IHermesSmokeCheck> ResolveHermesChecks(IServiceProvider provider)
-    {
-        using var scope = provider.CreateScope();
-        return scope.ServiceProvider.GetServices<IHermesSmokeCheckSource>()
-            .SelectMany(source => source.GetChecks(scope.ServiceProvider))
+    private static List<IHermesSmokeCheck> ResolveHermesChecks(IServiceProvider scopedServices) =>
+        scopedServices.GetServices<IHermesSmokeCheckSource>()
+            .SelectMany(source => source.GetChecks(scopedServices))
             .ToList();
+
+    private static List<IHermesSmokeCheck> ResolveHermesChecks(ServiceProvider provider)
+    {
+        // Only for tests that look at the checks without running them, so the scope can end here.
+        using var scope = provider.CreateScope();
+        return ResolveHermesChecks(scope.ServiceProvider);
     }
 
     private sealed class AppCheck : ISmokeCheck

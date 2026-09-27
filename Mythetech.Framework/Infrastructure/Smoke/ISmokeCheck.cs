@@ -3,7 +3,8 @@ namespace Mythetech.Framework.Infrastructure.Smoke;
 /// <summary>
 /// A named check that runs once in a smoke run, after the first render and after startup initialization
 /// has finished. Checks are resolved from the page's service scope, so they see the same scoped services
-/// as the UI, and they are never created outside a smoke run.
+/// as the UI, and they are never created outside a smoke run. They start as soon as
+/// <see cref="Initialization.ApplicationReady"/> is published, so they cannot rely on work its consumers do.
 /// </summary>
 public interface ISmokeCheck
 {

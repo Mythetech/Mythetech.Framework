@@ -22,6 +22,7 @@ public class PluginState : IDisposable
     private bool _disposed;
     private bool _pluginsActive = true;
     private bool _pluginsLoaded;
+    private bool _pluginsLoadingStarted;
 
     /// <summary>
     /// Raised before a plugin is enabled. Handlers can set Cancel = true to prevent enabling.
@@ -130,6 +131,16 @@ public class PluginState : IDisposable
     {
         get => _pluginsLoaded;
         internal set => _pluginsLoaded = value;
+    }
+
+    /// <summary>
+    /// Whether a plugin load from a directory has begun. Lets the smoke check tell an app that loads plugins
+    /// at startup, which it waits for, from one that registers the plugin framework without loading any.
+    /// </summary>
+    internal bool PluginsLoadingStarted
+    {
+        get => Volatile.Read(ref _pluginsLoadingStarted);
+        set => Volatile.Write(ref _pluginsLoadingStarted, value);
     }
 
     /// <summary>
@@ -513,6 +524,8 @@ public class PluginState : IDisposable
             _logger?.LogDebug("Plugins already initialized, skipping");
             return;
         }
+
+        PluginsLoadingStarted = true;
 
         if (_pluginLoader is null)
         {

@@ -4,10 +4,11 @@ using Mythetech.Framework.Infrastructure.Settings;
 
 namespace Mythetech.Framework.Desktop.Storage.LiteDb;
 
-public class LiteDbSettingsStorage : ISettingsStorage, IDisposable
+public class LiteDbSettingsStorage : ISettingsStorage, ISettingsStorageProbe, IDisposable
 {
     private readonly Lazy<ILiteDatabase?> _database;
     private readonly ILogger<LiteDbSettingsStorage>? _logger;
+    private Exception? _openError;
     private const string CollectionName = "settings";
 
     public LiteDbSettingsStorage(string databasePath, ILogger<LiteDbSettingsStorage>? logger = null)
@@ -21,6 +22,7 @@ public class LiteDbSettingsStorage : ISettingsStorage, IDisposable
             }
             catch (Exception ex)
             {
+                _openError = ex;
                 _logger?.LogError(ex, "Failed to initialize settings storage at {DatabasePath}. Settings persistence will be unavailable.", databasePath);
                 return null;
             }
@@ -113,6 +115,14 @@ public class LiteDbSettingsStorage : ISettingsStorage, IDisposable
         }
 
         return Task.FromResult(result);
+    }
+
+    Task ISettingsStorageProbe.ProbeAsync(CancellationToken cancellationToken)
+    {
+        var collection = GetCollection()
+            ?? throw new InvalidOperationException($"The settings store could not be opened: {_openError?.Message}", _openError);
+        collection.Count();
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
