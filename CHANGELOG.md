@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `text-truncate` utility class: single-line truncation with an ellipsis. It includes `min-width: 0`, so it also truncates inside a flex row, where the text would otherwise overflow or wrap. Apps that define their own `text-truncate` can drop it
+- `sr-only` utility class: hides content visually while screen readers still announce it. Unlike MudBlazor's `mud-typography-srOnly`, it clips the content
+- `mt-hover-row`, `mt-hover-row-label` and `mt-hover-actions`: a single-line row whose actions appear on hover or keyboard focus without shifting layout. The label truncates to make room, so the row never grows taller, and the actions are always shown on touch devices. Don't put a menu activator in `mt-hover-actions`; opening the menu ends the hover and hides its anchor
+
+- `HoverStack.Actions`: controls shown at the end of the row on hover or keyboard focus, built on the `mt-hover-*` classes. The content gives up room to them, so the row never grows
+- `MythetechFrameworkIcons.ChevronRight`, `Edit`, `Folder` and `RadioButtonUnchecked`
+
+### Changed
+
+- **Breaking:** `HoverStack` is now pure CSS. It no longer tracks the pointer, so hovering never re-renders it, and its actions also appear on keyboard focus and always on touch devices. `ChildContent` is a plain `RenderFragment` and `HoverContext` is gone. No app read `IsHovering`, so migrating is:
+  - Remove `Context="..."` from each `<HoverStack>`
+  - Move hand-rolled hover actions (such as a `*-hover-actions` div revealed by the app's own CSS) into `<Actions>`, and delete that CSS
+- **Breaking:** `HoverStack`'s `Class` and `Style` now apply to the whole row, actions included, instead of the inner `MudStack`. Row padding, backgrounds and hover styles keep working; a scoped `::deep` rule that targeted the class still matches
+- `HoverStack.Wrap` defaults to `NoWrap`, so a row stays one line tall and its content truncates. Pass `Wrap="Wrap.Wrap"` for the old behavior
+
+### Removed
+
+- `align-items-center` utility class, which was unused and duplicated MudBlazor's `align-center`
+- `HoverContext`, replaced by `HoverStack.Actions` (see Changed)
+
 ## [0.20.0] - 2026-09-27
 
 ### Added

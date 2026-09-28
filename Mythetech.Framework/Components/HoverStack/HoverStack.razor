@@ -1,23 +1,33 @@
 @using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
 @inherits MudComponentBase
-<div class="d-flex w-100" @onmouseenter="HandleMouseEnter" @onmouseleave="HandleMouseLeave" @onclick="HandleClick">
-    <MudStack Class="@Class" Style="@Style" Row="@Row" Reverse="@Reverse" Spacing="@Spacing" Wrap="@Wrap"
+<div class="@RowClass" style="@Style" @onclick="HandleClick">
+    <MudStack Class="hover-stack-content" Row="@Row" Reverse="@Reverse" Spacing="@Spacing" Wrap="@Wrap"
         Justify="@Justify" AlignItems="@AlignItems" StretchItems="@StretchItems">
-        @if (ChildContent is not null)
-        {
-            @ChildContent(_context)
-        }
+        @ChildContent
     </MudStack>
+    @if (Actions is not null)
+    {
+        <div class="mt-hover-actions">
+            @Actions
+        </div>
+    }
 </div>
 @code {
-    private HoverContext _context = new();
-
     /// <summary>
-    /// The child content to render. Receives a HoverContext with IsHovering state.
+    /// The row's content. Put <c>text-truncate</c> on its main label so the label gives up room to the actions
+    /// instead of the row wrapping taller.
     /// </summary>
     [Parameter]
-    public RenderFragment<HoverContext>? ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Controls shown at the end of the row while it is hovered or holds keyboard focus, and always on touch devices.
+    /// They take their room from the content, so the row never grows. Never put a menu activator here: opening the
+    /// menu ends the hover and hides the menu's own anchor.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
 
     /// <summary>
     /// If true, displays items horizontally in a row instead of vertically.
@@ -38,10 +48,11 @@
     public int Spacing { get; set; } = 3;
 
     /// <summary>
-    /// Controls how items wrap when they exceed the container width.
+    /// Controls how items wrap when they exceed the container width. Defaults to no wrapping, so the row stays one
+    /// line tall and its content truncates instead.
     /// </summary>
     [Parameter]
-    public Wrap Wrap { get; set; } = Wrap.Wrap;
+    public Wrap Wrap { get; set; } = Wrap.NoWrap;
 
     /// <summary>
     /// Defines how space is distributed along the main axis.
@@ -67,21 +78,10 @@
     [Parameter]
     public EventCallback<MouseEventArgs> OnClick { get; set; }
 
+    private string RowClass => string.IsNullOrWhiteSpace(Class) ? "mt-hover-row mud-width-full" : $"mt-hover-row mud-width-full {Class}";
+
     private async Task HandleClick(MouseEventArgs args)
     {
         await OnClick.InvokeAsync(args);
     }
-
-    private void HandleMouseEnter(MouseEventArgs args)
-    {
-        _context.IsHovering = true;
-        StateHasChanged();
-    }
-
-    private void HandleMouseLeave(MouseEventArgs args)
-    {
-        _context.IsHovering = false;
-        StateHasChanged();
-    }
-
 }
