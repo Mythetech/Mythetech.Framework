@@ -24,7 +24,7 @@
 - `align-items-center` utility class, which was unused and duplicated MudBlazor's `align-center`
 - `HoverContext`, replaced by `HoverStack.Actions` (see Changed)
 
-## [0.21.1] - 2026-09-28
+## [0.20.1] - 2026-09-28
 
 ### Added
 
@@ -50,7 +50,7 @@
 ### Notes
 
 - Remembering the choice needs the settings framework (`AddSettingsFramework`, `UseSettingsFramework` and an `ISettingsStorage`) as well as `UseSecretManager`. Hosts that load settings in `SettingsInitializationHook` get the saved manager back when that hook runs, so startup work that depends on the restored manager should run after it
-- `Mythetech.Framework`, `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` all move to `0.20.0`
+- `Mythetech.Framework`, `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` all move to `0.20.1`
 
 ## [0.20.0] - 2026-09-27
 
