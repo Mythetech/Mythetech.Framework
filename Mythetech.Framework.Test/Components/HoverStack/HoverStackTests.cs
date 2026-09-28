@@ -5,7 +5,6 @@ using MudBlazor;
 using MudBlazor.Services;
 using Shouldly;
 using HoverStackComponent = Mythetech.Framework.Components.HoverStack.HoverStack;
-using HoverContextType = Mythetech.Framework.Components.HoverStack.HoverContext;
 
 namespace Mythetech.Framework.Test.Components.HoverStackTests;
 
@@ -17,137 +16,94 @@ public class HoverStackTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
+    private static RenderFragment Text(string text) => builder => builder.AddContent(0, text);
+
     [Fact(DisplayName = "HoverStack renders child content")]
     public void HoverStack_RendersChildContent()
     {
-        // Arrange & Act
         var cut = Render<HoverStackComponent>(parameters => parameters
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, "Hover Content"))));
+            .Add(p => p.ChildContent, Text("Hover Content")));
 
-        // Assert
-        cut.Markup.ShouldContain("Hover Content");
+        cut.Find(".hover-stack-content").TextContent.ShouldContain("Hover Content");
     }
 
-    [Fact(DisplayName = "HoverStack provides IsHovering false initially")]
-    public void HoverStack_ProvidesIsHoveringFalse_Initially()
+    [Fact(DisplayName = "HoverStack renders actions as a direct child of the hover row")]
+    public void HoverStack_RendersActions_InHoverActionsContainer()
     {
-        // Arrange
-        bool? isHovering = null;
-
         var cut = Render<HoverStackComponent>(parameters => parameters
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-            {
-                isHovering = ctx.IsHovering;
-                return (RenderFragment)(builder => builder.AddContent(0, $"Hovering: {ctx.IsHovering}"));
-            }));
+            .Add(p => p.ChildContent, Text("Item"))
+            .Add(p => p.Actions, Text("Delete")));
 
-        // Assert
-        isHovering.ShouldBe(false);
-        cut.Markup.ShouldContain("Hovering: False");
+        var actions = cut.Find(".mt-hover-row > .mt-hover-actions");
+        actions.TextContent.ShouldContain("Delete");
     }
 
-    [Fact(DisplayName = "HoverStack sets IsHovering true on mouse enter")]
-    public async Task HoverStack_SetsIsHoveringTrue_OnMouseEnter()
+    [Fact(DisplayName = "HoverStack omits the actions container when there are no actions")]
+    public void HoverStack_OmitsActionsContainer_WithoutActions()
     {
-        // Arrange
         var cut = Render<HoverStackComponent>(parameters => parameters
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, $"Hovering: {ctx.IsHovering}"))));
+            .Add(p => p.ChildContent, Text("Item")));
 
-        // Act - trigger mouseenter event directly
-        var container = cut.Find("div");
-        await container.TriggerEventAsync("onmouseenter", new MouseEventArgs());
-
-        // Assert
-        cut.Markup.ShouldContain("Hovering: True");
+        cut.FindAll(".mt-hover-actions").ShouldBeEmpty();
     }
 
-    [Fact(DisplayName = "HoverStack sets IsHovering false on mouse leave")]
-    public async Task HoverStack_SetsIsHoveringFalse_OnMouseLeave()
+    [Fact(DisplayName = "HoverStack does not wrap by default")]
+    public void HoverStack_DoesNotWrap_ByDefault()
     {
-        // Arrange
         var cut = Render<HoverStackComponent>(parameters => parameters
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, $"Hovering: {ctx.IsHovering}"))));
+            .Add(p => p.Row, true)
+            .Add(p => p.ChildContent, Text("Item")));
 
-        // Act - trigger mouseenter then mouseleave
-        var container = cut.Find("div");
-        await container.TriggerEventAsync("onmouseenter", new MouseEventArgs());
-        await container.TriggerEventAsync("onmouseleave", new MouseEventArgs());
+        cut.Find(".hover-stack-content").ClassList.ShouldContain("flex-nowrap");
+    }
 
-        // Assert
-        cut.Markup.ShouldContain("Hovering: False");
+    [Fact(DisplayName = "HoverStack wraps when Wrap is set")]
+    public void HoverStack_Wraps_WhenWrapIsSet()
+    {
+        var cut = Render<HoverStackComponent>(parameters => parameters
+            .Add(p => p.Row, true)
+            .Add(p => p.Wrap, Wrap.Wrap)
+            .Add(p => p.ChildContent, Text("Item")));
+
+        cut.Find(".hover-stack-content").ClassList.ShouldContain("flex-wrap");
     }
 
     [Fact(DisplayName = "HoverStack invokes OnClick when clicked")]
-    public void HoverStack_InvokesOnClick_WhenClicked()
+    public async Task HoverStack_InvokesOnClick_WhenClicked()
     {
-        // Arrange
         MouseEventArgs? capturedArgs = null;
         var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.OnClick, EventCallback.Factory.Create<MouseEventArgs>(this, args => capturedArgs = args))
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, "Click me"))));
+            .Add(p => p.ChildContent, Text("Click me")));
 
-        // Act
-        var container = cut.Find("div");
-        container.Click();
+        await cut.Find(".mt-hover-row").ClickAsync(new MouseEventArgs());
 
-        // Assert
         capturedArgs.ShouldNotBeNull();
     }
 
-    [Fact(DisplayName = "HoverStack applies Row parameter")]
-    public void HoverStack_AppliesRowParameter()
+    [Fact(DisplayName = "HoverStack applies Class and Style to the row so they cover the actions too")]
+    public void HoverStack_AppliesClassAndStyle_ToRow()
     {
-        // Arrange & Act
-        var cut = Render<HoverStackComponent>(parameters => parameters
-            .Add(p => p.Row, true)
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, "Row content"))));
-
-        // Assert - Check that the component rendered with the row parameter applied
-        cut.Markup.ShouldNotBeEmpty();
-        // The actual class implementation may vary, so we just verify the component renders
-    }
-
-    [Fact(DisplayName = "HoverStack applies custom class")]
-    public void HoverStack_AppliesCustomClass()
-    {
-        // Arrange & Act
         var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.Class, "my-custom-class")
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, "Custom class"))));
-
-        // Assert
-        cut.Markup.ShouldContain("my-custom-class");
-    }
-
-    [Fact(DisplayName = "HoverStack applies custom style")]
-    public void HoverStack_AppliesCustomStyle()
-    {
-        // Arrange & Act
-        var cut = Render<HoverStackComponent>(parameters => parameters
             .Add(p => p.Style, "background-color: red;")
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, "Styled content"))));
+            .Add(p => p.ChildContent, Text("Styled content")));
 
-        // Assert
-        cut.Markup.ShouldContain("background-color: red");
+        var row = cut.Find(".mt-hover-row");
+        row.ClassList.ShouldContain("my-custom-class");
+        row.GetAttribute("style").ShouldContain("background-color: red");
     }
 
-    [Fact(DisplayName = "HoverStack applies Spacing parameter")]
-    public void HoverStack_AppliesSpacingParameter()
+    [Fact(DisplayName = "HoverStack applies Row and Spacing to its content stack")]
+    public void HoverStack_AppliesRowAndSpacing_ToContent()
     {
-        // Arrange & Act
         var cut = Render<HoverStackComponent>(parameters => parameters
+            .Add(p => p.Row, true)
             .Add(p => p.Spacing, 5)
-            .Add(p => p.ChildContent, (HoverContextType ctx) =>
-                (RenderFragment)(builder => builder.AddContent(0, "Spaced content"))));
+            .Add(p => p.ChildContent, Text("Row content")));
 
-        // Assert - Component should render without errors
-        cut.Markup.ShouldContain("Spaced content");
+        var content = cut.Find(".hover-stack-content");
+        content.ClassList.ShouldContain("flex-row");
+        content.ClassList.ShouldContain("gap-5");
     }
 }

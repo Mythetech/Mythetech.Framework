@@ -1,0 +1,5 @@
+/* The MudStack is a child component, so it never receives this component's scope attribute; reach it through the row. */
+.mt-hover-row ::deep .hover-stack-content {
+    flex: 1 1 auto;
+    min-width: 0;
+}

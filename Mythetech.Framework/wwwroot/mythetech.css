@@ -253,8 +253,72 @@
     border-radius: calc(var(--mud-default-borderradius) * 3)!important;
 }
 
-.align-items-center {
+/* min-width: 0 lets a flex item shrink below its content width; without it the text overflows or wraps instead of truncating. */
+.text-truncate {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Visually hidden but still announced by screen readers. MudBlazor's mud-typography-srOnly lacks the clip, so it can still paint. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/*
+ * A single-line row whose actions appear on hover or keyboard focus without shifting layout: the label truncates
+ * to make room, so the row never grows taller. .mt-hover-actions must be a direct child of .mt-hover-row, so a row
+ * nested inside another only reveals its own actions. The actions collapse to zero width rather than display: none,
+ * so Tab still reaches them and focusing one reveals the rest. Always visible on touch devices, which have no hover.
+ * Never put a menu activator in .mt-hover-actions: the menu's popover sits outside the row, so opening it ends the
+ * hover and hides its own anchor.
+ */
+.mt-hover-row {
+    display: flex;
     align-items: center;
+    min-width: 0;
+}
+
+.mt-hover-row-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mt-hover-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 150ms ease-in-out;
+}
+
+.mt-hover-row:hover > .mt-hover-actions,
+.mt-hover-row:focus-within > .mt-hover-actions {
+    width: auto;
+    overflow: visible;
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .mt-hover-actions {
+        width: auto;
+        overflow: visible;
+        opacity: 1;
+    }
 }
 
 

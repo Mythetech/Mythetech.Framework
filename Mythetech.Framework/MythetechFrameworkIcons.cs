@@ -17,6 +17,7 @@ public static class MythetechFrameworkIcons
     public static string Check => Round("check");
     public static string CheckCircle => Round("check_circle");
     public static string ChevronLeft => Round("chevron_left");
+    public static string ChevronRight => Round("chevron_right");
     public static string Circle => Round("circle");
     public static string Close => Round("close");
     public static string Computer => Round("computer");
@@ -25,10 +26,12 @@ public static class MythetechFrameworkIcons
     public static string DarkMode => Round("dark_mode");
     public static string Delete => Round("delete");
     public static string Download => Round("download");
+    public static string Edit => Round("edit");
     public static string Error => Round("error");
     public static string Extension => Round("extension");
     public static string FileUpload => Round("upload_file");
     public static string Flag => Round("flag");
+    public static string Folder => Round("folder");
     public static string Home => Round("home");
     public static string Info => Round("info");
     public static string Key => Round("key");
@@ -40,6 +43,7 @@ public static class MythetechFrameworkIcons
     public static string Link => Round("link_2");
     public static string MoreVert => Round("more_vert");
     public static string PlayArrow => Round("play_arrow");
+    public static string RadioButtonUnchecked => Round("radio_button_unchecked");
     public static string Refresh => Round("refresh");
     public static string Schedule => Round("schedule");
     public static string Search => Round("search");

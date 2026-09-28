@@ -249,12 +249,12 @@ For mouse events, use `TriggerEventAsync` with the correct event name:
 [Fact]
 public async Task Component_HandlesMouseEnter()
 {
-    var cut = RenderComponent<HoverStack>(/* ... */);
+    var cut = RenderComponent<MyComponent>(/* ... */);
 
-    var container = cut.Find("div");
+    var container = cut.Find(".my-component");
     await container.TriggerEventAsync("onmouseenter", new MouseEventArgs());
 
-    cut.Markup.ShouldContain("Hovering: True");
+    cut.Markup.ShouldContain("Preview visible");
 }
 ```
 

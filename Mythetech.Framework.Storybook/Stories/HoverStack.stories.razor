@@ -2,75 +2,42 @@
 @attribute [Stories("Components/HoverStack")]
 
 <Stories TComponent="HoverStack">
-    <Story Name="Interactive Demo" Layout="typeof(DefaultMudLayout)">
+    <Story Name="Row Actions" Layout="typeof(DefaultMudLayout)">
         <Template>
             <MudStack Class="mud-height-full pa-4" Spacing="4">
-                <MudText Typo="Typo.h5">Hover over items to reveal actions</MudText>
+                <MudText Typo="Typo.h5">Hover or tab into a row to reveal its actions</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    The list is narrow on purpose: long names truncate to make room for the actions, so no row changes height.
+                </MudText>
 
-                <MudPaper Class="pa-2" Elevation="1">
-                    <MudStack Spacing="0">
-                        @foreach (var item in _treeItems)
-                        {
-                            <HoverStack Row AlignItems="AlignItems.Center" Class="pa-2 rounded" Style="min-height: 40px;" Context="hover">
-                                <MudIcon Icon="@MythetechFrameworkIcons.Round("folder")" Size="Size.Small" Class="mr-2" />
-                                <MudText Style="flex-grow: 1;">@item</MudText>
-                                @if (hover.IsHovering)
-                                {
-                                    <MudIconButton Icon="@MythetechFrameworkIcons.Round("edit")"
-                                                   Size="Size.Small"
-                                                   Color="Color.Default" />
-                                    <MudIconButton Icon="@MythetechFrameworkIcons.Delete"
-                                                   Size="Size.Small"
-                                                   Color="Color.Error" />
-                                }
-                            </HoverStack>
-                        }
-                    </MudStack>
-                </MudPaper>
+                <div class="hover-story-list">
+                    <MudPaper Class="pa-2" Elevation="1">
+                        <MudStack Spacing="0">
+                            @foreach (var item in _treeItems)
+                            {
+                                <HoverStack Row AlignItems="AlignItems.Center" Spacing="2" Class="pa-2 rounded">
+                                    <ChildContent>
+                                        <MudIcon Icon="@MythetechFrameworkIcons.Folder" Size="Size.Small" />
+                                        <MudText Class="text-truncate">@item</MudText>
+                                    </ChildContent>
+                                    <Actions>
+                                        <MudIconButton Icon="@MythetechFrameworkIcons.Edit"
+                                                       Size="Size.Small"
+                                                       aria-label="@($"Rename {item}")" />
+                                        <MudIconButton Icon="@MythetechFrameworkIcons.Delete"
+                                                       Size="Size.Small"
+                                                       Color="Color.Error"
+                                                       aria-label="@($"Delete {item}")" />
+                                    </Actions>
+                                </HoverStack>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </div>
 
                 <MudDivider Class="my-4" />
 
                 <MudMarkdown Value="@_markdown" Styling="MythetechMarkdownStyling.Default" />
-            </MudStack>
-        </Template>
-    </Story>
-
-    <Story Name="Nested Hover" Layout="typeof(DefaultMudLayout)">
-        <Template>
-            <MudStack Class="mud-height-full pa-4" Spacing="4">
-                <MudText Typo="Typo.h5">Nested HoverStacks with independent hover states</MudText>
-
-                <MudPaper Class="pa-4" Elevation="1">
-                    <HoverStack Class="pa-4 rounded" Style="background: var(--mud-palette-background-gray);" Context="parentHover">
-                        <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@MythetechFrameworkIcons.Round("folder_open")" />
-                            <MudText>Parent Container</MudText>
-                            @if (parentHover.IsHovering)
-                            {
-                                <MudChip T="string" Color="Color.Primary" Size="Size.Small">Parent Hovered</MudChip>
-                            }
-                        </MudStack>
-
-                        <MudStack Class="ml-6 mt-2" Spacing="1">
-                            @foreach (var child in _nestedItems)
-                            {
-                                <HoverStack Row AlignItems="AlignItems.Center" Class="pa-2 rounded"
-                                            Style="background: var(--mud-palette-surface);" Context="childHover">
-                                    <MudIcon Icon="@MythetechFrameworkIcons.Round("description")" Size="Size.Small" Class="mr-2" />
-                                    <MudText Style="flex-grow: 1;">@child</MudText>
-                                    @if (childHover.IsHovering)
-                                    {
-                                        <MudChip T="string" Color="Color.Secondary" Size="Size.Small">Hovered</MudChip>
-                                    }
-                                </HoverStack>
-                            }
-                        </MudStack>
-                    </HoverStack>
-                </MudPaper>
-
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Notice how child items have their own independent hover states from the parent.
-                </MudText>
             </MudStack>
         </Template>
     </Story>
@@ -80,34 +47,34 @@
             <MudStack Class="mud-height-full pa-4" Spacing="4">
                 <MudText Typo="Typo.h5">Click on items to select them</MudText>
 
-                <MudPaper Class="pa-2" Elevation="1">
-                    <MudStack Spacing="0">
-                        @foreach (var item in _clickItems)
-                        {
-                            <HoverStack Row AlignItems="AlignItems.Center"
-                                        Class="@GetItemClass(item)"
-                                        Style="min-height: 40px; cursor: pointer;"
-                                        Context="hover"
-                                        OnClick="@(() => HandleItemClick(item))">
-                                <MudIcon Icon="@(item == _selectedItem ? MythetechFrameworkIcons.CheckCircle : MythetechFrameworkIcons.Round("radio_button_unchecked"))"
-                                         Size="Size.Small"
-                                         Class="mr-2"
-                                         Color="@(item == _selectedItem ? Color.Primary : Color.Default)" />
-                                <MudText Style="flex-grow: 1;">@item</MudText>
-                                @if (hover.IsHovering && item != _selectedItem)
-                                {
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Click to select</MudText>
-                                }
-                            </HoverStack>
-                        }
-                    </MudStack>
-                </MudPaper>
+                <div class="hover-story-list">
+                    <MudPaper Class="pa-2" Elevation="1">
+                        <MudStack Spacing="0">
+                            @foreach (var item in _clickItems)
+                            {
+                                <HoverStack Row AlignItems="AlignItems.Center" Spacing="2"
+                                            Class="@GetItemClass(item)"
+                                            OnClick="@(() => HandleItemClick(item))">
+                                    <ChildContent>
+                                        <MudIcon Icon="@(item == _selectedItem ? MythetechFrameworkIcons.CheckCircle : MythetechFrameworkIcons.RadioButtonUnchecked)"
+                                                 Size="Size.Small"
+                                                 Color="@(item == _selectedItem ? Color.Primary : Color.Default)" />
+                                        <MudText Class="text-truncate">@item</MudText>
+                                    </ChildContent>
+                                    <Actions>
+                                        <MudIcon Icon="@MythetechFrameworkIcons.ChevronRight" Size="Size.Small" Color="Color.Secondary" />
+                                    </Actions>
+                                </HoverStack>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </div>
 
                 <MudText Typo="Typo.body2">
                     Selected: <strong>@(_selectedItem ?? "None")</strong>
                 </MudText>
 
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     Click count: @_clickCount
                 </MudText>
             </MudStack>
@@ -116,9 +83,14 @@
 </Stories>
 
 @code {
-    private List<string> _treeItems = ["Documents", "Downloads", "Pictures", "Music"];
-    private List<string> _nestedItems = ["config.json", "readme.md", "index.ts"];
-    private List<string> _clickItems = ["Option A", "Option B", "Option C", "Option D"];
+    private List<string> _treeItems =
+    [
+        "Documents",
+        "Downloads",
+        "A folder with a name long enough that it has to truncate",
+        "Music"
+    ];
+    private List<string> _clickItems = ["Option A", "Option B", "An option with a much longer label than the rest", "Option D"];
     private string? _selectedItem;
     private int _clickCount;
 
@@ -130,42 +102,46 @@
 
     private string GetItemClass(string item)
     {
-        var baseClass = "pa-2 rounded";
+        var baseClass = "pa-2 rounded cursor-pointer";
         return item == _selectedItem ? $"{baseClass} mud-primary-text" : baseClass;
     }
 
     private string _markdown = @"
 ## Usage
 
-The `HoverStack` component wraps `MudStack` and exposes hover state to child content via a templated context.
+`HoverStack` is a row whose `Actions` appear while it is hovered or holds keyboard focus, and always on touch devices. It is pure CSS, so hovering never re-renders the component.
+
+The actions take their room from the content rather than growing the row, so put `text-truncate` on the main label. For rows you build by hand, the same behavior is available as the `mt-hover-row`, `mt-hover-row-label` and `mt-hover-actions` classes.
 
 ### Basic Example
 
 ```razor
-<HoverStack Row AlignItems=""AlignItems.Center"" Context=""hover"">
-    <MudText>Item Name</MudText>
-    @if (hover.IsHovering)
-    {
-        <MudIconButton Icon=""@MythetechFrameworkIcons.Delete"" />
-    }
+<HoverStack Row AlignItems=""AlignItems.Center"">
+    <ChildContent>
+        <MudText Class=""text-truncate"">Item Name</MudText>
+    </ChildContent>
+    <Actions>
+        <MudIconButton Icon=""@MythetechFrameworkIcons.Delete"" aria-label=""Delete"" />
+    </Actions>
 </HoverStack>
 ```
 
+Never put a menu activator in `Actions`. The menu opens outside the row, so moving the pointer into it ends the hover, hides the activator, and the menu jumps. Keep overflow menu buttons in `ChildContent`, where they are always visible.
+
 ### Parameters
 
-All `MudStack` parameters are supported:
+- `ChildContent` - The row's content
+- `Actions` - Controls revealed on hover or focus
+- `OnClick` - Invoked when the row is clicked
+- `Class` / `Style` - Applied to the whole row, actions included
+
+These are passed to the content's `MudStack`:
 - `Row` - Display items horizontally
 - `Reverse` - Reverse item order
 - `Spacing` - Gap between items (0-16)
-- `Wrap` - Item wrapping behavior
+- `Wrap` - Item wrapping behavior; defaults to `NoWrap` so the row stays one line
 - `Justify` - Main axis justification
 - `AlignItems` - Cross axis alignment
 - `StretchItems` - Which children expand to fill space
-- `Class` / `Style` - CSS styling
-
-### Context
-
-The child content receives a `HoverContext` with:
-- `IsHovering` (bool) - Whether the mouse is over the stack
 ";
 }
