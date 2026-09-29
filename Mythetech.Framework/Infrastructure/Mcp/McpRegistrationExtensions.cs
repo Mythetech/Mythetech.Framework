@@ -35,6 +35,7 @@ public static class McpRegistrationExtensions
         // Core services
         services.AddSingleton<McpToolRegistry>();
         services.AddSingleton<McpToolLoader>();
+        services.AddTransient<McpToolInvoker>();
 
         // Handler for MessageBus integration
         services.AddTransient<McpToolCallHandler>();
