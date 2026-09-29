@@ -26,6 +26,13 @@ public class McpServerOptions
     public TimeSpan ToolTimeout { get; set; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
+    /// How many requests the server handles at once, across all clients (default: 16).
+    /// A slow tool call only holds up other requests once this many are in progress.
+    /// Set to 1 to handle requests one at a time.
+    /// </summary>
+    public int MaxConcurrentRequests { get; set; } = 16;
+
+    /// <summary>
     /// Enable HTTP transport for MCP server.
     /// When enabled, the server will listen on the configured HTTP endpoint.
     /// </summary>

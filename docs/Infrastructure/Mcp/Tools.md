@@ -98,6 +98,16 @@ public class AddReposHandler : IQueryHandler<AddReposToWorkspace, ToolResult<Wor
 
 `[ToolQuery]` is the obsolete name for `[ToolRequest]`. It still works for this release.
 
+## Calling Tools Directly
+
+`McpToolInvoker` calls a registered tool by name, the same way the MCP server does, but without a transport or the message bus. Use it to offer the app's tools through something other than MCP, such as a chat client:
+
+```csharp
+var result = await invoker.InvokeAsync("add_repos_to_workspace", argumentsJson, cancellationToken);
+```
+
+Unknown and disabled tools, and exceptions a tool throws, come back as a result with `IsError` set rather than as exceptions. The tools and their input schemas come from `McpToolRegistry.GetEnabledTools()`.
+
 ## Tool Attributes
 
 ### McpToolAttribute

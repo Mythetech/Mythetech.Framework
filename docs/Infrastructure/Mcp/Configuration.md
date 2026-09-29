@@ -17,6 +17,9 @@ builder.Services.AddMcp(options =>
     // Tool execution timeout (default: 60 seconds)
     options.ToolTimeout = TimeSpan.FromSeconds(120);
 
+    // Requests handled at once across all clients (default: 16)
+    options.MaxConcurrentRequests = 16;
+
     // HTTP transport settings
     options.HttpEnabled = true;
     options.HttpPort = 3333;
@@ -33,6 +36,7 @@ builder.Services.AddMcp(options =>
 | `ServerVersion` | `string?` | `null` | Version string (falls back to entry assembly version) |
 | `ProtocolVersion` | `string` | `"2024-11-05"` | MCP protocol version |
 | `ToolTimeout` | `TimeSpan` | `60 seconds` | Maximum time for tool execution |
+| `MaxConcurrentRequests` | `int` | `16` | Requests handled at once across all clients. Tools can run concurrently, so a tool that changes shared state must be safe to call from several threads. Set to 1 to handle requests one at a time |
 | `HttpEnabled` | `bool` | `false` | Enable HTTP transport |
 | `HttpPort` | `int` | `3333` | HTTP listen port |
 | `HttpPath` | `string` | `"/mcp"` | HTTP endpoint path |

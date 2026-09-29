@@ -160,6 +160,34 @@ public class GeneratedToolTests : IDisposable
         TextOf(result).ShouldBe("Hello, Ada");
     }
 
+    [Fact(DisplayName = "McpToolInvoker calls a tool by name without an MCP transport")]
+    public async Task InvokerCallsToolDirectly()
+    {
+        var invoker = _services.GetRequiredService<McpToolInvoker>();
+
+        var result = await invoker.InvokeAsync("add_test_repos",
+            JsonDocument.Parse($$"""{"workspaceId":"{{WorkspaceId}}","paths":["/missing"]}""").RootElement,
+            TestContext.Current.CancellationToken);
+
+        result.IsError.ShouldBeTrue();
+        TextOf(result).ShouldBe("path_not_found: /missing does not exist");
+    }
+
+    [Fact(DisplayName = "McpToolInvoker returns an error result for an unknown or disabled tool")]
+    public async Task InvokerReportsUnknownAndDisabledTools()
+    {
+        var invoker = _services.GetRequiredService<McpToolInvoker>();
+
+        var unknown = await invoker.InvokeAsync("no_such_tool", null, TestContext.Current.CancellationToken);
+        unknown.IsError.ShouldBeTrue();
+        TextOf(unknown).ShouldBe("Unknown tool: no_such_tool");
+
+        await _registry.SetToolEnabledAsync("get_test_echo", false);
+        var disabled = await invoker.InvokeAsync("get_test_echo", null, TestContext.Current.CancellationToken);
+        disabled.IsError.ShouldBeTrue();
+        TextOf(disabled).ShouldBe("Tool 'get_test_echo' is disabled");
+    }
+
     private Dictionary<string, Dictionary<string, object>> GetSchemaProperties(string toolName)
     {
         var schema = (Dictionary<string, object>)_registry.GetTool(toolName)!.InputSchema!;
