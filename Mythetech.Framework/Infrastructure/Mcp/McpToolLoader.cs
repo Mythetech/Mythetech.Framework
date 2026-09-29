@@ -74,10 +74,7 @@ public class McpToolLoader
         foreach (var prop in inputType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             var attr = prop.GetCustomAttribute<McpToolInputAttribute>();
-            var propSchema = new Dictionary<string, object>
-            {
-                ["type"] = GetJsonType(prop.PropertyType)
-            };
+            var propSchema = GetTypeSchema(prop.PropertyType);
 
             if (attr?.Description is not null)
             {
@@ -106,19 +103,92 @@ public class McpToolLoader
         return schema;
     }
 
-    private string GetJsonType(Type type)
+    private static Dictionary<string, object> GetTypeSchema(Type type)
     {
         var underlying = Nullable.GetUnderlyingType(type) ?? type;
 
-        return underlying switch
+        if (underlying == typeof(string) || underlying == typeof(char))
+            return Schema("string");
+
+        if (underlying == typeof(Guid))
+            return Schema("string", format: "uuid");
+
+        if (underlying == typeof(DateTime) || underlying == typeof(DateTimeOffset))
+            return Schema("string", format: "date-time");
+
+        if (underlying == typeof(DateOnly))
+            return Schema("string", format: "date");
+
+        if (underlying == typeof(TimeOnly))
+            return Schema("string", format: "time");
+
+        if (underlying == typeof(Uri))
+            return Schema("string", format: "uri");
+
+        if (underlying.IsEnum)
         {
-            Type t when t == typeof(string) => "string",
-            Type t when t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(byte) => "integer",
-            Type t when t == typeof(float) || t == typeof(double) || t == typeof(decimal) => "number",
-            Type t when t == typeof(bool) => "boolean",
-            Type t when t.IsArray || (t.IsGenericType && typeof(IEnumerable).IsAssignableFrom(t)) => "array",
-            _ => "object"
-        };
+            var schema = Schema("string");
+            schema["enum"] = Enum.GetNames(underlying);
+            return schema;
+        }
+
+        if (underlying == typeof(bool))
+            return Schema("boolean");
+
+        if (IsInteger(underlying))
+            return Schema("integer");
+
+        if (underlying == typeof(float) || underlying == typeof(double) || underlying == typeof(decimal))
+            return Schema("number");
+
+        if (IsDictionary(underlying))
+            return Schema("object");
+
+        if (GetElementType(underlying) is { } elementType)
+        {
+            var schema = Schema("array");
+            schema["items"] = GetTypeSchema(elementType);
+            return schema;
+        }
+
+        return Schema("object");
+    }
+
+    private static Dictionary<string, object> Schema(string type, string? format = null)
+    {
+        var schema = new Dictionary<string, object> { ["type"] = type };
+        if (format is not null)
+        {
+            schema["format"] = format;
+        }
+
+        return schema;
+    }
+
+    private static bool IsInteger(Type type) =>
+        type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte) ||
+        type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte);
+
+    private static bool IsDictionary(Type type) =>
+        typeof(IDictionary).IsAssignableFrom(type) ||
+        GetGenericInterfaces(type).Any(i =>
+            i.GetGenericTypeDefinition() == typeof(IDictionary<,>) ||
+            i.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>));
+
+    private static Type? GetElementType(Type type)
+    {
+        if (type.IsArray)
+            return type.GetElementType();
+
+        return GetGenericInterfaces(type)
+            .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            ?.GetGenericArguments()[0];
+    }
+
+    private static IEnumerable<Type> GetGenericInterfaces(Type type)
+    {
+        var interfaces = type.IsInterface ? type.GetInterfaces().Prepend(type) : type.GetInterfaces();
+        return interfaces.Where(i => i.IsGenericType);
     }
 
     private static string ToCamelCase(string name)

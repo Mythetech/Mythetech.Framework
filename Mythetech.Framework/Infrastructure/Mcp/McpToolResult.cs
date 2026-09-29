@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Mythetech.Framework.Infrastructure.Mcp;
 
 /// <summary>
@@ -30,6 +33,29 @@ public class McpToolResult
     {
         Content = [new McpTextContent { Text = message }],
         IsError = true
+    };
+
+    /// <summary>
+    /// Factory for a successful result holding a value as JSON text.
+    /// Strings are returned as-is rather than as a quoted JSON string.
+    /// </summary>
+    public static McpToolResult Json<T>(T value) =>
+        Text(value is string text ? text : JsonSerializer.Serialize<object?>(value, JsonOptions));
+
+    /// <summary>
+    /// Factory for a result from a <see cref="ToolResult{T}"/>: its value as JSON text on success,
+    /// or an error result with the failure's code and message.
+    /// </summary>
+    public static McpToolResult FromToolResult<T>(ToolResult<T> result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return result.Error is { } error ? Error(error.ToString()) : Json(result.Value);
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
     };
 }
 

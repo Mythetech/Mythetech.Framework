@@ -59,4 +59,37 @@ public static class NamingConventions
 
         return char.ToUpperInvariant(name[0]) + name.Substring(1);
     }
+
+    /// <summary>
+    /// Converts an assembly name to a valid namespace, replacing characters that
+    /// are not allowed in identifiers with underscores.
+    /// </summary>
+    public static string ToNamespace(string? assemblyName)
+    {
+        if (string.IsNullOrWhiteSpace(assemblyName))
+            return "Mythetech.Framework.AI.Generator";
+
+        var segments = assemblyName!.Split('.')
+            .Where(segment => segment.Length > 0)
+            .Select(ToIdentifier);
+
+        return string.Join(".", segments);
+    }
+
+    private static string ToIdentifier(string segment)
+    {
+        var result = new StringBuilder(segment.Length + 1);
+
+        if (!char.IsLetter(segment[0]) && segment[0] != '_')
+        {
+            result.Append('_');
+        }
+
+        foreach (var c in segment)
+        {
+            result.Append(char.IsLetterOrDigit(c) || c == '_' ? c : '_');
+        }
+
+        return result.ToString();
+    }
 }

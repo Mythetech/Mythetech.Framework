@@ -53,6 +53,51 @@ public class CalculateInput
 }
 ```
 
+## Generated Tools
+
+With the `Mythetech.Framework.AI.Generator` package, a message bus message becomes an MCP tool, so C# code and the AI client share one set of messages. The generator reads the tool's description from the message's `///` summary and each parameter's description from its `<param>` doc. It takes parameters from the primary constructor: a parameter is required unless it is nullable or has a default, and an omitted parameter gets its declared default.
+
+### Requests
+
+`[ToolRequest]` sends the message with `IMessageBus.SendAsync` and returns the response to the client as JSON text, or as-is for a string. Use it for any tool that returns something, whether it reads or changes state. `ResponseType` is required.
+
+```csharp
+/// <summary>Adds git repos to a workspace and returns the workspace's repos.</summary>
+/// <param name="WorkspaceId">The workspace to add to, as given in the planning prompt.</param>
+/// <param name="Paths">Absolute paths of the repo folders.</param>
+[ToolRequest(ResponseType = typeof(ToolResult<WorkspaceRepos>))]
+public record AddReposToWorkspace(Guid WorkspaceId, string[] Paths);
+```
+
+### Expected failures
+
+When `ResponseType` is a `ToolResult<T>`, the handler returns either a value or a `ToolError` with a code and a message. A success goes to the client as JSON; a failure becomes an MCP error result (`isError: true`) whose text is `code: message`. C# callers of the same message get the `ToolResult<T>` back and check `IsSuccess`, with no catch blocks. Throw only for unexpected failures, which `McpToolCallHandler` reports as a tool error.
+
+```csharp
+public class AddReposHandler : IQueryHandler<AddReposToWorkspace, ToolResult<WorkspaceRepos>>
+{
+    public async Task<ToolResult<WorkspaceRepos>> Handle(AddReposToWorkspace message)
+    {
+        var workspace = await _workspaces.FindAsync(message.WorkspaceId);
+        if (workspace is null)
+            return new ToolError("workspace_not_found", $"No workspace has the id {message.WorkspaceId}");
+
+        // ... add the repos
+        return new WorkspaceRepos(workspace.Id, workspace.RepoPaths);
+    }
+}
+```
+
+### Commands
+
+`[ToolCommand]` publishes the message with `IMessageBus.PublishAsync` and tells the client it ran. It returns nothing, so use `[ToolRequest]` when the client needs to know what happened.
+
+### Registering generated tools
+
+`services.AddMcpTools(assembly)` registers generated tools like any other. The generator also emits `AddGeneratedMcpTools()` in the `<AssemblyName>.Generated` namespace for each assembly that declares tools.
+
+`[ToolQuery]` is the obsolete name for `[ToolRequest]`. It still works for this release.
+
 ## Tool Attributes
 
 ### McpToolAttribute
@@ -163,11 +208,17 @@ The framework includes one built-in tool:
 
 Property types are mapped to JSON Schema types:
 
-| C# Type | JSON Schema Type |
-|---------|------------------|
-| `string` | `string` |
-| `int`, `long`, `short`, `byte` | `integer` |
+| C# Type | JSON Schema |
+|---------|-------------|
+| `string`, `char` | `string` |
+| `Guid` | `string`, format `uuid` |
+| `DateTime`, `DateTimeOffset` | `string`, format `date-time` |
+| `DateOnly`, `TimeOnly`, `Uri` | `string`, format `date`, `time`, `uri` |
+| Enums | `string` with an `enum` list of the names |
+| Integer types | `integer` |
 | `float`, `double`, `decimal` | `number` |
 | `bool` | `boolean` |
-| Arrays, `IEnumerable<T>` | `array` |
-| Other | `object` |
+| Arrays, lists, `IEnumerable<T>` | `array`, with `items` describing the element type |
+| Dictionaries and other types | `object` |
+
+Nullable types map like their underlying type. Arguments are read case-insensitively, and enums accept their names.

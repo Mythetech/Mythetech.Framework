@@ -57,7 +57,7 @@ The HTTP transport enables MCP over HTTP POST requests, implementing the "Stream
 - Persistent server instance
 - Multiple clients can connect
 - Supports real-time notifications
-- Session management with `Mcp-Session-Id` header
+- A session per client, tracked with the `Mcp-Session-Id` header. Each `initialize` starts a new session without affecting other clients, and `DELETE` ends only the caller's session. A request for an unknown or ended session gets 404, which tells the client to initialize again
 
 **Use Cases:**
 - Web applications
@@ -132,7 +132,7 @@ builder.Services.AddMcp(options =>
 
 - **Localhost only by default** - The HTTP transport binds to `localhost` to prevent external access
 - **Origin validation** - Requests are validated to prevent DNS rebinding attacks
-- **Session tokens** - Each connection gets a unique session ID
+- **Session tokens** - Each client gets a unique session ID
 
 ### stdio Transport
 

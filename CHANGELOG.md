@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.21.0] - 2026-09-28
 
 ### Added
 
@@ -11,6 +11,11 @@
 - `HoverStack.Actions`: controls shown at the end of the row on hover or keyboard focus, built on the `mt-hover-*` classes. The content gives up room to them, so the row never grows
 - `MythetechFrameworkIcons.ChevronRight`, `Edit`, `Folder` and `RadioButtonUnchecked`
 
+- `[ToolRequest]`: marks a message as a request/response MCP tool, sent with `SendAsync`. It replaces `[ToolQuery]` with the same `Name`, `Description` and `ResponseType` properties, and the new name fits tools that change state as well as reads
+- `ToolResult<T>` and `ToolError`: a handler's success value, or an expected failure with a code and a message. C# callers check `IsSuccess` instead of catching. When a `[ToolRequest]`'s `ResponseType` is a `ToolResult<T>`, the generated tool returns the value on success and an MCP error result (`isError: true`) with the text `code: message` on failure. Handlers can return a value or a `ToolError` directly, as both convert implicitly. Unexpected exceptions still go through `McpToolCallHandler`'s catch
+- `McpToolResult.Json(value)`, a text result holding the value as camelCase JSON with enums as names, or the string itself for a string; and `McpToolResult.FromToolResult(result)`
+- Generator diagnostic `MTAI001`: a `[ToolRequest]` (or `[ToolQuery]`) with no `ResponseType` is now a build error naming the type, instead of generated code that doesn't compile
+
 ### Changed
 
 - **Breaking:** `HoverStack` is now pure CSS. It no longer tracks the pointer, so hovering never re-renders it, and its actions also appear on keyboard focus and always on touch devices. `ChildContent` is a plain `RenderFragment` and `HoverContext` is gone. No app read `IsHovering`, so migrating is:
@@ -18,11 +23,33 @@
   - Move hand-rolled hover actions (such as a `*-hover-actions` div revealed by the app's own CSS) into `<Actions>`, and delete that CSS
 - **Breaking:** `HoverStack`'s `Class` and `Style` now apply to the whole row, actions included, instead of the inner `MudStack`. Row padding, backgrounds and hover styles keep working; a scoped `::deep` rule that targeted the class still matches
 - `HoverStack.Wrap` defaults to `NoWrap`, so a row stays one line tall and its content truncates. Pass `Wrap="Wrap.Wrap"` for the old behavior
+- Generated request tools return their response as JSON (see `McpToolResult.Json`) instead of `ToString()`, so response types no longer need to override `ToString`
+- MCP input schemas describe more types. `Guid` is a `uuid` string, `DateTime` and `DateTimeOffset` are `date-time` strings, `DateOnly`, `TimeOnly` and `Uri` get the `date`, `time` and `uri` formats, enums are strings with an `enum` list of their names, and arrays and lists give their element type in `items`. Dictionaries are `object` rather than `array`, and unsigned integers are `integer`
+- Tool arguments accept enum names, so the enum schema round-trips. `Guid` and date strings were already accepted
+- A tool call without arguments gets the input type's defaults instead of a null input, so a tool whose parameters are all optional can be called bare
+- The HTTP transport answers a request for an unknown or ended session with 404, as the MCP spec asks, which tells the client to initialize again. A request without a session ID, once any client has initialized, is still 400
+- **Breaking (generator):** `AddGeneratedMcpTools()` moves from `Mythetech.Framework.AI.Generator.Generated` to `<AssemblyName>.Generated`, so two assemblies that use the generator no longer emit the same public class. Update the `using`; an app that imports two such namespaces calls one of them by its full name. `AddMcpTools(assembly)` is unaffected
+- The generator reads a message's `///` summary and parameter docs even when the project doesn't set `GenerateDocumentationFile`. Before, such projects got the fallback descriptions ("Executes the X operation", "The X parameter")
+
+### Deprecated
+
+- `[ToolQuery]`, replaced by `[ToolRequest]`. It is `[Obsolete]` and the generator still recognizes it for this release
 
 ### Removed
 
 - `align-items-center` utility class, which was unused and duplicated MudBlazor's `align-center`
 - `HoverContext`, replaced by `HoverStack.Actions` (see Changed)
+
+### Fixed
+
+- The HTTP MCP transport kept a single session, so an `initialize` from a second client reset it and dropped the first client. Two Claude Code sessions against one app kept disconnecting each other. The transport now keeps a session per client: each `initialize` starts a new one, requests are checked against their own session, and `DELETE` ends only the caller's
+- The HTTP transport matched responses to requests by JSON-RPC id alone, so two clients that both sent id 1 could get each other's response. Requests now get a transport-wide id, and each client sees its own id on the response
+- Constructor defaults were ignored by the generator, so `int TopK = 10` arrived as 0 when the caller left it out. The generated input property now starts at the declared default, including enums, strings, `float`, `decimal` and `null`. Parameters with a default were already optional in the schema
+- A `ResponseType` that isn't a named type, such as `typeof(string[])`, was dropped by the generator and produced code that didn't compile
+
+### Notes
+
+- All four packages move to `0.21.0`. `Mythetech.Framework.AI.Generator` jumps from `0.14.0` to match the other packages, and from now on its version shows which `Mythetech.Framework` it pairs with. Its generated code calls `McpToolResult.Json` and `McpToolResult.FromToolResult`, so it needs `Mythetech.Framework` `0.21.0` or later
 
 ## [0.20.1] - 2026-09-28
 

@@ -16,10 +16,10 @@
 
         <!-- NuGet metadata -->
         <PackageId>Mythetech.Framework.AI.Generator</PackageId>
-        <VersionPrefix>0.14.0</VersionPrefix>
+        <VersionPrefix>0.21.0</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Company>Mythetech</Company>
-        <Description>Roslyn source generator that creates MCP tools from ToolCommand/ToolQuery decorated message bus types</Description>
+        <Description>Roslyn source generator that creates MCP tools from ToolCommand/ToolRequest decorated message bus types</Description>
         <PackageTags>blazor;mcp;source-generator;ai;tools;roslyn</PackageTags>
         <Copyright>Copyright (c) 2026 Mythetech</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -31,6 +31,11 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+        <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
     </ItemGroup>
 
     <!-- Pack the generator DLL into the analyzers folder for NuGet -->
