@@ -99,6 +99,27 @@ public class McpToolLoaderTests
         // Assert
         tools.ShouldNotContain(t => t.ToolType == typeof(ToolWithoutAttribute));
     }
+
+    [Fact(DisplayName = "DiscoverTools describes list items, nullable values and dictionaries")]
+    public void DiscoverToolsDescribesCollectionTypes()
+    {
+        var tool = _loader.DiscoverTools(typeof(CollectionTestTool).Assembly)
+            .First(t => t.Name == "collection_test_tool");
+
+        var properties = (Dictionary<string, object>)((Dictionary<string, object>)tool.InputSchema!)["properties"];
+        var ids = (Dictionary<string, object>)properties["ids"];
+        var items = (Dictionary<string, object>)ids["items"];
+        var modes = (Dictionary<string, object>)((Dictionary<string, object>)properties["modes"])["items"];
+        var due = (Dictionary<string, object>)properties["due"];
+        var tags = (Dictionary<string, object>)properties["tags"];
+
+        ids["type"].ShouldBe("array");
+        items["type"].ShouldBe("string");
+        items["format"].ShouldBe("uuid");
+        modes["enum"].ShouldBe(new[] { "Read", "Write" });
+        due["format"].ShouldBe("date-time");
+        tags["type"].ShouldBe("object");
+    }
 }
 
 #region Test Tools
@@ -127,6 +148,32 @@ public class TestToolWithInput : IMcpTool<TestToolInput>
     public Task<McpToolResult> ExecuteAsync(TestToolInput input, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(McpToolResult.Text($"Query: {input.Query}"));
+    }
+}
+
+public enum CollectionTestMode
+{
+    Read,
+    Write
+}
+
+public class CollectionTestInput
+{
+    public List<Guid> Ids { get; set; } = [];
+
+    public IReadOnlyList<CollectionTestMode> Modes { get; set; } = [];
+
+    public DateTime? Due { get; set; }
+
+    public Dictionary<string, string> Tags { get; set; } = [];
+}
+
+[McpTool(Name = "collection_test_tool", Description = "A test tool with collection input")]
+public class CollectionTestTool : IMcpTool<CollectionTestInput>
+{
+    public Task<McpToolResult> ExecuteAsync(CollectionTestInput input, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(McpToolResult.Text("ok"));
     }
 }
 

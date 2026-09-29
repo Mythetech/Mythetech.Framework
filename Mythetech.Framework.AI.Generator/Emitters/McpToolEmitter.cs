@@ -6,12 +6,12 @@ namespace Mythetech.Framework.AI.Generator.Emitters;
 
 /// <summary>
 /// Generates MCP tool classes from tool metadata.
-/// Each command/query generates a separate MCP tool class that routes through MessageBus.
+/// Each command/request generates a separate MCP tool class that routes through MessageBus.
 /// </summary>
 internal static class McpToolEmitter
 {
     /// <summary>
-    /// Generates an MCP tool class for a single command/query.
+    /// Generates an MCP tool class for a single command/request.
     /// </summary>
     public static string GenerateMcpTool(ToolMetadata tool)
     {
@@ -79,7 +79,7 @@ internal static class McpToolEmitter
     /// <summary>
     /// Generates the AddGeneratedMcpTools registration extension.
     /// </summary>
-    public static string GenerateRegistration(List<string> toolClassNames, List<string> toolNamespaces)
+    public static string GenerateRegistration(List<string> toolClassNames, List<string> toolNamespaces, string registrationNamespace)
     {
         var sb = new StringBuilder();
 
@@ -94,7 +94,7 @@ internal static class McpToolEmitter
         }
 
         sb.AppendLine();
-        sb.AppendLine("namespace Mythetech.Framework.AI.Generator.Generated;");
+        sb.AppendLine($"namespace {registrationNamespace};");
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine("/// Extension methods for registering generated MCP tools.");
@@ -156,18 +156,7 @@ internal static class McpToolEmitter
         var constructorArgs = string.Join(", ",
             tool.Parameters.Select(p => $"input.{NamingConventions.ToPascalCase(p.Name)}"));
 
-        if (tool.IsQuery)
-        {
-            sb.AppendLine($"        var query = new {tool.TypeName}({constructorArgs});");
-            sb.AppendLine($"        var result = await _messageBus.SendAsync<{tool.TypeName}, {tool.ResponseTypeName}>(query);");
-            sb.AppendLine("        return McpToolResult.Text(result.ToString());");
-        }
-        else
-        {
-            sb.AppendLine($"        var command = new {tool.TypeName}({constructorArgs});");
-            sb.AppendLine("        await _messageBus.PublishAsync(command);");
-            sb.AppendLine($"        return McpToolResult.Text(\"Command '{tool.ToolName}' executed successfully.\");");
-        }
+        GenerateExecuteBody(sb, tool, constructorArgs);
 
         sb.AppendLine("    }");
     }
@@ -177,24 +166,34 @@ internal static class McpToolEmitter
         sb.AppendLine("    public async Task<McpToolResult> ExecuteAsync(object? input, CancellationToken cancellationToken = default)");
         sb.AppendLine("    {");
 
-        if (tool.IsQuery)
-        {
-            sb.AppendLine($"        var query = new {tool.TypeName}();");
-            sb.AppendLine($"        var result = await _messageBus.SendAsync<{tool.TypeName}, {tool.ResponseTypeName}>(query);");
-            sb.AppendLine("        return McpToolResult.Text(result.ToString());");
-        }
-        else
-        {
-            sb.AppendLine($"        var command = new {tool.TypeName}();");
-            sb.AppendLine("        await _messageBus.PublishAsync(command);");
-            sb.AppendLine($"        return McpToolResult.Text(\"Command '{tool.ToolName}' executed successfully.\");");
-        }
+        GenerateExecuteBody(sb, tool, constructorArgs: "");
 
         sb.AppendLine("    }");
     }
 
+    private static void GenerateExecuteBody(StringBuilder sb, ToolMetadata tool, string constructorArgs)
+    {
+        if (tool.IsRequest)
+        {
+            var resultFactory = tool.IsToolResult ? "FromToolResult" : "Json";
+
+            sb.AppendLine($"        var request = new {tool.TypeName}({constructorArgs});");
+            sb.AppendLine($"        var result = await _messageBus.SendAsync<{tool.TypeName}, {tool.ResponseTypeName}>(request);");
+            sb.AppendLine($"        return McpToolResult.{resultFactory}(result);");
+        }
+        else
+        {
+            sb.AppendLine($"        var command = new {tool.TypeName}({constructorArgs});");
+            sb.AppendLine("        await _messageBus.PublishAsync(command);");
+            sb.AppendLine($"        return McpToolResult.Text(\"Command '{tool.ToolName}' executed successfully.\");");
+        }
+    }
+
     private static string GetDefaultInitializer(ParameterMetadata param)
     {
+        if (param.DefaultValueLiteral is not null)
+            return $" = {param.DefaultValueLiteral};";
+
         if (param.TypeName.EndsWith("?"))
             return " = null!;";
 

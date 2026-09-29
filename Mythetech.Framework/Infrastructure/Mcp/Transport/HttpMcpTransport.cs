@@ -25,15 +25,14 @@ public class HttpMcpTransport : IMcpTransport
     private readonly CancellationTokenSource _cts = new();
 
     // Queue for incoming requests (HTTP requests are queued, ReadMessageAsync dequeues)
-    private readonly BlockingCollection<PendingRequest> _requestQueue = new();
+    private readonly BlockingCollection<JsonRpcRequest> _requestQueue = new();
 
-    // Pending responses waiting to be sent back to HTTP clients
-    private readonly ConcurrentDictionary<object, PendingRequest> _pendingResponses = new();
+    // Pending responses waiting to be sent back to HTTP clients, keyed by transport-wide request id
+    private readonly ConcurrentDictionary<long, PendingRequest> _pendingResponses = new();
+    private long _lastRequestId;
 
-    // Session management per MCP spec
-    private string? _sessionId;
-    private bool _initialized;
-    private readonly Lock _sessionLock = new();
+    // Active sessions per MCP spec. Each client that initializes gets its own session.
+    private readonly ConcurrentDictionary<string, byte> _sessions = new();
 
     private Task? _listenerTask;
     private bool _disposed;
@@ -166,37 +165,6 @@ public class HttpMcpTransport : IMcpTransport
                 }
             }
 
-            // Session validation for non-POST methods
-            // POST requests handle session validation after parsing the body
-            // to allow initialize requests to create new sessions
-            string? currentSessionId;
-            bool isInitialized;
-            lock (_sessionLock)
-            {
-                currentSessionId = _sessionId;
-                isInitialized = _initialized;
-            }
-
-            if (request.HttpMethod != "POST" && isInitialized && currentSessionId != null)
-            {
-                var clientSessionId = request.Headers["Mcp-Session-Id"];
-                if (clientSessionId != currentSessionId)
-                {
-                    _logger?.LogWarning("Invalid or missing session ID");
-                    response.StatusCode = 400;
-                    await WriteJsonResponse(response, new JsonRpcResponse
-                    {
-                        Id = null,
-                        Error = new JsonRpcError
-                        {
-                            Code = -32600,
-                            Message = "Invalid or missing session ID"
-                        }
-                    });
-                    return;
-                }
-            }
-
             if (request.HttpMethod == "POST")
             {
                 await HandlePostAsync(context, cancellationToken);
@@ -210,14 +178,7 @@ public class HttpMcpTransport : IMcpTransport
             }
             else if (request.HttpMethod == "DELETE")
             {
-                // Session termination
-                lock (_sessionLock)
-                {
-                    _sessionId = null;
-                    _initialized = false;
-                }
-                response.StatusCode = 204;
-                response.Close();
+                await HandleDeleteAsync(context);
             }
             else if (request.HttpMethod == "OPTIONS")
             {
@@ -285,76 +246,52 @@ public class HttpMcpTransport : IMcpTransport
                 return;
             }
 
-            // Session validation for POST requests
-            // Allow initialize requests to create a new session even if one exists
-            string? currentSessionId;
-            bool isCurrentlyInitialized;
-            lock (_sessionLock)
+            // An initialize always starts a new session, so a new client never ends another client's session
+            var isInitialize = jsonRpcRequest.Method == "initialize";
+            var sessionCheck = CheckSession(request.Headers["Mcp-Session-Id"], isInitialize);
+            if (sessionCheck != SessionCheck.Allowed)
             {
-                currentSessionId = _sessionId;
-                isCurrentlyInitialized = _initialized;
-            }
-
-            if (isCurrentlyInitialized && currentSessionId != null)
-            {
-                var clientSessionId = request.Headers["Mcp-Session-Id"];
-                var isInitializeRequest = jsonRpcRequest.Method == "initialize";
-
-                if (clientSessionId != currentSessionId)
-                {
-                    if (isInitializeRequest && string.IsNullOrEmpty(clientSessionId))
-                    {
-                        // New client is trying to initialize - reset session state
-                        lock (_sessionLock)
-                        {
-                            _logger?.LogInformation("New initialize request received, resetting session state");
-                            _initialized = false;
-                            _sessionId = null;
-                        }
-                    }
-                    else
-                    {
-                        _logger?.LogWarning("Invalid or missing session ID");
-                        response.StatusCode = 400;
-                        await WriteJsonResponse(response, new JsonRpcResponse
-                        {
-                            Id = jsonRpcRequest.Id,
-                            Error = new JsonRpcError
-                            {
-                                Code = -32600,
-                                Message = "Invalid or missing session ID"
-                            }
-                        });
-                        return;
-                    }
-                }
+                await RejectSessionAsync(response, jsonRpcRequest.Id, sessionCheck);
+                return;
             }
 
             // Handle notifications (no response needed)
             if (jsonRpcRequest.IsNotification)
             {
                 // Queue for processing but don't wait for response
-                _requestQueue.Add(new PendingRequest(jsonRpcRequest, null!), cancellationToken);
+                _requestQueue.Add(jsonRpcRequest, cancellationToken);
                 response.StatusCode = 202;
                 response.Close();
                 return;
             }
 
-            // Queue the request and wait for response
-            var pending = new PendingRequest(jsonRpcRequest, response);
+            // Each client numbers its own requests, so two sessions can both send id 1. The server
+            // sees a transport-wide id instead, and the client's id is put back on the response.
+            var requestId = Interlocked.Increment(ref _lastRequestId);
+            var pending = new PendingRequest(jsonRpcRequest.Id, response, isInitialize);
 
             // Register pending response before queuing
-            if (jsonRpcRequest.Id != null)
+            _pendingResponses[requestId] = pending;
+
+            try
             {
-                _pendingResponses[jsonRpcRequest.Id] = pending;
+                // Queue for processing by McpServer
+                _requestQueue.Add(new JsonRpcRequest
+                {
+                    JsonRpc = jsonRpcRequest.JsonRpc,
+                    Id = requestId,
+                    Method = jsonRpcRequest.Method,
+                    Params = jsonRpcRequest.Params
+                }, cancellationToken);
+
+                // Wait for response to be written (with timeout)
+                var timeout = _options.ToolTimeout.Add(TimeSpan.FromSeconds(5));
+                await pending.CompletionSource.Task.WaitAsync(timeout, cancellationToken);
             }
-
-            // Queue for processing by McpServer
-            _requestQueue.Add(pending, cancellationToken);
-
-            // Wait for response to be written (with timeout)
-            var timeout = _options.ToolTimeout.Add(TimeSpan.FromSeconds(5));
-            await pending.CompletionSource.Task.WaitAsync(timeout, cancellationToken);
+            finally
+            {
+                _pendingResponses.TryRemove(requestId, out _);
+            }
         }
         catch (JsonException ex)
         {
@@ -374,13 +311,63 @@ public class HttpMcpTransport : IMcpTransport
         }
     }
 
+    private async Task HandleDeleteAsync(HttpListenerContext context)
+    {
+        var response = context.Response;
+        var sessionId = context.Request.Headers["Mcp-Session-Id"];
+
+        var sessionCheck = CheckSession(sessionId, isInitialize: false);
+        if (sessionCheck != SessionCheck.Allowed)
+        {
+            await RejectSessionAsync(response, null, sessionCheck);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            _sessions.TryRemove(sessionId, out _);
+            _logger?.LogInformation("MCP session {SessionId} ended", sessionId);
+        }
+
+        response.StatusCode = 204;
+        response.Close();
+    }
+
+    private SessionCheck CheckSession(string? sessionId, bool isInitialize)
+    {
+        if (isInitialize)
+            return SessionCheck.Allowed;
+
+        if (!string.IsNullOrEmpty(sessionId))
+            return _sessions.ContainsKey(sessionId) ? SessionCheck.Allowed : SessionCheck.Unknown;
+
+        // Requests without a session are accepted until some client has initialized
+        return _sessions.IsEmpty ? SessionCheck.Allowed : SessionCheck.Missing;
+    }
+
+    private async Task RejectSessionAsync(HttpListenerResponse response, object? requestId, SessionCheck sessionCheck)
+    {
+        // Per the MCP spec, a missing session ID is a 400 and an unknown or ended session is a 404,
+        // which tells the client to initialize again
+        var isMissing = sessionCheck == SessionCheck.Missing;
+        var message = isMissing ? "Missing session ID" : "Session not found";
+
+        _logger?.LogWarning("Rejected MCP request: {Reason}", message);
+        response.StatusCode = isMissing ? 400 : 404;
+        await WriteJsonResponse(response, new JsonRpcResponse
+        {
+            Id = requestId,
+            Error = new JsonRpcError { Code = JsonRpcError.InvalidRequest, Message = message }
+        });
+    }
+
     /// <inheritdoc />
     public async Task<JsonRpcRequest?> ReadMessageAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             // Wait for a request to be queued from HTTP
-            var pending = await Task.Run(() =>
+            return await Task.Run(() =>
             {
                 try
                 {
@@ -391,8 +378,6 @@ public class HttpMcpTransport : IMcpTransport
                     return null; // Queue completed
                 }
             }, cancellationToken);
-
-            return pending?.Request;
         }
         catch (OperationCanceledException)
         {
@@ -403,34 +388,29 @@ public class HttpMcpTransport : IMcpTransport
     /// <inheritdoc />
     public async Task WriteMessageAsync(JsonRpcResponse response, CancellationToken cancellationToken = default)
     {
-        // Handle initialize response - set session ID
-        // Generate session ID on first successful response (typically initialize)
-        bool isFirstResponse;
-        lock (_sessionLock)
-        {
-            isFirstResponse = !_initialized && response.Result != null;
-            if (isFirstResponse)
-            {
-                _sessionId = Guid.NewGuid().ToString("N");
-                _initialized = true;
-            }
-        }
-
         // Find the pending HTTP request for this response
-        if (response.Id != null && _pendingResponses.TryRemove(response.Id, out var pending))
+        if (response.Id is long requestId && _pendingResponses.TryRemove(requestId, out var pending))
         {
             try
             {
-                // Add session ID header on initialize response
-                if (isFirstResponse && _sessionId != null)
+                if (pending.IsInitialize && response.Result != null)
                 {
-                    pending.Response.Headers["Mcp-Session-Id"] = _sessionId;
+                    var sessionId = Guid.NewGuid().ToString("N");
+                    _sessions[sessionId] = 0;
+                    pending.Response.Headers["Mcp-Session-Id"] = sessionId;
+                    _logger?.LogInformation("MCP session {SessionId} started", sessionId);
                 }
 
                 pending.Response.ContentType = "application/json";
                 pending.Response.StatusCode = 200;
 
-                await WriteJsonResponse(pending.Response, response);
+                await WriteJsonResponse(pending.Response, new JsonRpcResponse
+                {
+                    JsonRpc = response.JsonRpc,
+                    Id = pending.ClientRequestId,
+                    Result = response.Result,
+                    Error = response.Error
+                });
                 pending.CompletionSource.TrySetResult(true);
             }
             catch (Exception ex)
@@ -516,11 +496,7 @@ public class HttpMcpTransport : IMcpTransport
         // Reset state for restart
         Endpoint = null;
         ActualPort = null;
-        lock (_sessionLock)
-        {
-            _sessionId = null;
-            _initialized = false;
-        }
+        _sessions.Clear();
 
         _logger?.LogInformation("MCP HTTP transport stopped");
     }
@@ -572,14 +548,23 @@ public class HttpMcpTransport : IMcpTransport
     /// </summary>
     private sealed class PendingRequest
     {
-        public JsonRpcRequest Request { get; }
+        public object? ClientRequestId { get; }
         public HttpListenerResponse Response { get; }
+        public bool IsInitialize { get; }
         public TaskCompletionSource<bool> CompletionSource { get; } = new();
 
-        public PendingRequest(JsonRpcRequest request, HttpListenerResponse response)
+        public PendingRequest(object? clientRequestId, HttpListenerResponse response, bool isInitialize)
         {
-            Request = request;
+            ClientRequestId = clientRequestId;
             Response = response;
+            IsInitialize = isInitialize;
         }
+    }
+
+    private enum SessionCheck
+    {
+        Allowed,
+        Missing,
+        Unknown
     }
 }
