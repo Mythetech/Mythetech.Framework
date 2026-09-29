@@ -49,8 +49,7 @@
 
 ### Notes
 
-- `Mythetech.Framework`, `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` all move to `0.21.0`
-- `Mythetech.Framework.AI.Generator` moves to `0.15.0`. Its generated code calls `McpToolResult.Json` and `McpToolResult.FromToolResult`, so it needs `Mythetech.Framework` `0.21.0` or later
+- All four packages move to `0.21.0`. `Mythetech.Framework.AI.Generator` jumps from `0.14.0` to match the other packages, and from now on its version shows which `Mythetech.Framework` it pairs with. Its generated code calls `McpToolResult.Json` and `McpToolResult.FromToolResult`, so it needs `Mythetech.Framework` `0.21.0` or later
 
 ## [0.20.1] - 2026-09-28
 
