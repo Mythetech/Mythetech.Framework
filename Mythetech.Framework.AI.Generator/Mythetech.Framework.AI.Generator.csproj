@@ -16,7 +16,7 @@
 
         <!-- NuGet metadata -->
         <PackageId>Mythetech.Framework.AI.Generator</PackageId>
-        <VersionPrefix>0.21.0</VersionPrefix>
+        <VersionPrefix>0.21.1</VersionPrefix>
         <Authors>Mythetech</Authors>
         <Company>Mythetech</Company>
         <Description>Roslyn source generator that creates MCP tools from ToolCommand/ToolRequest decorated message bus types</Description>

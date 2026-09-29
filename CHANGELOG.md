@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.21.1] - 2026-09-28
+
+### Fixed
+
+- `McpServer` handled one request at a time across every client, so a slow tool call in one agent session held up every other session on the app's MCP server, down to a `ping`. It now reads requests in one loop and handles them on a pool of workers, so calls from different clients, and pipelined calls from one client, run concurrently. Responses can arrive out of order, which JSON-RPC allows since each carries its request's id
+
+### Added
+
+- `McpServerOptions.MaxConcurrentRequests` (default 16): how many requests are handled at once across all clients. Set it to 1 to restore one-at-a-time handling
+
+### Notes
+
+- Tools that were only ever called one at a time can now run concurrently with each other, as they already could with the app's own UI. A tool that changes shared state should do it through a state class that is safe to call from several threads, or the app can set `MaxConcurrentRequests` to 1
+- All four packages move to `0.21.1`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+
 ## [0.21.0] - 2026-09-28
 
 ### Added

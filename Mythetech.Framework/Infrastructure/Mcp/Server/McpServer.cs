@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.MessageBus;
@@ -44,43 +45,92 @@ public class McpServer : IMcpServer
         _logger.LogInformation("MCP server starting: {ServerName} v{Version}",
             _options.ServerName, _options.ServerVersion ?? "1.0.0");
 
+        // One loop reads from the transport, which may not support concurrent reads, and a fixed
+        // pool of workers handles requests, so a slow tool call from one client doesn't hold up others
+        var requests = Channel.CreateUnbounded<JsonRpcRequest>(new UnboundedChannelOptions { SingleWriter = true });
+        var workers = Enumerable.Range(0, Math.Max(1, _options.MaxConcurrentRequests))
+            .Select(_ => ProcessRequestsAsync(requests.Reader, cancellationToken))
+            .ToList();
+
+        try
+        {
+            await ReadRequestsAsync(requests.Writer, cancellationToken);
+        }
+        finally
+        {
+            requests.Writer.TryComplete();
+            await Task.WhenAll(workers);
+        }
+    }
+
+    private async Task ReadRequestsAsync(ChannelWriter<JsonRpcRequest> requests, CancellationToken cancellationToken)
+    {
         while (!cancellationToken.IsCancellationRequested)
         {
-            JsonRpcRequest? request = null;
             try
             {
-                request = await _transport.ReadMessageAsync(cancellationToken);
+                var request = await _transport.ReadMessageAsync(cancellationToken);
                 if (request is null)
                 {
                     _logger.LogInformation("Transport closed, shutting down MCP server");
-                    break;
+                    return;
                 }
 
-                var response = await ProcessRequestAsync(request, cancellationToken);
-
-                // Only send response for requests (not notifications)
-                if (!request.IsNotification && response is not null)
-                {
-                    await _transport.WriteMessageAsync(response, cancellationToken);
-                }
+                await requests.WriteAsync(request, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogInformation("MCP server cancelled");
-                break;
-            }
-            catch (JsonException ex)
-            {
-                // Malformed JSON in request - send error response if we have a request ID
-                _logger.LogWarning(ex, "Invalid JSON in MCP request");
-                await TrySendErrorResponseAsync(request?.Id, JsonRpcError.ParseError, "Invalid JSON", cancellationToken);
+                return;
             }
             catch (Exception ex)
             {
-                // Unexpected error - log and continue processing requests
-                _logger.LogError(ex, "Error processing MCP request");
-                await TrySendErrorResponseAsync(request?.Id, JsonRpcError.InternalError, "Internal server error", cancellationToken);
+                _logger.LogError(ex, "Error reading MCP request");
             }
+        }
+    }
+
+    private async Task ProcessRequestsAsync(ChannelReader<JsonRpcRequest> requests, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var request in requests.ReadAllAsync(cancellationToken))
+            {
+                await HandleRequestAsync(request, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    private async Task HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await ProcessRequestAsync(request, cancellationToken);
+
+            // Only send response for requests (not notifications)
+            if (!request.IsNotification && response is not null)
+            {
+                await _transport.WriteMessageAsync(response, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            // Malformed JSON in request - send error response if we have a request ID
+            _logger.LogWarning(ex, "Invalid JSON in MCP request");
+            await TrySendErrorResponseAsync(request.Id, JsonRpcError.ParseError, "Invalid JSON", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Unexpected error - log and continue processing requests
+            _logger.LogError(ex, "Error processing MCP request");
+            await TrySendErrorResponseAsync(request.Id, JsonRpcError.InternalError, "Internal server error", cancellationToken);
         }
     }
 

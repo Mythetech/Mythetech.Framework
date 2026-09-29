@@ -118,7 +118,32 @@ public class HttpMcpTransportSessionTests : IAsyncDisposable
         (await client.SendAsync(3, "tools/list")).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    private async Task StartServerAsync(int port)
+    [Fact(DisplayName = "A slow tool call from one client doesn't hold up another client's call")]
+    public async Task SlowCallDoesNotBlockOtherClients()
+    {
+        var gate = new ToolGate();
+        await StartServerAsync(33344, services => services.AddSingleton(gate).AddMcpTool<GatedTestTool>());
+        using var first = new TestMcpClient(_endpoint);
+        using var second = new TestMcpClient(_endpoint);
+        await first.InitializeAsync();
+        await second.InitializeAsync();
+
+        var slowCall = first.SendAsync(4, "tools/call", new { name = "gated_test_tool" });
+        await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        var fastCall = await second.SendAsync(5, "tools/call", new { name = "http_test_tool" })
+            .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        fastCall.StatusCode.ShouldBe(HttpStatusCode.OK);
+        fastCall.Body.GetProperty("result").GetRawText().ShouldContain("HTTP test result");
+        slowCall.IsCompleted.ShouldBeFalse();
+
+        gate.Release.SetResult();
+        var slow = await slowCall.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        slow.StatusCode.ShouldBe(HttpStatusCode.OK);
+        slow.Body.GetProperty("result").GetRawText().ShouldContain("released");
+    }
+
+    private async Task StartServerAsync(int port, Action<IServiceCollection>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -134,6 +159,7 @@ public class HttpMcpTransportSessionTests : IAsyncDisposable
             options.HttpPath = "/mcp";
         });
         services.AddMcpTool<HttpTestTool>();
+        configure?.Invoke(services);
 
         _services = services.BuildServiceProvider();
         _services.UseMcp(typeof(HttpTestTool).Assembly);
@@ -208,5 +234,23 @@ public class HttpMcpTransportSessionTests : IAsyncDisposable
         }
 
         public void Dispose() => _http.Dispose();
+    }
+}
+
+public sealed class ToolGate
+{
+    public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+}
+
+[McpTool(Name = "gated_test_tool", Description = "Waits until the test releases it")]
+public class GatedTestTool(ToolGate gate) : IMcpTool
+{
+    public async Task<McpToolResult> ExecuteAsync(object? input, CancellationToken cancellationToken = default)
+    {
+        gate.Entered.SetResult();
+        await gate.Release.Task.WaitAsync(cancellationToken);
+        return McpToolResult.Text("released");
     }
 }
