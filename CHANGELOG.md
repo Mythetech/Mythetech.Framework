@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.2] - 2026-10-04
+
+### Changed
+
+- The embedded Material Symbols Rounded font moves from Google Fonts v373 to v376. It adds 15 icons (`apps_plus`, `chat_display`, `closed_caption_display`, `display_group`, `document_share`, `edit_line`, `filter_cancel`, `filter_plus`, `function_search`, `group_eye`, `import_spark`, `markdown_convert`, `markdown_document`, `markdown_spark`, `sheets_column_swap`) and removes none. `subway` is the only existing icon whose outline changed
+- `scripts/update-material-symbols.sh` is now `scripts/update-material-symbols.cs`, a file-based C# app, so the font refresh also runs on Windows: `dotnet scripts/update-material-symbols.cs`
+
 ## [0.21.1] - 2026-09-28
 
 ### Fixed
