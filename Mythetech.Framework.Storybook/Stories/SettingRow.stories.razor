@@ -1,0 +1,58 @@
+@using System.Reflection
+@using Mythetech.Framework.Components.Settings
+@using Mythetech.Framework.Components.Settings.Editors
+@using Mythetech.Framework.Infrastructure.Settings
+@attribute [Stories("Components/Settings/Setting Row")]
+
+<Stories TComponent="DynamicSettingControl">
+
+    <DefaultStory Name="Beside the Label" TComponent="DynamicSettingControl">
+        <Template>
+            <div class="setting-row-story pa-4">
+                <DynamicSettingControl Settings="@_settings"
+                                       Property="@Property(nameof(DemoSettings.Username))"
+                                       Attribute="@Attribute(nameof(DemoSettings.Username))" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+    <DefaultStory Name="Stacked" TComponent="DynamicSettingControl">
+        <Template>
+            <div class="setting-row-story pa-4">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    Set <code>Stacked = true</code> on a setting whose editor is too large to share a row with its label.
+                    The editor gets its own full-width row beneath the label and description.
+                </MudText>
+                <DynamicSettingControl Settings="@_settings"
+                                       Property="@Property(nameof(DemoSettings.BuildService))"
+                                       Attribute="@Attribute(nameof(DemoSettings.BuildService))" />
+            </div>
+        </Template>
+    </DefaultStory>
+
+</Stories>
+
+@code {
+    private readonly DemoSettings _settings = new();
+
+    private static PropertyInfo Property(string name) => typeof(DemoSettings).GetProperty(name)!;
+
+    private static SettingAttribute Attribute(string name) => Property(name).GetCustomAttribute<SettingAttribute>()!;
+
+    private class DemoSettings : SettingsBase
+    {
+        public override string SettingsId => "setting-row-demo";
+        public override string DisplayName => "Setting Row";
+        public override string Icon => MythetechFrameworkIcons.Settings;
+
+        [Setting(Label = "Username", Description = "Your display name", CustomEditor = typeof(StringSettingEditor))]
+        public string Username { get; set; } = "User";
+
+        [Setting(
+            Label = "Status",
+            Description = "Builds run on the build service, signed in with your account",
+            CustomEditor = typeof(SettingRowStatusEditor),
+            Stacked = true)]
+        public string BuildService { get; set; } = "";
+    }
+}

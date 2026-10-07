@@ -1,0 +1,26 @@
+@using System.Reflection
+@using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Infrastructure.Settings
+
+@* A stand-in for a large custom editor: a status panel with a long message and an action. *@
+
+<div class="d-flex align-center gap-2">
+    <MudAlert Severity="Severity.Error" Dense="true" Class="flex-grow-1">
+        The build service was not found. Looked on the PATH and in the default install folder, then gave up.
+    </MudAlert>
+    <MtButton Class="flex-shrink-0" Variant="Variant.Text" Size="Size.Small" StartIcon="@MythetechFrameworkIcons.Refresh" Text="Check again" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public SettingsBase Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PropertyInfo Property { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public SettingAttribute Attribute { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnValueChanged { get; set; }
+}

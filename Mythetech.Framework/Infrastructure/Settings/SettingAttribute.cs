@@ -73,4 +73,11 @@ public class SettingAttribute : Attribute
     /// public string DefaultEnvironment { get; set; }
     /// </example>
     public Type? CustomEditor { get; set; }
+
+    /// <summary>
+    /// When true, the editor renders on its own full-width row beneath the label and description
+    /// instead of beside them. For editors too large to share a row with the label, such as a list
+    /// or a status panel.
+    /// </summary>
+    public bool Stacked { get; set; }
 }
