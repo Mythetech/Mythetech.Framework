@@ -490,6 +490,25 @@
     align-items: center;
 }
 
+.mf-dynamic-setting-control--stacked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.mf-dynamic-setting-control--stacked .mf-setting-label-row {
+    flex: none;
+}
+
+.mf-dynamic-setting-control--stacked .mf-setting-description {
+    max-width: none;
+}
+
+.mf-dynamic-setting-control--stacked .mf-setting-control {
+    display: block;
+    min-width: 0;
+}
+
 .mf-setting-slider-container {
     display: flex;
     align-items: center;

@@ -3,7 +3,7 @@
 @using Mythetech.Framework.Infrastructure.Settings
 @inject ISettingsEditorRegistry EditorRegistry
 
-<div class="mf-dynamic-setting-control">
+<div class="@ContainerClass">
     <div class="mf-setting-label-row">
         <MudText Class="mf-setting-label">@Attribute.Label</MudText>
         @if (!string.IsNullOrEmpty(Attribute.Description))
@@ -43,6 +43,10 @@
     /// </summary>
     [Parameter]
     public EventCallback OnValueChanged { get; set; }
+
+    private string ContainerClass => Attribute.Stacked
+        ? "mf-dynamic-setting-control mf-dynamic-setting-control--stacked"
+        : "mf-dynamic-setting-control";
 
     private bool TryGetEditorType(out Type? editorType)
     {

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.21.3] - 2026-10-06
+
+### Added
+
+- `SettingAttribute.Stacked`: renders a setting's editor on its own full-width row beneath the label and description instead of beside them. The default row sizes the editor to its content and lets the label column shrink to nothing, so a large custom editor, such as a list or a status panel with a long message, pushed the label and description into a column one word wide. Set `Stacked = true` on those settings
+
+### Notes
+
+- All four packages move to `0.21.3`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+
 ## [0.21.2] - 2026-10-04
 
 ### Changed

@@ -43,6 +43,7 @@ builder.Services.AddCommandPalette();
 builder.Services.AddCommandProvider<SampleCommandProvider>();
 
 builder.Services.AddSingleton<ISettingsProvider, SettingsProvider>();
+builder.Services.AddSingleton<ISettingsEditorRegistry, SettingsEditorRegistry>();
 
 builder.Services.AddKeyBindings(b => b
     .Category("Requests")
