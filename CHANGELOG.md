@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.21.5] - 2026-10-11
+
+### Fixed
+
+- `AppContextDrawer` no longer keeps showing a panel whose item has left the page. When the item of the open panel is removed (a deleted connection, a disabled plugin), the drawer shows its empty state and clears `ActivePanelId`, and it stays open. Before, the panel stayed on screen with no icon lit
+- An `ActivatePanel` message finds its panel by the id the panel has now. The drawer used the id each item first registered with, so once a list of items rendered without `@key` had changed, the message could open another item's panel, or one that had left the page
+- The drawer's own plugin panels are keyed, so disabling a plugin above the open plugin panel no longer hands that panel its neighbor's content
+
+### Notes
+
+- Items an app renders in a loop still need `@key`. Without it Blazor hands an item's component to its neighbor when the list changes, and the open panel can take on the neighbor's content
+- All four packages move to `0.21.5`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+
 ## [0.21.4] - 2026-10-11
 
 ### Fixed

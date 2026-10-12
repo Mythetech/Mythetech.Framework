@@ -31,7 +31,8 @@
             @foreach (var panelMeta in PluginState.EnabledContextPanelComponentsMetadata.OrderBy(p => p.Order))
             {
                 var pluginPanelId = $"plugin-{panelMeta.ComponentType.FullName}";
-                <ContextPanelItem Id="@pluginPanelId"
+                <ContextPanelItem @key="pluginPanelId"
+                                  Id="@pluginPanelId"
                                   Icon="@panelMeta.Icon"
                                   Title="@panelMeta.Title"
                                   Order="@panelMeta.Order">
@@ -198,7 +199,9 @@
     private IJSObjectReference? _jsModule;
     private ContextPanelItem? _activeItem;
     private bool _activeItemNeedsRender;
-    private Dictionary<string, ContextPanelItem> _registeredPanels = new();
+    private string? _removedPanelId;
+    private bool _disposed;
+    private readonly List<ContextPanelItem> _panels = new();
     private EventCallback<ContextPanelItem> _onPanelItemClicked;
     private EventCallback<ContextPanelItem> _onPanelItemDoubleClicked;
 
@@ -227,6 +230,17 @@
             _activeItemNeedsRender = false;
             StateHasChanged();
         }
+
+        if (_removedPanelId is { } removedPanelId)
+        {
+            _removedPanelId = null;
+
+            // The app may have moved the highlight to another panel in the meantime
+            if (ActivePanelId == removedPanelId)
+            {
+                await SetActivePanelId(null);
+            }
+        }
     }
 
     private async Task InitializeResizer()
@@ -249,9 +263,20 @@
         }
     }
 
+    /// <summary>
+    /// Finds the panel that has this id now. The id an item registered with is no guide: a loop
+    /// without @key hands the item's component to another item when the list changes.
+    /// </summary>
+    private ContextPanelItem? FindPanel(string id)
+    {
+        // Ids are meant to be unique. If two items share one, the later one wins.
+        return _panels.FindLast(p => p.Id == id);
+    }
+
     private void RegisterPanelItem(ContextPanelItem item)
     {
-        _registeredPanels[item.Id] = item;
+        _panels.Add(item);
+        item.Disposed += HandlePanelItemDisposed;
 
         // A panel named by ActivePanelId before any click can only be matched once it has
         // registered, which happens while this component is already rendering its children.
@@ -260,6 +285,31 @@
             _activeItem = item;
             _activeItemNeedsRender = true;
         }
+    }
+
+    /// <summary>
+    /// An item that leaves the page takes its panel with it, and the drawer falls back to its empty
+    /// state. If another item has the id now, which is what a loop without @key leaves behind when
+    /// it reuses components, that item's panel is shown instead.
+    /// </summary>
+    private void HandlePanelItemDisposed(ContextPanelItem item)
+    {
+        item.Disposed -= HandlePanelItemDisposed;
+        _panels.Remove(item);
+
+        if (_disposed || _activeItem != item)
+        {
+            return;
+        }
+
+        _activeItem = FindPanel(item.Id);
+
+        if (_activeItem == null)
+        {
+            _removedPanelId = item.Id;
+        }
+
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task HandlePanelItemClicked(ContextPanelItem item)
@@ -342,12 +392,9 @@
 
     public async Task Consume(ActivatePanel message)
     {
-        if (_registeredPanels.TryGetValue(message.PanelId, out var panel))
+        if (FindPanel(message.PanelId) is { IsActive: false } panel)
         {
-            if (!panel.IsActive)
-            {
-                await HandlePanelItemClicked(panel);
-            }
+            await HandlePanelItemClicked(panel);
         }
     }
 
@@ -378,6 +425,15 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+
+        foreach (var panel in _panels)
+        {
+            panel.Disposed -= HandlePanelItemDisposed;
+        }
+
+        _panels.Clear();
+
         if (PluginState != null)
         {
             PluginState.StateChanged -= OnPluginStateChanged;

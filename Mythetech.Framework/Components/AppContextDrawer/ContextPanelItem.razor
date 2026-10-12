@@ -163,9 +163,15 @@
         InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>
+    /// Raised when the item leaves the page, so the drawer can forget it and stop showing its panel.
+    /// </summary>
+    internal event Action<ContextPanelItem>? Disposed;
+
     public void Dispose()
     {
         Nav.LocationChanged -= OnLocationChanged;
+        Disposed?.Invoke(this);
     }
 
     private async Task HandleClick()
