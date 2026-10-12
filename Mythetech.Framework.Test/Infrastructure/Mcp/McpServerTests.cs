@@ -30,9 +30,8 @@ public class McpServerTests
         var request = """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05"}}""";
         WriteToInputStream(inputStream, request);
 
-        // Act - Run server with cancellation
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        try { await server.RunAsync(cts.Token); } catch (OperationCanceledException) { }
+        // Act
+        await RunToEndOfInputAsync(server);
 
         // Assert
         var response = ReadResponse(outputStream);
@@ -64,8 +63,7 @@ public class McpServerTests
         WriteToInputStream(inputStream, request);
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        try { await server.RunAsync(cts.Token); } catch (OperationCanceledException) { }
+        await RunToEndOfInputAsync(server);
 
         // Assert
         var response = ReadResponse(outputStream);
@@ -87,8 +85,7 @@ public class McpServerTests
         WriteToInputStream(inputStream, request);
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        try { await server.RunAsync(cts.Token); } catch (OperationCanceledException) { }
+        await RunToEndOfInputAsync(server);
 
         // Assert
         var response = ReadResponse(outputStream);
@@ -106,8 +103,7 @@ public class McpServerTests
         WriteToInputStream(inputStream, request);
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        try { await server.RunAsync(cts.Token); } catch (OperationCanceledException) { }
+        await RunToEndOfInputAsync(server);
 
         // Assert
         var response = ReadResponse(outputStream);
@@ -127,14 +123,27 @@ public class McpServerTests
         WriteToInputStream(inputStream, notification);
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        try { await server.RunAsync(cts.Token); } catch (OperationCanceledException) { }
+        await RunToEndOfInputAsync(server);
 
         // Assert - output should be empty (no response to notifications)
         outputStream.Position = 0;
         using var reader = new StreamReader(outputStream, leaveOpen: true);
         var output = await reader.ReadToEndAsync();
         output.Trim().ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Runs the server until it has read all of its input, which is when it stops by itself. A short
+    /// fixed budget would race the server's first-call start-up on a busy machine and cancel it
+    /// before it answers. The timeout below only ends a server that hangs.
+    /// </summary>
+    private static async Task RunToEndOfInputAsync(McpServer server)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        await server.RunAsync(cts.Token);
+
+        cts.IsCancellationRequested.ShouldBeFalse("the server should stop by itself when its input ends");
     }
 
     private (MemoryStream inputStream, MemoryStream outputStream, McpServer server) CreateTestServer(McpToolRegistry? registry = null)
