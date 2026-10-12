@@ -29,4 +29,13 @@
     public bool IsOpen { get; private set; }
 
     public string? ActivePanelId { get; private set; }
+
+    /// <summary>
+    /// The app closing the drawer itself, as a layout's own collapse button does. The active panel's id stays.
+    /// </summary>
+    public void Collapse()
+    {
+        IsOpen = false;
+        StateHasChanged();
+    }
 }
