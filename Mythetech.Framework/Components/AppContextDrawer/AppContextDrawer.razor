@@ -73,6 +73,10 @@
                     </MudStack>
                     @_activeItem.PanelContent
                 }
+                else if (EmptyContent != null)
+                {
+                    @EmptyContent
+                }
                 else
                 {
                     <MudStack Row="true" Class="w-100">
@@ -190,6 +194,15 @@
     /// </remarks>
     [Parameter]
     public int? HeaderSpacing { get; set; }
+
+    /// <summary>
+    /// Shown when the drawer is open and no panel is active.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>null</c>, which shows the built-in "No Item Selected" message.
+    /// </remarks>
+    [Parameter]
+    public RenderFragment? EmptyContent { get; set; }
 
     /// <summary>
     /// Whether the resizer is enabled. Default true.

@@ -109,4 +109,36 @@ public class AppearanceTests : BunitContext
         HeaderRow(cut).Spacing.ShouldBe(0);
         HeaderIcon(cut).Class.ShouldBeNullOrEmpty();
     }
+
+    [Fact(DisplayName = "By default an open drawer with no panel shows the built-in empty state")]
+    public void EmptyState_DefaultsToBuiltIn()
+    {
+        var cut = Render<AppearanceTestHost>(p => p.Add(x => x.ActivePanelId, null));
+
+        cut.Markup.ShouldContain("No Item Selected");
+    }
+
+    [Fact(DisplayName = "EmptyContent replaces the built-in empty state")]
+    public void EmptyContent_ReplacesBuiltIn()
+    {
+        RenderFragment empty = builder => builder.AddMarkupContent(0, "<p>pick something</p>");
+
+        var cut = Render<AppearanceTestHost>(p => p
+            .Add(x => x.ActivePanelId, null)
+            .Add(x => x.Drawer, new Dictionary<string, object> { [nameof(Drawer.EmptyContent)] = empty }));
+
+        cut.Markup.ShouldContain("pick something");
+        cut.Markup.ShouldNotContain("No Item Selected");
+    }
+
+    [Fact(DisplayName = "EmptyContent is not shown while a panel is active")]
+    public void EmptyContent_HiddenWhilePanelActive()
+    {
+        RenderFragment empty = builder => builder.AddMarkupContent(0, "<p>pick something</p>");
+
+        var cut = RenderDrawer((nameof(Drawer.EmptyContent), empty));
+
+        cut.Markup.ShouldContain("first panel body");
+        cut.Markup.ShouldNotContain("pick something");
+    }
 }
