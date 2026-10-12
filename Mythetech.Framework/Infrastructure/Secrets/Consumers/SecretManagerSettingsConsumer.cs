@@ -8,12 +8,16 @@ namespace Mythetech.Framework.Infrastructure.Secrets.Consumers;
 /// </summary>
 public class SecretManagerSettingsConsumer : IConsumer<SettingsModelChanged<SecretManagerSettings>>
 {
-    private readonly SecretManagerState _state;
+    private readonly SecretManagerState? _state;
 
     /// <summary>
     /// Creates a new secret manager settings consumer.
     /// </summary>
-    public SecretManagerSettingsConsumer(SecretManagerState state)
+    /// <param name="state">
+    /// The secret manager's state. A host that uses settings without the secret manager has none, and
+    /// there is then nothing to restore.
+    /// </param>
+    public SecretManagerSettingsConsumer(SecretManagerState? state = null)
     {
         _state = state;
     }
@@ -21,7 +25,7 @@ public class SecretManagerSettingsConsumer : IConsumer<SettingsModelChanged<Secr
     /// <inheritdoc />
     public Task Consume(SettingsModelChanged<SecretManagerSettings> message)
     {
-        _state.RestoreActiveManager(message.Settings.ActiveManagerName);
+        _state?.RestoreActiveManager(message.Settings.ActiveManagerName);
         return Task.CompletedTask;
     }
 }
