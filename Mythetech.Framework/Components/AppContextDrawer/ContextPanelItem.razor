@@ -164,15 +164,14 @@
     }
 
     /// <summary>
-    /// Whether the item has left the page. The drawer still holds a reference to it then, and must
-    /// not show its panel.
+    /// Raised when the item leaves the page, so the drawer can forget it and stop showing its panel.
     /// </summary>
-    internal bool IsDisposed { get; private set; }
+    internal event Action<ContextPanelItem>? Disposed;
 
     public void Dispose()
     {
-        IsDisposed = true;
         Nav.LocationChanged -= OnLocationChanged;
+        Disposed?.Invoke(this);
     }
 
     private async Task HandleClick()

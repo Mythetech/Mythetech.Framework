@@ -1,0 +1,27 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using MudBlazor
+
+@* An app that binds the drawer two-way and keys the items it renders from a list *@
+<MudPopoverProvider />
+<AppContextDrawer @bind-IsOpen="IsOpen" @bind-ActivePanelId="ActivePanelId"
+                  ShowPluginPanels="false" EnableResizer="false">
+    <PanelNavContent>
+        @foreach (var id in Ids)
+        {
+            <ContextPanelItem @key="id" Id="@id" Icon="extension" Title="@($"Panel {id}")">
+                <PanelContent>
+                    <p>body of @id</p>
+                </PanelContent>
+            </ContextPanelItem>
+        }
+    </PanelNavContent>
+</AppContextDrawer>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<string> Ids { get; set; } = ["a", "b", "c"];
+
+    public bool IsOpen { get; private set; }
+
+    public string? ActivePanelId { get; private set; }
+}

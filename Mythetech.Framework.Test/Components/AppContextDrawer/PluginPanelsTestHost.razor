@@ -1,0 +1,12 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using MudBlazor
+
+@* An app whose rail holds only the panels its plugins contribute *@
+<MudPopoverProvider />
+<AppContextDrawer @bind-IsOpen="IsOpen" @bind-ActivePanelId="ActivePanelId" EnableResizer="false" />
+
+@code {
+    public bool IsOpen { get; private set; }
+
+    public string? ActivePanelId { get; private set; }
+}
