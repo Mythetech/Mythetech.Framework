@@ -703,10 +703,6 @@ body.mf-drawer-resizing .app-context-content {
    Dialogs Below A Hermes Title Bar
    ============================================================================ */
 
-/* A Hermes title bar is fixed to the top of the window and drawn above dialogs, so a dialog that opens at
-   the top, like the command palette, would have its top edge under the bar. Hermes publishes the bar's
-   height as --hermes-titlebar-height while the bar is rendered. Without one (the browser, or a window with
-   a native title bar) the variable is unset and these rules are MudBlazor's own values. */
 .mud-dialog-container.mud-dialog-topcenter,
 .mud-dialog-container.mud-dialog-topleft,
 .mud-dialog-container.mud-dialog-topright {
@@ -714,7 +710,6 @@ body.mf-drawer-resizing .app-context-content {
     height: calc(100% - var(--hermes-titlebar-height, 0px));
 }
 
-/* It starts lower by the height of the bar, so it can be that much less tall */
 .mud-dialog-container.mud-dialog-topcenter .mud-dialog:not(.mud-dialog-fullscreen),
 .mud-dialog-container.mud-dialog-topleft .mud-dialog:not(.mud-dialog-fullscreen),
 .mud-dialog-container.mud-dialog-topright .mud-dialog:not(.mud-dialog-fullscreen) {
