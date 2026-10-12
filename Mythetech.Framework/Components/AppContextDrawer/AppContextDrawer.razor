@@ -12,6 +12,7 @@
 <CascadingValue Name="OnPanelItemClicked" Value="@_onPanelItemClicked">
 <CascadingValue Name="OnPanelItemDoubleClicked" Value="@_onPanelItemDoubleClicked">
 <CascadingValue Name="RegisterPanelItem" Value="@RegisterPanelItem">
+<CascadingValue Name="PanelItemAppearance" Value="@_itemAppearance">
 <MudStack Spacing="0" Row="true" Class="@GetRootClass()" Style="@Style">
     @* Icon Bar *@
     <MudStack Spacing="1" Class="app-context-icon-bar" AlignItems="AlignItems.Center">
@@ -65,7 +66,7 @@
                         <MudIcon Class="@HeaderIconClass" Icon="@_activeItem.Icon" Color="Color.Primary" />
                         <MudText Class="text-truncate" Typo="Typo.h6">@_activeItem.Title</MudText>
                         <MudSpacer />
-                        <MudTooltip Text="Close" Color="Color.Primary">
+                        <MudTooltip Text="Close" Color="@TooltipColor">
                             <MudIconButton Icon="@CloseIcon"
                                            Variant="Variant.Text"
                                            OnClick="ClosePanel" />
@@ -98,6 +99,7 @@
 {
     <div class="@GetResizerClass()"></div>
 }
+</CascadingValue>
 </CascadingValue>
 </CascadingValue>
 </CascadingValue>
@@ -205,6 +207,33 @@
     public RenderFragment? EmptyContent { get; set; }
 
     /// <summary>
+    /// Makes each rail item fill the width of the icon bar, so its highlight spans the bar.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>false</c>.
+    /// </remarks>
+    [Parameter]
+    public bool FullWidthItems { get; set; }
+
+    /// <summary>
+    /// Colour of a rail item that is not active.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="Color.Surface" />.
+    /// </remarks>
+    [Parameter]
+    public Color ItemColor { get; set; } = Color.Surface;
+
+    /// <summary>
+    /// Colour of the rail items' tooltips and of the close button's tooltip.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="Color.Primary" />.
+    /// </remarks>
+    [Parameter]
+    public Color TooltipColor { get; set; } = Color.Primary;
+
+    /// <summary>
     /// Whether the resizer is enabled. Default true.
     /// </summary>
     [Parameter]
@@ -254,6 +283,7 @@
     private readonly List<ContextPanelItem> _panels = new();
     private EventCallback<ContextPanelItem> _onPanelItemClicked;
     private EventCallback<ContextPanelItem> _onPanelItemDoubleClicked;
+    private ContextPanelItemAppearance _itemAppearance = ContextPanelItemAppearance.Default;
 
     private string ContentStackClass => Css.Merge(ContentClass, "w-100 h-100");
 
@@ -273,6 +303,15 @@
         }
 
         MessageBus?.Subscribe(this);
+    }
+
+    protected override void OnParametersSet()
+    {
+        var appearance = new ContextPanelItemAppearance(FullWidthItems, ItemColor, TooltipColor);
+        if (appearance != _itemAppearance)
+        {
+            _itemAppearance = appearance;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

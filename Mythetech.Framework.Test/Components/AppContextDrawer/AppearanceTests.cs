@@ -141,4 +141,96 @@ public class AppearanceTests : BunitContext
         cut.Markup.ShouldContain("first panel body");
         cut.Markup.ShouldNotContain("pick something");
     }
+
+    [Fact(DisplayName = "By default rail items do not fill the rail")]
+    public void Items_DefaultToButtonSized()
+    {
+        var cut = RenderDrawer();
+
+        cut.FindAll(".context-panel-item-wrapper").Count.ShouldBe(2);
+        cut.FindAll(".context-panel-item-wrapper--fill").ShouldBeEmpty();
+    }
+
+    [Fact(DisplayName = "FullWidthItems marks every rail item to fill the rail")]
+    public void FullWidthItems_MarksEveryItem()
+    {
+        var cut = RenderDrawer((nameof(Drawer.FullWidthItems), true));
+
+        cut.FindAll(".context-panel-item-wrapper--fill").Count.ShouldBe(2);
+    }
+
+    [Fact(DisplayName = "FullWidthItems also reaches the drawer's built-in plugin panels")]
+    public async Task FullWidthItems_ReachesPluginPanels()
+    {
+        var manifest = Substitute.For<IPluginManifest>();
+        manifest.Id.Returns("test.plugin");
+        manifest.Name.Returns("Test Plugin");
+        manifest.Version.Returns(new Version(1, 0, 0));
+        await Services.GetRequiredService<PluginState>().RegisterPluginAsync(new PluginInfo
+        {
+            Manifest = manifest,
+            Assembly = typeof(AppearanceTests).Assembly,
+            IsEnabled = true,
+            ContextPanelComponentsMetadata =
+            [
+                new PluginComponentMetadata
+                {
+                    ComponentType = typeof(Infrastructure.Plugins.TestComponent),
+                    Title = "Plugin Panel",
+                    Icon = "extension",
+                    Order = 1,
+                },
+            ],
+        });
+
+        var cut = RenderDrawer((nameof(Drawer.FullWidthItems), true), (nameof(Drawer.ShowPluginPanels), true));
+
+        cut.FindAll(".context-panel-item-wrapper--fill").Count.ShouldBe(3);
+    }
+
+    [Fact(DisplayName = "By default an inactive rail item keeps the surface colour and a primary tooltip")]
+    public void InactiveItem_DefaultColours()
+    {
+        var cut = RenderDrawer();
+
+        var inactive = cut.FindComponent<MtIconButton>().Instance;
+        inactive.Color.ShouldBe(Color.Surface);
+        inactive.TooltipColor.ShouldBe(Color.Primary);
+        CloseTooltip(cut).Color.ShouldBe(Color.Primary);
+    }
+
+    [Fact(DisplayName = "A rail item rendered outside a drawer keeps the default look")]
+    public void ItemOutsideDrawer_UsesDefaults()
+    {
+        Render<MudPopoverProvider>();
+
+        var cut = Render<Item>(p => p
+            .Add(x => x.Id, "solo")
+            .Add(x => x.Icon, "extension")
+            .Add(x => x.Title, "Solo"));
+
+        cut.Find(".context-panel-item-wrapper").ClassList.ShouldNotContain("context-panel-item-wrapper--fill");
+        var button = cut.FindComponent<MtIconButton>().Instance;
+        button.Color.ShouldBe(Color.Surface);
+        button.TooltipColor.ShouldBe(Color.Primary);
+    }
+
+    [Fact(DisplayName = "ItemColor colours inactive rail items only")]
+    public void ItemColor_ColoursInactiveItems()
+    {
+        var cut = RenderDrawer((nameof(Drawer.ItemColor), Color.Inherit));
+
+        cut.FindComponent<MtIconButton>().Instance.Color.ShouldBe(Color.Inherit);
+        cut.FindComponents<MudIconButton>().Select(b => b.Instance)
+            .Single(b => (b.Class ?? "").Contains("context-item-active")).Color.ShouldBe(Color.Primary);
+    }
+
+    [Fact(DisplayName = "TooltipColor colours the rail tooltips and the close tooltip")]
+    public void TooltipColor_ColoursTooltips()
+    {
+        var cut = RenderDrawer((nameof(Drawer.TooltipColor), Color.Default));
+
+        cut.FindComponent<MtIconButton>().Instance.TooltipColor.ShouldBe(Color.Default);
+        CloseTooltip(cut).Color.ShouldBe(Color.Default);
+    }
 }

@@ -3,6 +3,21 @@
     display: inline-flex;
 }
 
+/* These follow the base rule so that they win over its inline-flex: both carry the scope attribute */
+.context-panel-item-wrapper--fill {
+    display: flex;
+    width: 100%;
+}
+
+.context-panel-item-wrapper--fill ::deep .mud-tooltip-root {
+    display: flex;
+    width: 100%;
+}
+
+.context-panel-item-wrapper--fill ::deep button {
+    width: 100%;
+}
+
 .context-item-active {
     background-color: var(--mud-palette-secondary);
 }
