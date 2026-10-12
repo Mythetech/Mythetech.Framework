@@ -25,8 +25,8 @@ public class IconButtonTooltipTests : BunitContext
         cut.FindComponent<MudTooltip>().Instance.Color.ShouldBe(Color.Primary);
     }
 
-    [Fact(DisplayName = "An icon button passes a supplied tooltip colour to its tooltip")]
-    public void Tooltip_UsesSuppliedColour()
+    [Fact(DisplayName = "An icon button passes a supplied tooltip color to its tooltip")]
+    public void Tooltip_UsesSuppliedColor()
     {
         var cut = Render<MtIconButton>(p => p
             .Add(x => x.Icon, "home")

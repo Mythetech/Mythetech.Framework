@@ -188,8 +188,8 @@ public class AppearanceTests : BunitContext
         cut.FindAll(".context-panel-item-wrapper--fill").Count.ShouldBe(3);
     }
 
-    [Fact(DisplayName = "By default an inactive rail item keeps the surface colour and a primary tooltip")]
-    public void InactiveItem_DefaultColours()
+    [Fact(DisplayName = "By default an inactive rail item keeps the surface color and a primary tooltip")]
+    public void InactiveItem_DefaultColors()
     {
         var cut = RenderDrawer();
 
@@ -215,8 +215,8 @@ public class AppearanceTests : BunitContext
         button.TooltipColor.ShouldBe(Color.Primary);
     }
 
-    [Fact(DisplayName = "ItemColor colours inactive rail items only")]
-    public void ItemColor_ColoursInactiveItems()
+    [Fact(DisplayName = "ItemColor colors inactive rail items only")]
+    public void ItemColor_ColorsInactiveItems()
     {
         var cut = RenderDrawer((nameof(Drawer.ItemColor), Color.Inherit));
 
@@ -225,8 +225,8 @@ public class AppearanceTests : BunitContext
             .Single(b => (b.Class ?? "").Contains("context-item-active")).Color.ShouldBe(Color.Primary);
     }
 
-    [Fact(DisplayName = "TooltipColor colours the rail tooltips and the close tooltip")]
-    public void TooltipColor_ColoursTooltips()
+    [Fact(DisplayName = "TooltipColor colors the rail tooltips and the close tooltip")]
+    public void TooltipColor_ColorsTooltips()
     {
         var cut = RenderDrawer((nameof(Drawer.TooltipColor), Color.Default));
 
