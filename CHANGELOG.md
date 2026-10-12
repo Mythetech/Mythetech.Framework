@@ -2,16 +2,21 @@
 
 ## [0.21.8] - 2026-10-12
 
+### Changed
+
+- `Mythetech.Framework.Desktop` moves to `Mythetech.Hermes` and `Mythetech.Hermes.Blazor` 1.4.3, from 1.4.1. See the Hermes changelog for the full list
+  - 1.4.3: `HermesTitleBar` publishes its height as `--hermes-titlebar-height`, which the dialog fix below reads, and on macOS a key press the page leaves unhandled no longer beeps
+  - 1.4.2: closing the window or quitting on macOS, and closing from the title bar on Linux, now returns from `Run()`, so hosted services stop and the code after it runs. The message loop ends when the window passed to `WaitForClose()` closes, on every platform
+
 ### Fixed
 
 - A dialog that opens at the top of the window, like the command palette, no longer has its top edge under a Hermes title bar. The bar is fixed and drawn above dialogs, and MudBlazor opens a top dialog 32px down, which is less than the height apps give the bar. `mythetech.css` now starts `TopCenter`, `TopLeft` and `TopRight` dialogs below the bar and takes the bar's height off their maximum height
-  - The height comes from `--hermes-titlebar-height`, which `HermesTitleBar` publishes from Hermes 1.4.3. On an older Hermes, in the browser, or in a window with a native title bar, the variable is unset and nothing changes
+  - The height comes from `--hermes-titlebar-height`. In the browser, or in a window with a native title bar, the variable is unset and nothing changes
   - Centered and bottom dialogs do not move
 
 ### Notes
 
 - All four packages move to `0.21.8`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
-- `Mythetech.Framework.Desktop` still references Hermes 1.4.1. An app gets the fix when it takes this version and Hermes 1.4.3
 
 ## [0.21.7] - 2026-10-11
 
