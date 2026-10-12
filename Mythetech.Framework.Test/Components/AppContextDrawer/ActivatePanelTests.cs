@@ -1,4 +1,6 @@
 using Bunit;
+using Bunit.TestDoubles;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
@@ -21,7 +23,7 @@ public class ActivatePanelTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
-    private static Task ActivateAsync(IRenderedComponent<BoundPanelsTestHost> cut, string panelId)
+    private static Task ActivateAsync(IRenderedComponent<IComponent> cut, string panelId)
     {
         var drawer = cut.FindComponent<Drawer>();
         return cut.InvokeAsync(() => drawer.Instance.Consume(new ActivatePanel(panelId)));
@@ -49,6 +51,47 @@ public class ActivatePanelTests : BunitContext
 
         cut.Instance.IsOpen.ShouldBeTrue();
         cut.Instance.ActivePanelId.ShouldBe("b");
+    }
+
+    [Fact(DisplayName = "An ActivatePanel message opens a drawer the app collapsed with the named panel still lit")]
+    public async Task ActivatePanel_ForLitPanelInCollapsedDrawer_OpensTheDrawer()
+    {
+        var cut = Render<BoundPanelsTestHost>();
+        await cut.Find("[data-panel-id=b] button").ClickAsync(new MouseEventArgs());
+        await cut.InvokeAsync(() => cut.Instance.Collapse());
+
+        await ActivateAsync(cut, "b");
+
+        cut.Instance.IsOpen.ShouldBeTrue();
+        cut.Instance.ActivePanelId.ShouldBe("b");
+        cut.Markup.ShouldContain("body of b");
+    }
+
+    [Fact(DisplayName = "An ActivatePanel message opens the panel of an item lit by its page")]
+    public async Task ActivatePanel_ForItemLitByItsPage_OpensItsPanel()
+    {
+        Services.GetRequiredService<BunitNavigationManager>().NavigateTo("Sessions/1");
+        var cut = Render<RouteMatchTestHost>();
+
+        await ActivateAsync(cut, "session-1");
+
+        cut.Instance.IsOpen.ShouldBeTrue();
+        cut.Instance.ActivePanelId.ShouldBe("session-1");
+        cut.Markup.ShouldContain("<p>session 1</p>");
+    }
+
+    [Fact(DisplayName = "An ActivatePanel message switches an open drawer to the panel of an item lit by its page")]
+    public async Task ActivatePanel_ForItemLitByItsPage_SwitchesTheOpenDrawerToItsPanel()
+    {
+        Services.GetRequiredService<BunitNavigationManager>().NavigateTo("Sessions/1");
+        var cut = Render<RouteMatchTestHost>();
+        await cut.Find("[data-panel-id=sessions] button").ClickAsync(new MouseEventArgs());
+
+        await ActivateAsync(cut, "session-1");
+
+        cut.Instance.ActivePanelId.ShouldBe("session-1");
+        cut.Markup.ShouldContain("<p>session 1</p>");
+        cut.Markup.ShouldNotContain("<p>sessions</p>");
     }
 
     /// <summary>

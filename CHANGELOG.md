@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.21.7] - 2026-10-11
+
+### Fixed
+
+- An `ActivatePanel` message shows its panel whenever that panel is not on screen. The drawer skipped every panel whose rail item was lit, so the message did nothing in two cases where the panel was not showing
+  - The app had collapsed the drawer itself, through a bound `IsOpen`, with the panel still active. The message now opens the drawer on that panel
+  - The item was lit for its page (`RoutePrefix`). The message now opens the item's panel, or switches the open drawer to it, as a click on the item does
+- A panel that is already on screen is left as it is, as before, so the message never closes the drawer
+
+### Notes
+
+- All four packages move to `0.21.7`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+
 ## [0.21.6] - 2026-10-11
 
 ### Added

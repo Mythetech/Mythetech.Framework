@@ -488,11 +488,17 @@
 
     public async Task Consume(ActivatePanel message)
     {
-        if (FindPanel(message.PanelId) is { IsActive: false } panel)
+        if (FindPanel(message.PanelId) is { } panel && !IsOnScreen(panel))
         {
             await HandlePanelItemClicked(panel);
         }
     }
+
+    /// <summary>
+    /// Whether the drawer is open on this panel. A lit item is no sign of that: the app can collapse the
+    /// drawer around the active panel, and an item is also lit for the page it belongs to.
+    /// </summary>
+    private bool IsOnScreen(ContextPanelItem panel) => IsOpen && _activeItem?.Id == panel.Id;
 
     private string GetRootClass()
     {
