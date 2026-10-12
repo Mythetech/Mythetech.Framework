@@ -163,8 +163,15 @@
         InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>
+    /// Whether the item has left the page. The drawer still holds a reference to it then, and must
+    /// not show its panel.
+    /// </summary>
+    internal bool IsDisposed { get; private set; }
+
     public void Dispose()
     {
+        IsDisposed = true;
         Nav.LocationChanged -= OnLocationChanged;
     }
 
