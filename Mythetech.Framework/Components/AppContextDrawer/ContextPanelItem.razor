@@ -5,7 +5,7 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
-<div class="context-panel-item-wrapper" data-panel-id="@Id" @ondblclick="HandleDoubleClick">
+<div class="@WrapperClass" data-panel-id="@Id" @ondblclick="HandleDoubleClick">
     @if (IsActive)
     {
         <MudIconButton Class="@ActiveClass"
@@ -15,11 +15,12 @@
     }
     else
     {
-        <MtIconButton Color="Color.Surface"
+        <MtIconButton Color="@Appearance.Color"
                     Icon="@Icon"
                     OnClick="HandleClick"
                     Tooltip="@Title"
-                    TooltipPlacement="Placement.Right" />
+                    TooltipPlacement="Placement.Right"
+                    TooltipColor="@Appearance.TooltipColor" />
     }
     @if (BadgeColor.HasValue)
     {
@@ -87,6 +88,15 @@
     /// </summary>
     [CascadingParameter(Name = "RegisterPanelItem")]
     public Action<ContextPanelItem>? RegisterPanelItem { get; set; }
+
+    [CascadingParameter(Name = "PanelItemAppearance")]
+    private ContextPanelItemAppearance? DrawerAppearance { get; set; }
+
+    private ContextPanelItemAppearance Appearance => DrawerAppearance ?? ContextPanelItemAppearance.Default;
+
+    private string WrapperClass => Appearance.FullWidth
+        ? "context-panel-item-wrapper context-panel-item-wrapper--fill"
+        : "context-panel-item-wrapper";
 
     /// <summary>
     /// Optional route prefix for route-based highlighting.

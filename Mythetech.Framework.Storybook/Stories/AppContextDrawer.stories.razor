@@ -154,9 +154,74 @@
         </Template>
     </Story>
 
+    <Story Name="Compact Full Width Rail" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudLayout Style="height: 400px; position: relative;">
+                <MudDrawer @bind-Open="@_compactOpen" Variant="DrawerVariant.Mini" Style="overflow: hidden;">
+                    <AppContextDrawer @bind-IsOpen="@_compactOpen"
+                                      @bind-ActivePanelId="@_compactPanelId"
+                                      ShowPluginPanels="false"
+                                      ContentClass=""
+                                      ContentSpacing="0"
+                                      HeaderClass="pa-2 mb-2"
+                                      HeaderSpacing="3"
+                                      FullWidthItems="true"
+                                      ItemColor="Color.Inherit"
+                                      TooltipColor="Color.Default">
+                        <PanelNavContent>
+                            <ContextPanelItem Id="history" Icon="@MythetechFrameworkIcons.Round("history")" Title="History">
+                                <PanelContent>
+                                    <MudStack Spacing="2" Class="pa-2">
+                                        <MudText Typo="Typo.body1">This panel pads itself.</MudText>
+                                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                            The drawer adds no padding around it and no gap under the header.
+                                        </MudText>
+                                    </MudStack>
+                                </PanelContent>
+                            </ContextPanelItem>
+
+                            <ContextPanelItem Id="collections" Icon="@MythetechFrameworkIcons.Round("folder")" Title="Collections">
+                                <PanelContent>
+                                    <MudStack Spacing="2" Class="pa-2">
+                                        <MudText Typo="Typo.body1">Collections</MudText>
+                                    </MudStack>
+                                </PanelContent>
+                            </ContextPanelItem>
+                        </PanelNavContent>
+
+                        <EmptyContent>
+                            <MudText Class="pa-4" Typo="Typo.subtitle1">Pick a panel from the rail</MudText>
+                        </EmptyContent>
+                    </AppContextDrawer>
+                </MudDrawer>
+
+                <MudMainContent Style="padding: 16px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body1">
+                            For an app whose panels pad themselves. <code>ContentClass</code> and <code>ContentSpacing</code>
+                            remove the drawer's own padding and gap, <code>HeaderClass</code> and <code>HeaderSpacing</code>
+                            lay out the header, and <code>FullWidthItems</code> makes each rail item fill the icon bar, so the
+                            highlight of the active item spans it.
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            <code>ItemColor</code> and <code>TooltipColor</code> set the color of inactive items and of the
+                            tooltips, and <code>EmptyContent</code> replaces the "No Item Selected" message. To see it,
+                            close the panel and open the drawer again with the button below.
+                        </MudText>
+                        <MudButton Variant="Variant.Outlined" OnClick="@(() => _compactOpen = true)">
+                            Open the drawer
+                        </MudButton>
+                    </MudStack>
+                </MudMainContent>
+            </MudLayout>
+        </Template>
+    </Story>
+
 </Stories>
 
 @code {
     private bool _drawerOpen = true;
     private string? _activePanelId = "files";
+    private bool _compactOpen = true;
+    private string? _compactPanelId = "history";
 }

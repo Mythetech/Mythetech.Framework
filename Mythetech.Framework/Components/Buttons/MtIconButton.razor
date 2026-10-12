@@ -4,7 +4,7 @@
 
 @if (!string.IsNullOrWhiteSpace(Tooltip))
 {
-    <MudTooltip Text="@Tooltip" Color="Color.Primary" Placement="@TooltipPlacement">
+    <MudTooltip Text="@Tooltip" Color="@TooltipColor" Placement="@TooltipPlacement">
         <MudIconButton Class="@Class" Color="@Color" OnClick="@OnClick" ChildContent="@ChildContent" Style="@Style"
                        Icon="@Icon" Size="@Size" Disabled="@Disabled" Ripple="false" Variant="@Variant" />
     </MudTooltip>
@@ -40,6 +40,15 @@ else
 
     [Parameter]
     public Placement TooltipPlacement { get; set; } = Placement.Bottom;
+
+    /// <summary>
+    /// Color of the tooltip.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="Color.Primary" />.
+    /// </remarks>
+    [Parameter]
+    public Color TooltipColor { get; set; } = Color.Primary;
 
     [Parameter]
     public bool Disabled { get; set; } = false;

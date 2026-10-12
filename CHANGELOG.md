@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.21.6] - 2026-10-11
+
+### Added
+
+- `AppContextDrawer` can be restyled by parameter, for apps whose panels pad themselves or whose rail looks different. Every default renders what 0.21.5 rendered
+  - `ContentClass` (default `pa-4`) and `ContentSpacing` (default 3): the padding around the panel and the gap under its header
+  - `HeaderClass` and `HeaderSpacing`: a class on the header row, and even spacing between its icon, title and close button. `HeaderSpacing` is unset by default, which keeps the fixed margin after the icon
+  - `EmptyContent`: replaces the "No Item Selected" message
+  - `FullWidthItems`: each rail item fills the icon bar, so the active highlight spans it
+  - `ItemColor` (default `Color.Surface`) and `TooltipColor` (default primary): the color of inactive rail items, and of the rail and close tooltips
+- `MtIconButton.TooltipColor` (default primary): the color of the button's tooltip, which was always primary
+- A "Compact Full Width Rail" story for the drawer
+
+### Notes
+
+- All four packages move to `0.21.6`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+
 ## [0.21.5] - 2026-10-11
 
 ### Fixed

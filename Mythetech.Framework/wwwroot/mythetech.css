@@ -676,6 +676,11 @@ body.mf-drawer-resizing .app-context-content {
     background-color: color-mix(in srgb, var(--mud-palette-primary) 10%, transparent 90%);
 }
 
+/* A full-width item's button covers the wrapper and has a hover tint of its own */
+.context-panel-item-wrapper--fill:hover {
+    background-color: transparent;
+}
+
 
 /* Active context panel item indicator */
 .context-item-active {
