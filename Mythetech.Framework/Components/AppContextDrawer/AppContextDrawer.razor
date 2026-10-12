@@ -4,6 +4,7 @@
 @using Mythetech.Framework.Infrastructure.Plugins
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Components.AppContextDrawer.Commands
+@using Mythetech.Framework.Utilities
 @implements IAsyncDisposable
 @implements IConsumer<ActivatePanel>
 
@@ -57,11 +58,11 @@
         <MudPaper Class="h-100 w-100 bg-drawer"
                   Style="max-width:calc(var(--mud-drawer-width-left) - var(--mud-drawer-width-mini-left));max-height:100dvh"
                   Square="true">
-            <MudStack Spacing="3" Class="pa-4 w-100 h-100">
+            <MudStack Spacing="@ContentSpacing" Class="@ContentStackClass">
                 @if (_activeItem != null)
                 {
-                    <MudStack Row="true" Class="w-100" Spacing="0" AlignItems="AlignItems.Center">
-                        <MudIcon Class="mr-2" Icon="@_activeItem.Icon" Color="Color.Primary" />
+                    <MudStack Row="true" Class="@HeaderRowClass" Spacing="@(HeaderSpacing ?? 0)" AlignItems="AlignItems.Center">
+                        <MudIcon Class="@HeaderIconClass" Icon="@_activeItem.Icon" Color="Color.Primary" />
                         <MudText Class="text-truncate" Typo="Typo.h6">@_activeItem.Title</MudText>
                         <MudSpacer />
                         <MudTooltip Text="Close" Color="Color.Primary">
@@ -155,6 +156,42 @@
     public string CloseIcon { get; set; } = MythetechFrameworkIcons.Close;
 
     /// <summary>
+    /// Class on the stack that holds the panel header and the panel content.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>pa-4</c>. Pass an empty string for panels that pad themselves.
+    /// </remarks>
+    [Parameter]
+    public string? ContentClass { get; set; } = "pa-4";
+
+    /// <summary>
+    /// Spacing between the panel header and the panel content.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>3</c>.
+    /// </remarks>
+    [Parameter]
+    public int ContentSpacing { get; set; } = 3;
+
+    /// <summary>
+    /// Extra class on the panel header row.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>null</c>.
+    /// </remarks>
+    [Parameter]
+    public string? HeaderClass { get; set; }
+
+    /// <summary>
+    /// Spacing between the icon, title and close button of the panel header.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>null</c>, which keeps a fixed margin after the icon and no other gaps.
+    /// </remarks>
+    [Parameter]
+    public int? HeaderSpacing { get; set; }
+
+    /// <summary>
     /// Whether the resizer is enabled. Default true.
     /// </summary>
     [Parameter]
@@ -204,6 +241,13 @@
     private readonly List<ContextPanelItem> _panels = new();
     private EventCallback<ContextPanelItem> _onPanelItemClicked;
     private EventCallback<ContextPanelItem> _onPanelItemDoubleClicked;
+
+    private string ContentStackClass => Css.Merge(ContentClass, "w-100 h-100");
+
+    private string HeaderRowClass => Css.Merge("w-100", HeaderClass);
+
+    // Without a spacing the header keeps the layout it has always had: a margin after the icon and no gaps
+    private string? HeaderIconClass => HeaderSpacing is null ? "mr-2" : null;
 
     protected override void OnInitialized()
     {
