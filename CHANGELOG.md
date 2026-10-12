@@ -4,7 +4,8 @@
 
 ### Changed
 
-- `Mythetech.Framework.Desktop` moves to `Mythetech.Hermes` and `Mythetech.Hermes.Blazor` 1.4.3, from 1.4.1. See the Hermes changelog for the full list
+- `Mythetech.Framework.Desktop` moves to `Mythetech.Hermes` and `Mythetech.Hermes.Blazor` 1.4.4, from 1.4.1. See the Hermes changelog for the full list
+  - 1.4.4: `app.DisposeAsync()` after `Run()` no longer hangs when a page service finishes disposing on another thread, as MudBlazor's popover service does. With 1.4.3 a MudBlazor app that disposes after `Run()` stayed alive with no window on macOS
   - 1.4.3: `HermesTitleBar` publishes its height as `--hermes-titlebar-height`, which the dialog fix below reads, and on macOS a key press the page leaves unhandled no longer beeps
   - 1.4.2: closing the window or quitting on macOS, and closing from the title bar on Linux, now returns from `Run()`, so hosted services stop and the code after it runs. The message loop ends when the window passed to `WaitForClose()` closes, on every platform
 
