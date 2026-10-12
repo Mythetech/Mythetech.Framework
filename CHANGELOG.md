@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.21.4] - 2026-10-11
+
+### Fixed
+
+- A host that uses the settings framework without the secret manager starts again when its services are validated at startup, which ASP.NET Core and Blazor WebAssembly hosts do in Development. Since 0.20.0 `AddSettingsFramework` has registered `SecretManagerSettingsConsumer`, which required `SecretManagerState`, so building the service provider threw. The storybook, the server sample and Aion's web build could not start from a Debug build. The consumer now does nothing when the secret manager is not registered
+
+### Notes
+
+- All four packages move to `0.21.4`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+
 ## [0.21.3] - 2026-10-06
 
 ### Added
