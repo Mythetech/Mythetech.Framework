@@ -7,7 +7,6 @@ using MudBlazor.Utilities;
 using Mythetech.Framework.Infrastructure.Keyboard;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins;
-using Mythetech.Framework.Infrastructure.Secrets;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Components.CommandPalette;
 using Mythetech.Framework.Infrastructure.Guards;
@@ -37,10 +36,6 @@ builder.Services.AddRuntimeEnvironment();
 builder.Services.AddMessageBus();
 
 builder.Services.AddPluginFramework();
-
-// AddMessageBus registers the Framework's own consumers, and the one that restores the saved
-// secret manager cannot be built without the secret manager's state.
-builder.Services.AddSecretManagerFramework();
 
 builder.Services.AddSingleton<IJsGuardService, AlwaysReadyJsGuardService>();
 
