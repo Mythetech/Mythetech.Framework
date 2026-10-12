@@ -698,3 +698,21 @@ body.mf-drawer-resizing .app-context-content {
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--mud-palette-primary);
 }
+
+/* ============================================================================
+   Dialogs Below A Hermes Title Bar
+   ============================================================================ */
+
+.mud-dialog-container.mud-dialog-topcenter,
+.mud-dialog-container.mud-dialog-topleft,
+.mud-dialog-container.mud-dialog-topright {
+    top: var(--hermes-titlebar-height, 0px);
+    height: calc(100% - var(--hermes-titlebar-height, 0px));
+}
+
+.mud-dialog-container.mud-dialog-topcenter .mud-dialog:not(.mud-dialog-fullscreen),
+.mud-dialog-container.mud-dialog-topleft .mud-dialog:not(.mud-dialog-fullscreen),
+.mud-dialog-container.mud-dialog-topright .mud-dialog:not(.mud-dialog-fullscreen) {
+    max-height: calc(100vh - var(--mud-appbar-height) - var(--hermes-titlebar-height, 0px));
+    max-height: calc(100dvh - var(--mud-appbar-height) - var(--hermes-titlebar-height, 0px));
+}
