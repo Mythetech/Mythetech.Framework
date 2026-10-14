@@ -19,7 +19,8 @@ public interface IMessageBus
     Task PublishAsync<TMessage>(TMessage message, PublishConfiguration configuration) where TMessage : class;
     
     /// <summary>
-    /// Registers a concrete consumer for a given message type to the bus pipeline
+    /// Registers a concrete consumer for a given message type to the bus pipeline.
+    /// Registering the same consumer type for the same message type again has no effect.
     /// </summary>
     void RegisterConsumerType<TMessage, TConsumer>() where TMessage : class where TConsumer : IConsumer<TMessage>;
     
