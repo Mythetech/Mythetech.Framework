@@ -27,7 +27,7 @@
       <PackageReference Include="Mythetech.Hermes" Version="1.4.4" />
       <PackageReference Include="Mythetech.Hermes.Blazor" Version="1.4.4" />
       <PackageReference Include="TextCopy" Version="6.2.1" />
-      <PackageReference Include="Velopack" Version="0.0.1298" />
+      <PackageReference Include="Velopack" Version="1.2.161" />
     </ItemGroup>
 
     <ItemGroup>
