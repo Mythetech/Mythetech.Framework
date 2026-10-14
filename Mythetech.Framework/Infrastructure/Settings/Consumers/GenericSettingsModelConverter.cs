@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
@@ -15,11 +16,10 @@ public class GenericSettingsModelConverter : IConsumer<SettingsModelChanged>
     private readonly IMessageBus _bus;
     private readonly ILogger<GenericSettingsModelConverter> _logger;
 
-    private static readonly MethodInfo PublishAsyncMethod = typeof(IMessageBus)
-        .GetMethods()
-        .First(m => m.Name == nameof(IMessageBus.PublishAsync) &&
-                    m.IsGenericMethod &&
-                    m.GetParameters().Length == 1);
+    private static readonly MethodInfo PublishTypedMethod = typeof(GenericSettingsModelConverter)
+        .GetMethod(nameof(PublishTypedAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+    private static readonly ConcurrentDictionary<Type, Func<IMessageBus, SettingsModelChanged, Task>> TypedPublishers = new();
 
     /// <summary>
     /// Creates a new converter instance.
@@ -39,24 +39,11 @@ public class GenericSettingsModelConverter : IConsumer<SettingsModelChanged>
 
         try
         {
-            // Create SettingsModelChanged<T> where T is the actual settings type
-            var genericEventType = typeof(SettingsModelChanged<>).MakeGenericType(settingsType);
-            var typedEvent = Activator.CreateInstance(genericEventType, message.Settings);
+            var publish = TypedPublishers.GetOrAdd(settingsType, static type => PublishTypedMethod
+                .MakeGenericMethod(type)
+                .CreateDelegate<Func<IMessageBus, SettingsModelChanged, Task>>());
 
-            if (typedEvent == null)
-            {
-                _logger.LogWarning("Failed to create typed event for {SettingsType}", settingsType.Name);
-                return;
-            }
-
-            // Use reflection to call PublishAsync<T> with the correct generic type
-            var genericPublish = PublishAsyncMethod.MakeGenericMethod(genericEventType);
-            var task = genericPublish.Invoke(_bus, [typedEvent]) as Task;
-
-            if (task != null)
-            {
-                await task;
-            }
+            await publish(_bus, message);
 
             _logger.LogDebug("Converted and published typed settings event for {SettingsType}", settingsType.Name);
         }
@@ -65,4 +52,7 @@ public class GenericSettingsModelConverter : IConsumer<SettingsModelChanged>
             _logger.LogError(ex, "Failed to convert settings event for {SettingsType}", settingsType.Name);
         }
     }
+
+    private static Task PublishTypedAsync<T>(IMessageBus bus, SettingsModelChanged message) where T : SettingsBase
+        => bus.PublishAsync(new SettingsModelChanged<T>((T)message.Settings) { LoadedFromStorage = message.LoadedFromStorage });
 }

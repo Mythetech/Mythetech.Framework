@@ -9,6 +9,7 @@ namespace Mythetech.Framework.Infrastructure.Settings.Consumers;
 /// <summary>
 /// Auto-persists settings changes to storage.
 /// Subscribes to SettingsModelChanged events and serializes the settings to JSON.
+/// Events raised while loading from storage are skipped, since storage already holds those values.
 ///
 /// This consumer is optional - if no ISettingsStorage is registered, it will log
 /// and skip persistence. This allows apps to opt-in to persistence.
@@ -32,6 +33,9 @@ public class SettingsPersister : IConsumer<SettingsModelChanged>
     /// <inheritdoc />
     public async Task Consume(SettingsModelChanged message)
     {
+        if (message.LoadedFromStorage)
+            return;
+
         if (_storage == null)
         {
             _logger.LogDebug("No settings storage configured, skipping persistence for {SettingsId}",
