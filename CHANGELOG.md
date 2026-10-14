@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.21.9] - 2026-10-14
+
+### Changed
+
+- `Mythetech.Framework.Desktop` moves to `Velopack` 1.2.161, from 0.0.1298. In 0.0.1298 every scan of the local packages directory computed SHA1 and SHA256 of each `.nupkg` in it, which took about 600ms per scan with a 250MB package. `VelopackApp.Run()` scans twice and an update check once, so an installed app spent about 1.8s of each launch on the UI thread hashing its own package. 1.2.x reads the packages without hashing them
+  - The public API the framework uses is unchanged. `UpdateManager.CurrentVersion` and `VelopackAsset.Version` are now `Velopack.SemanticVersion` instead of `NuGet.Versioning.SemanticVersion`, and Velopack no longer brings in `NuGet.Versioning`
+- `VelopackUpdateService.CheckForUpdatesAsync` runs Velopack's check on the thread pool. Velopack reads the packages directory and its staged user id synchronously before its first await, and `CheckForUpdatesOnStartupAsync` is called from a layout's `OnAfterRenderAsync`, so that work ran on the UI thread. The update messages are published as before
+- `SettingsModelChanged` and `SettingsModelChanged<T>` have a `LoadedFromStorage` property, true when `ApplyPersistedSettingsAsync` publishes the values it just read from storage. It defaults to false, so `new SettingsModelChanged(settings)` still means a change, and `GenericSettingsModelConverter` copies it onto the typed event
+
+### Fixed
+
+- Each message bus consumer runs once per message when its assembly is registered twice. `UseSettingsFramework()` registers the framework's consumers and `UseMessageBus(..., typeof(IConsumer<>).Assembly)` registered them again, so every framework consumer ran twice: each settings domain was saved twice on load and every typed `SettingsModelChanged<T>` consumer ran twice. Registering the same consumer type for the same message type again now does nothing
+- Loading settings at startup no longer writes them straight back to storage. `SettingsPersister` skips an event whose `LoadedFromStorage` is true; consumers that apply settings still receive it
+
+### Notes
+
+- Apps that reference `Velopack` directly must remove that reference, and its central version pin, or move both to at least 1.2.161. A lower direct version than the one `Mythetech.Framework.Desktop` depends on fails restore with NU1605 (package downgrade), which C# projects treat as an error by default
+- Apps that used `NuGet.Versioning` types without referencing the package got it through Velopack, and now need their own reference
+- Pack releases with `vpk` 1.2.161 or later. On Windows, `vpk pack` logs an error when the app's Velopack library is newer than `vpk`
+- All four packages move to `0.21.9`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+
 ## [0.21.8] - 2026-10-12
 
 ### Changed
