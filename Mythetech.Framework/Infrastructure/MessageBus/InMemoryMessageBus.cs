@@ -229,7 +229,9 @@ public class InMemoryMessageBus : IMessageBus
         var consumerTypes = _registeredConsumerTypes.GetOrAdd(typeof(TMessage), _ => new List<Type>());
         lock (consumerTypes)
         {
-            consumerTypes.Add(typeof(TConsumer));
+            // Hosts often register the same assembly twice (UseSettingsFramework and UseMessageBus), which ran each consumer twice.
+            if (!consumerTypes.Contains(typeof(TConsumer)))
+                consumerTypes.Add(typeof(TConsumer));
         }
     }
 

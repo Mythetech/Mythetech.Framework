@@ -123,6 +123,8 @@ For explicit control:
 messageBus.RegisterConsumerType<OrderCreatedMessage, NotifyWarehouseConsumer>();
 ```
 
+Registering the same consumer type for the same message again has no effect, so an assembly that reaches the bus through more than one call (`UseMessageBus` and `UseSettingsFramework`, for example) still runs each consumer once per message.
+
 ## ComponentConsumer for Blazor
 
 Use `ComponentConsumer<TMessage>` when a Blazor component needs to receive messages:

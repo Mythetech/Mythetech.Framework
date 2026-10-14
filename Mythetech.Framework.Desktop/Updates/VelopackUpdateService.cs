@@ -94,7 +94,8 @@ public class VelopackUpdateService : IUpdateService
 
         try
         {
-            var update = await manager.CheckForUpdatesAsync();
+            // Velopack reads the packages directory synchronously before its first await, and callers are often on the UI thread.
+            var update = await Task.Run(() => manager.CheckForUpdatesAsync());
 
             if (update is null)
             {

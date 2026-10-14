@@ -160,7 +160,7 @@ public class SettingsProvider : ISettingsProvider
                 _logger.LogDebug("Applied persisted settings for {SettingsId}", settingsId);
 
                 // Publish change event so consumers can apply the loaded settings
-                await _bus.PublishAsync(new SettingsModelChanged(settings));
+                await _bus.PublishAsync(new SettingsModelChanged(settings) { LoadedFromStorage = true });
             }
             catch (Exception ex)
             {
