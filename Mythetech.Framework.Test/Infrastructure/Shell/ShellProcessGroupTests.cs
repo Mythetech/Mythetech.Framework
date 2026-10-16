@@ -665,7 +665,8 @@ public class ShellProcessGroupTests
             _executor.CreateProcessStartInfo(command, redirectInput: true),
             logger: null,
             ownProcessGroup: true,
-            startTimeOf: _ => startTimeOfLeader(process!));
+            startTimeOf: _ => startTimeOfLeader(process!),
+            createJob: null);
         return process;
     }
 

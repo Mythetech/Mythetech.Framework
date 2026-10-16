@@ -130,14 +130,15 @@ public class ShellProcessJobObjectTests
     }
 
     // cmd waits for ping, so the root is still alive to lead the tree kill to ping.
-    [Fact(DisplayName = "StopAsync_WithoutAJobOnWindows_KillsTheTreeAfterTheGrace")]
+    [Fact(DisplayName = "StopAsync_GroupCommandWithoutAJob_KillsTheTreeAfterTheGrace")]
     [SupportedOSPlatform("windows")]
-    public async Task StopAsync_WithoutAJobOnWindows_KillsTheTreeAfterTheGrace()
+    public async Task StopAsync_GroupCommandWithoutAJob_KillsTheTreeAfterTheGrace()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows stop without a job");
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
 
         var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c ping -n 60 127.0.0.1 > nul" };
-        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        await using var process = CreateGroupCommandWhoseJobFails(command, new Win32Exception(5));
+        process.Start();
         using var ping = await ChildNamedAsync(process.ProcessId, "PING.EXE");
         try
         {
@@ -151,6 +152,27 @@ public class ShellProcessJobObjectTests
         {
             KillQuietly(ping);
         }
+    }
+
+    // The command starts suspended, so its output shows it was resumed even though no job could be made.
+    [Fact(DisplayName = "StartProcess_JobCannotBeMadeForAnyReason_ResumesTheCommandWithoutOne")]
+    [SupportedOSPlatform("windows")]
+    public async Task StartProcess_JobCannotBeMadeForAnyReason_ResumesTheCommandWithoutOne()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+
+        var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c echo started" };
+        await using var process = CreateGroupCommandWhoseJobFails(command, new InvalidOperationException("No job"));
+        var lines = new ConcurrentQueue<string>();
+        process.OutputReceived += lines.Enqueue;
+        process.Start();
+
+        var exitCode = await process.WaitForExitAsync(TestContext.Current.CancellationToken)
+            .WaitAsync(SettleTimeout, TestContext.Current.CancellationToken);
+
+        exitCode.ShouldBe(0);
+        lines.ShouldContain(line => line.Trim() == "started");
+        process.OwnsProcessGroup.ShouldBeFalse();
     }
 
     [Fact(DisplayName = "StartProcess_WithoutOwnProcessGroupOnWindows_HasNoJob")]
@@ -181,6 +203,16 @@ public class ShellProcessJobObjectTests
         Marshal.SizeOf<WindowsJobObject.JOBOBJECT_EXTENDED_LIMIT_INFORMATION>().ShouldBe(is64Bit ? 144 : 112);
 #pragma warning restore CA1416
     }
+
+    // Not started, so a test can subscribe first. Making its job throws, as on a machine that refuses one.
+    [SupportedOSPlatform("windows")]
+    private ShellProcess CreateGroupCommandWhoseJobFails(ShellCommand command, Exception jobFailure) =>
+        new(
+            _executor.CreateProcessStartInfo(command.WithOwnProcessGroup(), redirectInput: true),
+            logger: null,
+            ownProcessGroup: true,
+            startTimeOf: null,
+            createJob: () => throw jobFailure);
 
     // Windows keeps a child's parent pid after the parent exits, and the leader's open handle stops its pid being reused.
     [SupportedOSPlatform("windows")]

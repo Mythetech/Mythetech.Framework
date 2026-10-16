@@ -24,6 +24,7 @@ public class ShellProcess : IShellProcess
     private readonly ILogger? _logger;
     private readonly bool _ownProcessGroup;
     private readonly Func<int, DateTimeOffset?>? _startTimeOf;
+    private readonly Func<WindowsJobObject>? _createJob;
 
     // Read once at start, so a stop running alongside DisposeAsync can still reach the group.
     private int _processId;
@@ -42,7 +43,7 @@ public class ShellProcess : IShellProcess
     /// is put in a new job object as it starts, and resumed if <paramref name="startInfo"/> starts it suspended.
     /// </param>
     public ShellProcess(ProcessStartInfo startInfo, ILogger? logger, bool ownProcessGroup)
-        : this(startInfo, logger, ownProcessGroup, startTimeOf: null)
+        : this(startInfo, logger, ownProcessGroup, startTimeOf: null, createJob: null)
     {
     }
 
@@ -53,13 +54,19 @@ public class ShellProcess : IShellProcess
     /// Reads a pid's start time for the check that the group's id was not reused; null for
     /// <see cref="ProcessGroups.StartTimeOf"/>.
     /// </param>
+    /// <param name="createJob">Makes the job a group command joins on Windows; null for <see cref="WindowsJobObject.Create"/>.</param>
     internal ShellProcess(
-        ProcessStartInfo startInfo, ILogger? logger, bool ownProcessGroup, Func<int, DateTimeOffset?>? startTimeOf)
+        ProcessStartInfo startInfo,
+        ILogger? logger,
+        bool ownProcessGroup,
+        Func<int, DateTimeOffset?>? startTimeOf,
+        Func<WindowsJobObject>? createJob)
     {
         _process = new Process { StartInfo = startInfo };
         _logger = logger;
         _ownProcessGroup = ownProcessGroup;
         _startTimeOf = startTimeOf;
+        _createJob = createJob;
 
         _process.OutputDataReceived += (_, args) =>
         {
@@ -144,7 +151,7 @@ public class ShellProcess : IShellProcess
         {
             try
             {
-                _job = WindowsJobObject.JoinNewJob(_process, _logger);
+                _job = WindowsJobObject.JoinNewJob(_process, _logger, _createJob);
             }
             catch
             {
@@ -257,8 +264,8 @@ public class ShellProcess : IShellProcess
     /// <remarks>
     /// For a process that owns its group on Unix: SIGINT, then SIGTERM, then SIGKILL to the group, waiting up to
     /// <paramref name="grace"/> after each and returning once the group is empty or SIGKILL has been sent.
-    /// On Windows: waits up to <paramref name="grace"/> for the process to exit, then terminates its job, or without a
-    /// job kills its tree if it is still running.
+    /// On Windows: waits up to <paramref name="grace"/> for the process to exit, then terminates its job, or for a group
+    /// command that runs without a job, kills its tree if it is still running.
     /// </remarks>
     public async Task StopAsync(TimeSpan grace, CancellationToken cancellationToken = default)
     {
@@ -268,11 +275,12 @@ public class ShellProcess : IShellProcess
 
             // Polled, because WaitForExitAsync also waits for every descendant holding the leader's stdout or stderr.
             await TrueWithinAsync(() => HasExited, grace, cancellationToken);
-            TerminateJob(_job);
+            if (!TerminateJob(_job))
+                KillRoot(entireProcessTree: true);
             return;
         }
 
-        if (OperatingSystem.IsWindows())
+        if (_ownProcessGroup && OperatingSystem.IsWindows())
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(grace, TimeSpan.Zero);
 

@@ -56,18 +56,21 @@ internal sealed class WindowsJobObject : IDisposable
     /// Puts a process that was just started in a new job, then resumes it if it was started suspended, so
     /// nothing it starts runs outside the job. Null when no job could be made; the process then runs without one.
     /// </summary>
+    /// <param name="process">The process, just started.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="createJob">Makes the job; null for <see cref="Create"/>.</param>
     /// <exception cref="Win32Exception">
     /// The process could not be resumed. It has been killed, or a warning logged if the kill failed too.
     /// </exception>
-    public static WindowsJobObject? JoinNewJob(Process process, ILogger? logger)
+    public static WindowsJobObject? JoinNewJob(Process process, ILogger? logger, Func<WindowsJobObject>? createJob = null)
     {
         WindowsJobObject? job = null;
         try
         {
-            job = Create();
+            job = (createJob ?? Create)();
             job.Assign(process.SafeHandle);
         }
-        catch (Win32Exception ex)
+        catch (Exception ex)
         {
             logger?.LogWarning(ex, "Could not put process {ProcessId} in a job object, so it runs without one", process.Id);
             job?.Dispose();
