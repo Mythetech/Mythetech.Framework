@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,7 @@ public class ShellProcess : IShellProcess
 
     // Read once at start, so a stop running alongside DisposeAsync can still reach the group.
     private int _processId;
+    private WindowsJobObject? _job;
     private bool _disposed;
 
     public ShellProcess(ProcessStartInfo startInfo, ILogger? logger = null)
@@ -34,7 +36,10 @@ public class ShellProcess : IShellProcess
 
     /// <param name="startInfo">How to start the process.</param>
     /// <param name="logger">Optional logger.</param>
-    /// <param name="ownProcessGroup">Whether <paramref name="startInfo"/> makes the process lead its own group.</param>
+    /// <param name="ownProcessGroup">
+    /// Whether the process leads its own group. On Unix <paramref name="startInfo"/> sets that up; on Windows the process
+    /// is put in a new job object as it starts, and resumed if <paramref name="startInfo"/> starts it suspended.
+    /// </param>
     public ShellProcess(ProcessStartInfo startInfo, ILogger? logger, bool ownProcessGroup)
     {
         _process = new Process { StartInfo = startInfo };
@@ -73,11 +78,16 @@ public class ShellProcess : IShellProcess
     public DateTimeOffset StartedAt { get; private set; } = DateTimeOffset.MinValue;
 
     /// <inheritdoc />
-    public bool OwnsProcessGroup => _ownProcessGroup;
+    /// <remarks>On Windows, true once the process is in its job object, and false if none could be made.</remarks>
+    public bool OwnsProcessGroup => OperatingSystem.IsWindows() ? _job is not null : _ownProcessGroup;
 
     // A process that was never started has no group, and pid 0 would reach the caller's own.
     [UnsupportedOSPlatformGuard("windows")]
     private bool SignalsItsGroup => _ownProcessGroup && _processId != 0 && !OperatingSystem.IsWindows();
+
+    [SupportedOSPlatformGuard("windows")]
+    [MemberNotNullWhen(true, nameof(_job))]
+    private bool InJob => OperatingSystem.IsWindows() && _job is not null;
 
     /// <inheritdoc />
     public bool HasExited
@@ -111,6 +121,10 @@ public class ShellProcess : IShellProcess
     {
         _process.Start();
         _processId = _process.Id;
+        if (_ownProcessGroup && OperatingSystem.IsWindows())
+        {
+            _job = WindowsJobObject.JoinNewJob(_process, _logger);
+        }
         StartedAt = ReadStartTime();
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
@@ -164,9 +178,9 @@ public class ShellProcess : IShellProcess
                 // Windows: Send Ctrl+C via GenerateConsoleCtrlEvent
                 if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0))
                 {
-                    // If Ctrl+C fails, fall back to kill
+                    // If Ctrl+C fails, kill the root only; Kill would end the whole job.
                     _logger?.LogDebug("GenerateConsoleCtrlEvent failed, falling back to Kill");
-                    Kill(entireProcessTree: false);
+                    KillRoot(entireProcessTree: false);
                 }
             }
             else if (!ProcessGroups.SignalProcess(_processId, ProcessGroups.SIGINT))
@@ -184,6 +198,12 @@ public class ShellProcess : IShellProcess
     /// <inheritdoc />
     public void Kill(bool entireProcessTree = true)
     {
+        if (InJob)
+        {
+            TerminateJob(_job);
+            return;
+        }
+
         if (SignalsItsGroup)
         {
             KillGroup(entireProcessTree);
@@ -197,9 +217,20 @@ public class ShellProcess : IShellProcess
     /// <remarks>
     /// For a process that owns its group on Unix: SIGINT, then SIGTERM, then SIGKILL to the group, waiting up to
     /// <paramref name="grace"/> after each and returning once the group is empty or SIGKILL has been sent.
+    /// On Windows: waits up to <paramref name="grace"/> for the process to exit, then terminates its job.
     /// </remarks>
     public async Task StopAsync(TimeSpan grace, CancellationToken cancellationToken = default)
     {
+        if (InJob)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(grace, TimeSpan.Zero);
+
+            // Polled, because WaitForExitAsync also waits for every descendant holding the leader's stdout or stderr.
+            await TrueWithinAsync(() => HasExited, grace, cancellationToken);
+            TerminateJob(_job);
+            return;
+        }
+
         if (!SignalsItsGroup)
         {
             await IShellProcess.InterruptThenKillAsync(this, grace, cancellationToken);
@@ -234,6 +265,10 @@ public class ShellProcess : IShellProcess
         }
         finally
         {
+            if (InJob)
+            {
+                _job.Dispose();
+            }
             _process.Dispose();
         }
 
@@ -270,11 +305,27 @@ public class ShellProcess : IShellProcess
     private bool MayStillOwnGroup() =>
         !HasExited || ProcessGroups.MayStillOwnGroup(_processId, StartedAt, ProcessGroups.StartTimeOf);
 
+    [SupportedOSPlatform("windows")]
+    private void TerminateJob(WindowsJobObject job)
+    {
+        try
+        {
+            job.Terminate(1);
+        }
+        catch (Exception ex) when (ex is Win32Exception or ObjectDisposedException)
+        {
+            _logger?.LogWarning(ex, "Failed to terminate the job of process {ProcessId}", _processId);
+        }
+    }
+
     [UnsupportedOSPlatform("windows")]
-    private async Task<bool> GroupEmptiesWithinAsync(TimeSpan grace, CancellationToken cancellationToken)
+    private Task<bool> GroupEmptiesWithinAsync(TimeSpan grace, CancellationToken cancellationToken) =>
+        TrueWithinAsync(() => ProcessGroups.IsEmpty(_processId), grace, cancellationToken);
+
+    private static async Task<bool> TrueWithinAsync(Func<bool> condition, TimeSpan grace, CancellationToken cancellationToken)
     {
         var elapsed = Stopwatch.StartNew();
-        while (!ProcessGroups.IsEmpty(_processId))
+        while (!condition())
         {
             var remaining = grace - elapsed.Elapsed;
             if (remaining <= TimeSpan.Zero)

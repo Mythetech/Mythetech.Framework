@@ -110,6 +110,11 @@ public partial class ShellExecutor : IShellExecutor
         try
         {
             process.Start();
+
+            // Closed when the call ends, which kills whatever the command left running in its job.
+            using var job = command.OwnProcessGroup && OperatingSystem.IsWindows()
+                ? WindowsJobObject.JoinNewJob(process, _logger)
+                : null;
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
@@ -152,7 +157,7 @@ public partial class ShellExecutor : IShellExecutor
         return Task.FromResult<IShellProcess>(shellProcess);
     }
 
-    private ProcessStartInfo CreateProcessStartInfo(ShellCommand command, bool redirectInput = false)
+    internal ProcessStartInfo CreateProcessStartInfo(ShellCommand command, bool redirectInput = false)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -168,9 +173,14 @@ public partial class ShellExecutor : IShellExecutor
             startInfo.WorkingDirectory = command.WorkingDirectory;
         }
 
-        if (command.OwnProcessGroup && !OperatingSystem.IsWindows())
+        if (command.OwnProcessGroup && OperatingSystem.IsWindows())
         {
-            // On Unix the child calls setsid() before exec and keeps its redirected stdio; on Windows it means DETACHED_PROCESS.
+            // Held until it is in its job, so nothing it starts escapes. StartDetached here would mean DETACHED_PROCESS.
+            startInfo.StartSuspended = true;
+        }
+        else if (command.OwnProcessGroup)
+        {
+            // The child calls setsid() before exec and keeps its redirected stdio.
             startInfo.StartDetached = true;
 
             // .NET forks these children from one long-lived thread, so PR_SET_PDEATHSIG fires only when the app exits.
