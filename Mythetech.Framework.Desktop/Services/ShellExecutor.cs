@@ -73,10 +73,11 @@ public partial class ShellExecutor : IShellExecutor
 
     /// <inheritdoc />
     /// <remarks>
-    /// A command with <see cref="ShellCommand.OwnProcessGroup"/> returns once the command itself exits, even while
-    /// something it started still holds its output, and its group is then stopped as
-    /// <see cref="IShellProcess.StopAsync"/> stops it, so nothing it started is left running. A timeout or
-    /// cancellation stops the group the same way before the call throws.
+    /// A command with <see cref="ShellCommand.OwnProcessGroup"/> doesn't wait for something it started that still holds
+    /// its output. Once the command itself exits, its group is stopped as <see cref="IShellProcess.StopAsync"/> stops it,
+    /// so nothing it started is left running; a timeout or cancellation stops the group the same way. The output is then
+    /// drained for at most 1 second before the call returns or throws, so lines a slow callback has not yet taken may be
+    /// dropped.
     /// </remarks>
     public async Task<ShellResult> ExecuteStreamingAsync(
         ShellCommand command,

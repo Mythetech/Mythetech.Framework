@@ -56,7 +56,9 @@ internal sealed class WindowsJobObject : IDisposable
     /// Puts a process that was just started in a new job, then resumes it if it was started suspended, so
     /// nothing it starts runs outside the job. Null when no job could be made; the process then runs without one.
     /// </summary>
-    /// <exception cref="Win32Exception">The process could not be resumed. It has been killed.</exception>
+    /// <exception cref="Win32Exception">
+    /// The process could not be resumed. It has been killed, or a warning logged if the kill failed too.
+    /// </exception>
     public static WindowsJobObject? JoinNewJob(Process process, ILogger? logger)
     {
         WindowsJobObject? job = null;
@@ -80,13 +82,24 @@ internal sealed class WindowsJobObject : IDisposable
             process.SafeHandle.Resume();
             return job;
         }
-        catch (Win32Exception)
+        catch
         {
             // A process left suspended would never run or exit; closing its job kills it.
             if (job is not null)
+            {
                 job.Dispose();
+            }
             else
-                process.Kill();
+            {
+                try
+                {
+                    process.Kill();
+                }
+                catch (Exception killFailure)
+                {
+                    logger?.LogWarning(killFailure, "Could not kill process {ProcessId}, which failed to resume", process.Id);
+                }
+            }
             throw;
         }
     }

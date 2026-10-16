@@ -129,6 +129,30 @@ public class ShellProcessJobObjectTests
         result.StandardOutput.Trim().ShouldBe("started");
     }
 
+    // cmd waits for ping, so the root is still alive to lead the tree kill to ping.
+    [Fact(DisplayName = "StopAsync_WithoutAJobOnWindows_KillsTheTreeAfterTheGrace")]
+    [SupportedOSPlatform("windows")]
+    public async Task StopAsync_WithoutAJobOnWindows_KillsTheTreeAfterTheGrace()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows stop without a job");
+
+        var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c ping -n 60 127.0.0.1 > nul" };
+        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        using var ping = await ChildNamedAsync(process.ProcessId, "PING.EXE");
+        try
+        {
+            process.OwnsProcessGroup.ShouldBeFalse();
+
+            await process.StopAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+
+            (await ExitsWithinAsync(ping, GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            KillQuietly(ping);
+        }
+    }
+
     [Fact(DisplayName = "StartProcess_WithoutOwnProcessGroupOnWindows_HasNoJob")]
     [SupportedOSPlatform("windows")]
     public async Task StartProcess_WithoutOwnProcessGroupOnWindows_HasNoJob()
@@ -166,7 +190,8 @@ public class ShellProcessJobObjectTests
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            $"Get-CimInstance Win32_Process -Filter 'ParentProcessId={parentPid}' | Where-Object Name -eq '{name}' | ForEach-Object ProcessId");
+            $"Get-CimInstance Win32_Process -Filter 'ParentProcessId={parentPid}' | Where-Object Name -eq '{name}' | ForEach-Object ProcessId")
+            .WithTimeout(SettleTimeout);
         var elapsed = Stopwatch.StartNew();
         while (elapsed.Elapsed < SettleTimeout)
         {

@@ -5,7 +5,7 @@
 ### Added
 
 - `ShellCommand.OwnProcessGroup` (and `WithOwnProcessGroup()`) starts a command as the leader of its own process group, a new session on Unix and a kill-on-close job object on Windows, so everything it starts can be stopped as one
-  - `ExecuteAsync` and `ExecuteStreamingAsync` return once the command itself exits, even while something it started still holds its output, then stop its group, so nothing it started is left running. A timeout or cancellation stops the group the same way, with a 2 second grace, before the call throws
+  - `ExecuteAsync` and `ExecuteStreamingAsync` don't wait for something the command started that still holds its output: once the command itself exits, the call stops its group and drains the remaining output for up to 1 second before it returns, so nothing it started is left running. A timeout or cancellation stops the group the same way, with a 2 second grace, before the call throws
   - For a process that owns its group, `Kill` also kills the group (or terminates the job), and `DisposeAsync` stops the whole group, as `StopAsync` does, with a 3 second grace
   - `IShellProcess.Exited` fires when the command itself exits, without waiting for a process it started to close stdout or stderr
 - `IShellProcess.StartedAt` is the process's start time as the OS records it, in UTC, read when it starts; precision varies by OS, so compare it with a tolerance

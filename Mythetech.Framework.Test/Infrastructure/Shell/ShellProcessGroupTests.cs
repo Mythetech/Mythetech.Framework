@@ -18,6 +18,7 @@ public class ShellProcessGroupTests
 
     private static readonly TimeSpan SettleTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan GoneTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan SurvivesTimeout = TimeSpan.FromMilliseconds(500);
 
     private readonly ShellExecutor _executor = new();
 
@@ -30,6 +31,10 @@ public class ShellProcessGroupTests
     // The subshell exits once it has printed, which orphans the sleep: the leader's tree no longer reaches it, its group does.
     private static ShellCommand OrphanedChildCommand =>
         new ShellCommand { Command = "/bin/sh" }.WithArgumentList("-c", "(sleep 60 & echo $!); sleep 60").WithOwnProcessGroup();
+
+    // The leader exits at once and leaves the sleep in its group, so only the pid-reuse check decides whether it is signalled.
+    private static ShellCommand LeaderExitsLeavingAChildCommand =>
+        new ShellCommand { Command = "/bin/sh" }.WithArgumentList("-c", "sleep 60 & echo $!; exit 0").WithOwnProcessGroup();
 
     [Fact(DisplayName = "StartProcess_OwnProcessGroup_LeadsItsGroup")]
     public async Task StartProcess_OwnProcessGroup_LeadsItsGroup()
@@ -251,22 +256,22 @@ public class ShellProcessGroupTests
             .WithArgumentList("-c", $"trap '' INT TERM; {PerlPath} -e 'use POSIX; setsid(); sleep 60' & echo $!; wait")
             .WithOwnProcessGroup();
         await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var printed = new PrintedPids();
+        process.OutputReceived += printed.Collect;
         var backgroundPid = FirstPidPrinted(process);
-        int? escapedPid = null;
         try
         {
-            escapedPid = await backgroundPid;
-            (await WhenTrueAsync(() => ProcessGroups.GroupOf(escapedPid.Value) == escapedPid.Value)).ShouldBeTrue();
+            var escapedPid = await backgroundPid;
+            (await WhenTrueAsync(() => ProcessGroups.GroupOf(escapedPid) == escapedPid)).ShouldBeTrue();
 
             await process.StopAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
 
-            (await WhenTrueAsync(() => IsGone(escapedPid.Value), GoneTimeout)).ShouldBeTrue();
+            (await WhenTrueAsync(() => IsGone(escapedPid), GoneTimeout)).ShouldBeTrue();
         }
         finally
         {
             process.Kill();
-            if (escapedPid is { } pid)
-                ProcessGroups.SignalProcess(pid, ProcessGroups.SIGKILL);
+            printed.KillStillRunning();
         }
     }
 
@@ -355,12 +360,13 @@ public class ShellProcessGroupTests
             .WithArgumentList("-c", $"{PerlPath} -e 'use POSIX; setsid(); sleep 60' & echo $!; wait")
             .WithOwnProcessGroup();
         await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var printed = new PrintedPids();
+        process.OutputReceived += printed.Collect;
         var backgroundPid = FirstPidPrinted(process);
-        int? escapedPid = null;
         try
         {
-            escapedPid = await backgroundPid;
-            (await WhenTrueAsync(() => ProcessGroups.GroupOf(escapedPid.Value) == escapedPid.Value)).ShouldBeTrue();
+            var escapedPid = await backgroundPid;
+            (await WhenTrueAsync(() => ProcessGroups.GroupOf(escapedPid) == escapedPid)).ShouldBeTrue();
 
             var elapsed = Stopwatch.StartNew();
             await process.StopAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
@@ -370,8 +376,7 @@ public class ShellProcessGroupTests
         finally
         {
             process.Kill();
-            if (escapedPid is { } pid)
-                ProcessGroups.SignalProcess(pid, ProcessGroups.SIGKILL);
+            printed.KillStillRunning();
         }
     }
 
@@ -393,6 +398,83 @@ public class ShellProcessGroupTests
         finally
         {
             process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsyncAndKill_LeaderPidHeldByAnotherStartTime_LeaveTheGroupAlone")]
+    public async Task StopAsyncAndKill_LeaderPidHeldByAnotherStartTime_LeaveTheGroupAlone()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, leader => leader.StartedAt.AddHours(-1));
+        var printed = new PrintedPids();
+        process.OutputReceived += printed.Collect;
+        var backgroundPid = FirstPidPrinted(process);
+        process.Start();
+        try
+        {
+            var childPid = await backgroundPid;
+            (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
+
+            await process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+            (await WhenTrueAsync(() => IsGone(childPid), SurvivesTimeout)).ShouldBeFalse();
+
+            process.Kill();
+            (await WhenTrueAsync(() => IsGone(childPid), SurvivesTimeout)).ShouldBeFalse();
+        }
+        finally
+        {
+            printed.KillStillRunning();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_LeaderPidHeldBySameStartTime_StopsTheGroup")]
+    public async Task StopAsync_LeaderPidHeldBySameStartTime_StopsTheGroup()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, leader => leader.StartedAt);
+        var printed = new PrintedPids();
+        process.OutputReceived += printed.Collect;
+        var backgroundPid = FirstPidPrinted(process);
+        process.Start();
+        try
+        {
+            var childPid = await backgroundPid;
+            (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
+
+            await process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            printed.KillStillRunning();
+        }
+    }
+
+    [Fact(DisplayName = "Kill_LeaderPidHeldBySameStartTime_KillsTheGroup")]
+    public async Task Kill_LeaderPidHeldBySameStartTime_KillsTheGroup()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, leader => leader.StartedAt);
+        var printed = new PrintedPids();
+        process.OutputReceived += printed.Collect;
+        var backgroundPid = FirstPidPrinted(process);
+        process.Start();
+        try
+        {
+            var childPid = await backgroundPid;
+            (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
+
+            process.Kill();
+
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            printed.KillStillRunning();
         }
     }
 
@@ -464,22 +546,27 @@ public class ShellProcessGroupTests
             .WithOwnProcessGroup()
             .WithTimeout(TimeSpan.FromSeconds(30));
         var lines = new ConcurrentQueue<string>();
-        var printedPids = new ConcurrentQueue<int>();
+        var printed = new PrintedPids();
         try
         {
-            var elapsed = Stopwatch.StartNew();
             var result = await _executor.ExecuteStreamingAsync(
-                command, line => CollectLine(line, lines, printedPids), cancellationToken: TestContext.Current.CancellationToken);
+                command,
+                line =>
+                {
+                    lines.Enqueue(line);
+                    printed.Collect(line);
+                },
+                cancellationToken: TestContext.Current.CancellationToken);
 
-            elapsed.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(5));
+            var childPid = printed.All.ShouldHaveSingleItem();
+            printed.SinceFirstPrinted.ShouldBeLessThan(TimeSpan.FromSeconds(5));
             result.ExitCode.ShouldBe(0);
             lines.ShouldContain("started");
-            printedPids.ShouldHaveSingleItem();
-            (await WhenTrueAsync(() => IsGone(printedPids.Single()), GoneTimeout)).ShouldBeTrue();
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
         }
         finally
         {
-            KillStillRunning(printedPids);
+            printed.KillStillRunning();
         }
     }
 
@@ -519,20 +606,20 @@ public class ShellProcessGroupTests
             .WithOwnProcessGroup()
             .WithoutShell()
             .WithTimeout(TimeSpan.FromMilliseconds(500));
-        var printedPids = new ConcurrentQueue<int>();
+        var printed = new PrintedPids();
         try
         {
             await Should.ThrowAsync<OperationCanceledException>(() => _executor.ExecuteStreamingAsync(
-                command, line => CollectLine(line, [], printedPids), cancellationToken: TestContext.Current.CancellationToken));
+                command, printed.Collect, cancellationToken: TestContext.Current.CancellationToken));
 
-            printedPids.Count.ShouldBe(2);
-            var leaderPid = printedPids.First();
+            printed.All.Count.ShouldBe(2);
+            var (leaderPid, childPid) = (printed.All[0], printed.All[1]);
             (await WhenTrueAsync(() => ProcessGroups.IsEmpty(leaderPid), GoneTimeout)).ShouldBeTrue();
-            (await WhenTrueAsync(() => IsGone(printedPids.Last()), GoneTimeout)).ShouldBeTrue();
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
         }
         finally
         {
-            KillStillRunning(printedPids);
+            printed.KillStillRunning();
         }
     }
 
@@ -548,33 +635,38 @@ public class ShellProcessGroupTests
             .WithoutShell()
             .WithTimeout(TimeSpan.FromMilliseconds(500));
         var lines = new ConcurrentQueue<string>();
-        var printedPids = new ConcurrentQueue<int>();
+        var printed = new PrintedPids();
         try
         {
             await Should.ThrowAsync<OperationCanceledException>(() => _executor.ExecuteStreamingAsync(
-                command, line => CollectLine(line, lines, printedPids), cancellationToken: TestContext.Current.CancellationToken));
+                command,
+                line =>
+                {
+                    lines.Enqueue(line);
+                    printed.Collect(line);
+                },
+                cancellationToken: TestContext.Current.CancellationToken));
 
             lines.ShouldContain("got TERM");
-            printedPids.ShouldHaveSingleItem();
-            (await WhenTrueAsync(() => IsGone(printedPids.Single()), GoneTimeout)).ShouldBeTrue();
+            var childPid = printed.All.ShouldHaveSingleItem();
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
         }
         finally
         {
-            KillStillRunning(printedPids);
+            printed.KillStillRunning();
         }
     }
 
-    private static void CollectLine(string line, ConcurrentQueue<string> lines, ConcurrentQueue<int> pids)
+    // Not started, so a test can subscribe first. The pid-reuse check sees startTimeOfLeader in place of the OS's answer.
+    private ShellProcess CreateGroupLeader(ShellCommand command, Func<ShellProcess, DateTimeOffset?> startTimeOfLeader)
     {
-        lines.Enqueue(line);
-        if (int.TryParse(line, NumberStyles.None, CultureInfo.InvariantCulture, out var pid))
-            pids.Enqueue(pid);
-    }
-
-    private static void KillStillRunning(IEnumerable<int> pids)
-    {
-        foreach (var pid in pids.Where(pid => !IsGone(pid)))
-            ProcessGroups.SignalProcess(pid, ProcessGroups.SIGKILL);
+        ShellProcess? process = null;
+        process = new ShellProcess(
+            _executor.CreateProcessStartInfo(command, redirectInput: true),
+            logger: null,
+            ownProcessGroup: true,
+            startTimeOf: _ => startTimeOfLeader(process!));
+        return process;
     }
 
     private static Task<int> FirstPidPrinted(IShellProcess process)
@@ -619,5 +711,36 @@ public class ShellProcessGroupTests
             await Task.Delay(50, TestContext.Current.CancellationToken);
         }
         return true;
+    }
+
+    // Each pid's start time is read as it is printed, so cleanup never signals a later process given the same pid.
+    private sealed class PrintedPids
+    {
+        private static readonly TimeSpan SameStartTolerance = TimeSpan.FromSeconds(1);
+
+        private readonly ConcurrentQueue<(int Pid, DateTimeOffset? StartedAt, long PrintedAt)> _printed = new();
+
+        public IReadOnlyList<int> All => [.. _printed.Select(printed => printed.Pid)];
+
+        public TimeSpan SinceFirstPrinted => Stopwatch.GetElapsedTime(_printed.First().PrintedAt);
+
+        public void Collect(string line)
+        {
+            var printedAt = Stopwatch.GetTimestamp();
+            if (int.TryParse(line, NumberStyles.None, CultureInfo.InvariantCulture, out var pid))
+                _printed.Enqueue((pid, ProcessGroups.StartTimeOf(pid), printedAt));
+        }
+
+        public void KillStillRunning()
+        {
+            foreach (var (pid, startedAt, _) in _printed)
+            {
+                if (startedAt is { } then && then != DateTimeOffset.MinValue
+                    && ProcessGroups.StartTimeOf(pid) is { } now && (now - then).Duration() < SameStartTolerance)
+                {
+                    ProcessGroups.SignalProcess(pid, ProcessGroups.SIGKILL);
+                }
+            }
+        }
     }
 }

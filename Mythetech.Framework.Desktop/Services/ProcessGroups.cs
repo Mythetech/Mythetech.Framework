@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Microsoft.Extensions.Logging;
 
 namespace Mythetech.Framework.Desktop.Services;
 
@@ -38,15 +39,24 @@ internal static class ProcessGroups
 
     /// <summary>
     /// Sends <paramref name="signal"/> to every process in the group. False when none could be signalled,
-    /// as when the group is empty.
+    /// as when the group is empty. Any failure but an empty group is logged to <paramref name="logger"/> at debug level.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
     /// The id is 1 or less: kill(-1) signals every process the user owns, and kill(0) the caller's own group.
     /// </exception>
-    public static bool Signal(int processGroupId, int signal)
+    public static bool Signal(int processGroupId, int signal, ILogger? logger = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(processGroupId, 1);
-        return kill(-processGroupId, signal) == 0;
+        if (kill(-processGroupId, signal) == 0)
+            return true;
+
+        var errno = Marshal.GetLastWin32Error();
+        if (errno != ESRCH)
+        {
+            logger?.LogDebug(
+                "Failed to send signal {Signal} to process group {ProcessGroupId}: errno {Errno}", signal, processGroupId, errno);
+        }
+        return false;
     }
 
     /// <summary>
@@ -84,11 +94,17 @@ internal static class ProcessGroups
     /// <summary>
     /// Whether the group that <paramref name="leaderPid"/> led may still be the one it started. False once a
     /// process with another start time holds the pid: the number was reused, so the group is someone else's.
+    /// Also false when a process holds the pid and either start time is <see cref="DateTimeOffset.MinValue"/>,
+    /// since an unreadable time can't show the two are the same process.
     /// </summary>
     internal static bool MayStillOwnGroup(int leaderPid, DateTimeOffset leaderStartedAt, Func<int, DateTimeOffset?> startTimeOf)
     {
-        var startedAt = startTimeOf(leaderPid);
-        return startedAt is null || (startedAt.Value - leaderStartedAt).Duration() <= StartTimeTolerance;
+        if (startTimeOf(leaderPid) is not { } startedAt)
+            return true;
+
+        return startedAt != DateTimeOffset.MinValue
+            && leaderStartedAt != DateTimeOffset.MinValue
+            && (startedAt - leaderStartedAt).Duration() <= StartTimeTolerance;
     }
 
     [DllImport("libc", SetLastError = true)]
