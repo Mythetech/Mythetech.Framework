@@ -73,6 +73,8 @@ public interface IShellProcess : IAsyncDisposable
 
     /// <summary>
     /// Waits for the process to exit and returns the exit code.
+    /// It also waits for every descendant still holding stdout or stderr, even for a group leader; a caller that needs
+    /// only the leader's exit uses <see cref="Exited"/>, then <see cref="StopAsync"/> to end the rest of the group.
     /// </summary>
     Task<int> WaitForExitAsync(CancellationToken cancellationToken = default);
 
@@ -85,7 +87,10 @@ public interface IShellProcess : IAsyncDisposable
     /// <summary>
     /// Forcefully kills the process. A process that owns its group kills the whole group too.
     /// </summary>
-    /// <param name="entireProcessTree">Whether to kill child processes as well.</param>
+    /// <param name="entireProcessTree">
+    /// Whether to kill child processes as well. It does not spare a group leader's group, which is always killed; on Unix
+    /// it only decides whether a descendant that left the group is reached through the leader's tree while the leader lives.
+    /// </param>
     void Kill(bool entireProcessTree = true);
 
     /// <summary>
