@@ -428,6 +428,155 @@ public class ShellProcessGroupTests
         await process.DisposeAsync();
     }
 
+    [Fact(DisplayName = "StartProcess_OwnProcessGroup_ExitedFiresWhileAChildHoldsStdout")]
+    public async Task StartProcess_OwnProcessGroup_ExitedFiresWhileAChildHoldsStdout()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", "sleep 60 & echo $!; exit 3")
+            .WithOwnProcessGroup();
+        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var exited = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        process.Exited += exitCode => exited.TrySetResult(exitCode);
+        var backgroundPid = FirstPidPrinted(process);
+        try
+        {
+            await backgroundPid;
+
+            var exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+            exitCode.ShouldBe(3);
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "ExecuteStreaming_OwnProcessGroup_BackgroundChildHoldingStdout_ReturnsWhenTheLeaderExits")]
+    public async Task ExecuteStreaming_OwnProcessGroup_BackgroundChildHoldingStdout_ReturnsWhenTheLeaderExits()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", "sleep 60 & echo $!; echo started")
+            .WithOwnProcessGroup()
+            .WithTimeout(TimeSpan.FromSeconds(30));
+        var lines = new ConcurrentQueue<string>();
+        var printedPids = new ConcurrentQueue<int>();
+        try
+        {
+            var elapsed = Stopwatch.StartNew();
+            var result = await _executor.ExecuteStreamingAsync(
+                command, line => CollectLine(line, lines, printedPids), cancellationToken: TestContext.Current.CancellationToken);
+
+            elapsed.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(5));
+            result.ExitCode.ShouldBe(0);
+            lines.ShouldContain("started");
+            printedPids.ShouldHaveSingleItem();
+            (await WhenTrueAsync(() => IsGone(printedPids.Single()), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            KillStillRunning(printedPids);
+        }
+    }
+
+    // A slow reader leaves the leader's lines in the pipe after it exits, so they arrive only while the call drains.
+    [Fact(DisplayName = "ExecuteStreaming_OwnProcessGroup_SlowReader_GetsEveryLine")]
+    public async Task ExecuteStreaming_OwnProcessGroup_SlowReader_GetsEveryLine()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/usr/bin/seq" }
+            .WithArgumentList("1", "100")
+            .WithOwnProcessGroup()
+            .WithTimeout(TimeSpan.FromSeconds(30));
+        var lines = new ConcurrentQueue<string>();
+
+        var result = await _executor.ExecuteStreamingAsync(
+            command,
+            line =>
+            {
+                Thread.Sleep(2);
+                lines.Enqueue(line);
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        result.ExitCode.ShouldBe(0);
+        lines.Count.ShouldBe(100);
+    }
+
+    // Without the login shell wrapper, whose setup takes about as long as the timeout on macOS.
+    [Fact(DisplayName = "ExecuteStreaming_OwnProcessGroup_Timeout_EndsTheGroup")]
+    public async Task ExecuteStreaming_OwnProcessGroup_Timeout_EndsTheGroup()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", "sleep 60 & echo $$; echo $!; sleep 60")
+            .WithOwnProcessGroup()
+            .WithoutShell()
+            .WithTimeout(TimeSpan.FromMilliseconds(500));
+        var printedPids = new ConcurrentQueue<int>();
+        try
+        {
+            await Should.ThrowAsync<OperationCanceledException>(() => _executor.ExecuteStreamingAsync(
+                command, line => CollectLine(line, [], printedPids), cancellationToken: TestContext.Current.CancellationToken));
+
+            printedPids.Count.ShouldBe(2);
+            var leaderPid = printedPids.First();
+            (await WhenTrueAsync(() => ProcessGroups.IsEmpty(leaderPid), GoneTimeout)).ShouldBeTrue();
+            (await WhenTrueAsync(() => IsGone(printedPids.Last()), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            KillStillRunning(printedPids);
+        }
+    }
+
+    // A SIGKILL to the tree would end the child before its trap could print.
+    [Fact(DisplayName = "ExecuteStreaming_OwnProcessGroup_Timeout_StopsTheGroupGracefully")]
+    public async Task ExecuteStreaming_OwnProcessGroup_Timeout_StopsTheGroupGracefully()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", "(trap 'echo got TERM; exit 0' TERM; while :; do sleep 0.1; done) & echo $!; wait")
+            .WithOwnProcessGroup()
+            .WithoutShell()
+            .WithTimeout(TimeSpan.FromMilliseconds(500));
+        var lines = new ConcurrentQueue<string>();
+        var printedPids = new ConcurrentQueue<int>();
+        try
+        {
+            await Should.ThrowAsync<OperationCanceledException>(() => _executor.ExecuteStreamingAsync(
+                command, line => CollectLine(line, lines, printedPids), cancellationToken: TestContext.Current.CancellationToken));
+
+            lines.ShouldContain("got TERM");
+            printedPids.ShouldHaveSingleItem();
+            (await WhenTrueAsync(() => IsGone(printedPids.Single()), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            KillStillRunning(printedPids);
+        }
+    }
+
+    private static void CollectLine(string line, ConcurrentQueue<string> lines, ConcurrentQueue<int> pids)
+    {
+        lines.Enqueue(line);
+        if (int.TryParse(line, NumberStyles.None, CultureInfo.InvariantCulture, out var pid))
+            pids.Enqueue(pid);
+    }
+
+    private static void KillStillRunning(IEnumerable<int> pids)
+    {
+        foreach (var pid in pids.Where(pid => !IsGone(pid)))
+            ProcessGroups.SignalProcess(pid, ProcessGroups.SIGKILL);
+    }
+
     private static Task<int> FirstPidPrinted(IShellProcess process)
     {
         var pid = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);

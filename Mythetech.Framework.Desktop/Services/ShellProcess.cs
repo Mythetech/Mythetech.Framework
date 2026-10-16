@@ -115,6 +115,10 @@ public class ShellProcess : IShellProcess
     public event Action<string>? ErrorReceived;
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Raised when the process itself exits, without waiting for a process it started to close stdout or stderr,
+    /// so output can still arrive afterwards.
+    /// </remarks>
     public event Action<int>? Exited;
 
     internal void Start()
@@ -164,6 +168,16 @@ public class ShellProcess : IShellProcess
     {
         await _process.WaitForExitAsync(cancellationToken);
         return _process.ExitCode;
+    }
+
+    /// <summary>
+    /// Waits for the process itself to exit and returns its exit code. Unlike <see cref="WaitForExitAsync"/>, it does
+    /// not wait for a descendant that still holds its stdout or stderr, and output may still be arriving.
+    /// </summary>
+    internal async Task<int> WaitForLeaderExitAsync(CancellationToken cancellationToken)
+    {
+        var status = await _process.SafeHandle.WaitForExitAsync(cancellationToken);
+        return status.ExitCode;
     }
 
     /// <inheritdoc />

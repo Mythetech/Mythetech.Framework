@@ -12,6 +12,9 @@ namespace Mythetech.Framework.Desktop.Services;
 /// </summary>
 public partial class ShellExecutor : IShellExecutor
 {
+    private static readonly TimeSpan GroupStopGrace = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan OutputDrainTimeout = TimeSpan.FromSeconds(1);
+
     private readonly ILogger<ShellExecutor>? _logger;
 
     /// <summary>
@@ -69,12 +72,34 @@ public partial class ShellExecutor : IShellExecutor
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// A command with <see cref="ShellCommand.OwnProcessGroup"/> returns once the command itself exits, even while
+    /// something it started still holds its output, and its group is then stopped as
+    /// <see cref="IShellProcess.StopAsync"/> stops it, so nothing it started is left running. A timeout or
+    /// cancellation stops the group the same way before the call throws.
+    /// </remarks>
     public async Task<ShellResult> ExecuteStreamingAsync(
         ShellCommand command,
         Action<string>? onStdOut = null,
         Action<string>? onStdErr = null,
         CancellationToken cancellationToken = default)
     {
+        using var timeoutCts = command.Timeout.HasValue
+            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            : null;
+
+        if (command.Timeout.HasValue && timeoutCts != null)
+        {
+            timeoutCts.CancelAfter(command.Timeout.Value);
+        }
+
+        var effectiveCt = timeoutCts?.Token ?? cancellationToken;
+
+        if (command.OwnProcessGroup)
+        {
+            return await ExecuteInOwnGroupAsync(command, onStdOut, onStdErr, effectiveCt);
+        }
+
         var startInfo = CreateProcessStartInfo(command);
         using var process = new Process { StartInfo = startInfo };
 
@@ -96,25 +121,9 @@ public partial class ShellExecutor : IShellExecutor
             };
         }
 
-        using var timeoutCts = command.Timeout.HasValue
-            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
-            : null;
-
-        if (command.Timeout.HasValue && timeoutCts != null)
-        {
-            timeoutCts.CancelAfter(command.Timeout.Value);
-        }
-
-        var effectiveCt = timeoutCts?.Token ?? cancellationToken;
-
         try
         {
             process.Start();
-
-            // Closed when the call ends, which kills whatever the command left running in its job.
-            using var job = command.OwnProcessGroup && OperatingSystem.IsWindows()
-                ? WindowsJobObject.JoinNewJob(process, _logger)
-                : null;
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
@@ -143,6 +152,58 @@ public partial class ShellExecutor : IShellExecutor
             }
 
             throw;
+        }
+    }
+
+    private async Task<ShellResult> ExecuteInOwnGroupAsync(
+        ShellCommand command,
+        Action<string>? onStdOut,
+        Action<string>? onStdErr,
+        CancellationToken cancellationToken)
+    {
+        await using var process = new ShellProcess(CreateProcessStartInfo(command), _logger, ownProcessGroup: true);
+
+        if (onStdOut != null) process.OutputReceived += onStdOut;
+        if (onStdErr != null) process.ErrorReceived += onStdErr;
+
+        var startTime = DateTimeOffset.Now;
+        process.Start();
+
+        try
+        {
+            var exitCode = await process.WaitForLeaderExitAsync(cancellationToken);
+            var exitTime = DateTimeOffset.Now;
+
+            await StopGroupAndDrainAsync(process);
+
+            return new ShellResult
+            {
+                ExitCode = exitCode,
+                StartTime = startTime,
+                ExitTime = exitTime,
+                Duration = exitTime - startTime
+            };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await StopGroupAndDrainAsync(process);
+            throw;
+        }
+    }
+
+    // The stop is not cancellable: the caller's token may be the reason for it.
+    private static async Task StopGroupAndDrainAsync(ShellProcess process)
+    {
+        await process.StopAsync(GroupStopGrace, CancellationToken.None);
+
+        using var drain = new CancellationTokenSource(OutputDrainTimeout);
+        try
+        {
+            await process.WaitForExitAsync(drain.Token);
+        }
+        catch (OperationCanceledException) when (drain.IsCancellationRequested)
+        {
+            // A process that left the group still holds the output, so the rest of it is not waited for.
         }
     }
 
