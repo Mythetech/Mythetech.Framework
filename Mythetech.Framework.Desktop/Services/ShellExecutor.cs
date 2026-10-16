@@ -147,7 +147,7 @@ public partial class ShellExecutor : IShellExecutor
         CancellationToken cancellationToken = default)
     {
         var startInfo = CreateProcessStartInfo(command, redirectInput: true);
-        var shellProcess = new ShellProcess(startInfo, _logger);
+        var shellProcess = new ShellProcess(startInfo, _logger, command.OwnProcessGroup);
         shellProcess.Start();
         return Task.FromResult<IShellProcess>(shellProcess);
     }
@@ -166,6 +166,18 @@ public partial class ShellExecutor : IShellExecutor
         if (!string.IsNullOrEmpty(command.WorkingDirectory))
         {
             startInfo.WorkingDirectory = command.WorkingDirectory;
+        }
+
+        if (command.OwnProcessGroup && !OperatingSystem.IsWindows())
+        {
+            // On Unix the child calls setsid() before exec and keeps its redirected stdio; on Windows it means DETACHED_PROCESS.
+            startInfo.StartDetached = true;
+
+            // .NET forks these children from one long-lived thread, so PR_SET_PDEATHSIG fires only when the app exits.
+            if (OperatingSystem.IsLinux())
+            {
+                startInfo.KillOnParentExit = true;
+            }
         }
 
         if (command.UseShell)
@@ -212,12 +224,15 @@ public partial class ShellExecutor : IShellExecutor
     /// <summary>
     /// Builds the command line for a POSIX -c string. With <see cref="ShellCommand.ArgumentList"/> the
     /// executor quotes the command and every argument; the legacy string form is passed through as given.
+    /// A group command is <c>exec</c>ed, so the group's leader is the command itself rather than the shell.
     /// </summary>
-    private static string BuildPosixCommandLine(ShellCommand command)
+    internal static string BuildPosixCommandLine(ShellCommand command)
     {
+        var exec = command.OwnProcessGroup ? "exec " : string.Empty;
+
         if (command.ArgumentList is { } argumentList)
         {
-            var builder = new StringBuilder(ShellQuoting.Quote(command.Command));
+            var builder = new StringBuilder(exec).Append(ShellQuoting.Quote(command.Command));
             foreach (var argument in argumentList)
             {
                 builder.Append(' ').Append(ShellQuoting.Quote(argument));
@@ -226,8 +241,8 @@ public partial class ShellExecutor : IShellExecutor
         }
 
         return string.IsNullOrEmpty(command.Arguments)
-            ? command.Command
-            : $"{command.Command} {command.Arguments}";
+            ? $"{exec}{command.Command}"
+            : $"{exec}{command.Command} {command.Arguments}";
     }
 
     private static void ConfigureDirectExecution(ProcessStartInfo startInfo, ShellCommand command)

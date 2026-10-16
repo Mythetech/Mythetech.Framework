@@ -78,6 +78,16 @@ public record ShellCommand
     public TimeSpan? Timeout { get; init; }
 
     /// <summary>
+    /// Whether the process leads its own process group (a new session on Unix, a job object on Windows),
+    /// so everything it starts can be signalled and stopped as one. Default: false.
+    /// </summary>
+    /// <remarks>
+    /// The login shell wrapper <c>exec</c>s the command, so <see cref="Command"/> must be an executable,
+    /// not a shell builtin or a compound line.
+    /// </remarks>
+    public bool OwnProcessGroup { get; init; }
+
+    /// <summary>
     /// Creates a new command with the specified arguments.
     /// </summary>
     public ShellCommand WithArguments(string args) => this with { Arguments = args };
@@ -108,4 +118,10 @@ public record ShellCommand
     /// Use when the command is already a full path or shell features aren't needed.
     /// </summary>
     public ShellCommand WithoutShell() => this with { UseShell = false };
+
+    /// <summary>
+    /// Creates a new command whose process leads its own process group.
+    /// See <see cref="OwnProcessGroup"/>.
+    /// </summary>
+    public ShellCommand WithOwnProcessGroup() => this with { OwnProcessGroup = true };
 }

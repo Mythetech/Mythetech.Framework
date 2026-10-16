@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
@@ -13,12 +14,22 @@ public class ShellProcess : IShellProcess
 {
     private readonly Process _process;
     private readonly ILogger? _logger;
+    private readonly bool _ownProcessGroup;
     private bool _disposed;
 
     public ShellProcess(ProcessStartInfo startInfo, ILogger? logger = null)
+        : this(startInfo, logger, ownProcessGroup: false)
+    {
+    }
+
+    /// <param name="startInfo">How to start the process.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="ownProcessGroup">Whether <paramref name="startInfo"/> makes the process lead its own group.</param>
+    public ShellProcess(ProcessStartInfo startInfo, ILogger? logger, bool ownProcessGroup)
     {
         _process = new Process { StartInfo = startInfo };
         _logger = logger;
+        _ownProcessGroup = ownProcessGroup;
 
         _process.OutputDataReceived += (_, args) =>
         {
@@ -47,6 +58,12 @@ public class ShellProcess : IShellProcess
 
     /// <inheritdoc />
     public int ProcessId => _process.Id;
+
+    /// <inheritdoc />
+    public DateTimeOffset StartedAt { get; private set; } = DateTimeOffset.MinValue;
+
+    /// <inheritdoc />
+    public bool OwnsProcessGroup => _ownProcessGroup;
 
     /// <inheritdoc />
     public bool HasExited
@@ -79,8 +96,23 @@ public class ShellProcess : IShellProcess
     internal void Start()
     {
         _process.Start();
+        StartedAt = ReadStartTime();
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
+    }
+
+    private DateTimeOffset ReadStartTime()
+    {
+        try
+        {
+            return _process.StartTime.ToUniversalTime();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+        {
+            // A process that exits at once can be reaped before the OS is asked.
+            _logger?.LogDebug(ex, "Could not read the start time of process {ProcessId}", _process.Id);
+            return DateTimeOffset.MinValue;
+        }
     }
 
     /// <inheritdoc />

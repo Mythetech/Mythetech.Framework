@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Mythetech.Framework.Infrastructure.Shell;
 
 /// <summary>
@@ -9,6 +11,35 @@ public interface IShellProcess : IAsyncDisposable
     /// The process ID.
     /// </summary>
     int ProcessId { get; }
+
+    /// <summary>
+    /// When the process started, in UTC, as the OS records it, or <see cref="DateTimeOffset.MinValue"/> when the
+    /// OS can't say. Precision varies by OS (microseconds on macOS, clock ticks on Linux), so compare with a tolerance.
+    /// </summary>
+    /// <remarks>The default reads the OS by <see cref="ProcessId"/> on every call.</remarks>
+    DateTimeOffset StartedAt
+    {
+        get
+        {
+            if (OperatingSystem.IsBrowser())
+                return DateTimeOffset.MinValue;
+
+            try
+            {
+                using var process = Process.GetProcessById(ProcessId);
+                return process.StartTime.ToUniversalTime();
+            }
+            catch (Exception)
+            {
+                return DateTimeOffset.MinValue;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether the process leads its own process group. See <see cref="ShellCommand.OwnProcessGroup"/>.
+    /// </summary>
+    bool OwnsProcessGroup => false;
 
     /// <summary>
     /// Whether the process has exited.
