@@ -187,7 +187,7 @@ public class ProgressCountdownTests : BunitContext
             .Add(p => p.Duration, 12000));
 
         var wrapper = cut.Find(".mythetech-progress-countdown");
-        wrapper.GetAttribute("style").ShouldContain("--countdown-duration: 12000ms");
+        wrapper.GetAttribute("style").ShouldNotBeNull().ShouldContain("--countdown-duration: 12000ms");
     }
 
     [Fact(DisplayName = "ProgressCountdown does not re-render from C# while counting down")]

@@ -91,7 +91,7 @@ public class HoverStackTests : BunitContext
 
         var row = cut.Find(".mt-hover-row");
         row.ClassList.ShouldContain("my-custom-class");
-        row.GetAttribute("style").ShouldContain("background-color: red");
+        row.GetAttribute("style").ShouldNotBeNull().ShouldContain("background-color: red");
     }
 
     [Fact(DisplayName = "HoverStack applies Row and Spacing to its content stack")]

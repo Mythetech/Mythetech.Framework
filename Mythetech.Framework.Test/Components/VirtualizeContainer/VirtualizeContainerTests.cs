@@ -82,7 +82,7 @@ public class VirtualizeContainerTests : BunitContext
 
         // Assert
         var container = cut.Find(".mf-virtualize-container");
-        container.GetAttribute("style").ShouldContain("height: 400px");
+        container.GetAttribute("style").ShouldNotBeNull().ShouldContain("height: 400px");
     }
 
     [Fact(DisplayName = "VirtualizeContainer accepts ItemSize parameter")]
