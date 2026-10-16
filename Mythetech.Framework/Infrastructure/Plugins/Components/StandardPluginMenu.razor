@@ -12,8 +12,9 @@
 @inject IShowFileService ShowFileService
 @implements IDisposable
 
-<MudMenu ActivationEvent="@ActivationEvent" 
-         AnchorOrigin="@AnchorOrigin" 
+<MudMenu @ref="_menu"
+         ActivationEvent="@ActivationEvent"
+         AnchorOrigin="@AnchorOrigin"
          TransformOrigin="@TransformOrigin"
          Dense="@Dense" 
          ListClass="@ListClass">
@@ -106,6 +107,8 @@
     [Parameter] public Color ButtonColor { get; set; } = Color.Inherit;
     [Parameter] public string ButtonClass { get; set; } = "text-transform-none";
 
+    private MudMenu? _menu;
+
     protected override void OnInitialized()
     {
         PluginState.StateChanged += OnStateChanged;
@@ -120,6 +123,13 @@
                 Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
             }
         }, TaskScheduler.Default);
+    }
+
+    // MudBlazor closes a menu only after an item's OnClick finishes, so close it before waiting on the user.
+    private async Task CloseMenuAsync()
+    {
+        if (_menu is not null)
+            await _menu.CloseMenuAsync();
     }
 
     private async Task HandleAboutPlugin(PluginInfo plugin)
@@ -153,6 +163,8 @@
 
     private async Task HandleDeletePlugin(PluginInfo plugin)
     {
+        await CloseMenuAsync();
+
         var result = await DialogService.ShowMessageBoxAsync(
             title: "Delete Plugin",
             message: $"Are you sure you want to delete '{plugin.Manifest.Name}'? This action cannot be undone.",
@@ -167,6 +179,8 @@
 
     private async Task HandleImportPlugin()
     {
+        await CloseMenuAsync();
+
         var files = await FileOpenService.OpenFileAsync(
             title: "Select Plugin DLL",
             filters: [new FileFilter("Plugin DLLs", ["*.dll"])]);

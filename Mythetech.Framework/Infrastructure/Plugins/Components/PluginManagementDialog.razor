@@ -54,7 +54,7 @@
                                 </MtBadge>
                             </MudTd>
                             <MudTd DataLabel="Actions">
-                                <MudMenu Icon="@MythetechFrameworkIcons.MoreVert" Size="Size.Small" Variant="Variant.Text">
+                                <MudMenu @ref="_rowMenus[context.Manifest.Id]" Icon="@MythetechFrameworkIcons.MoreVert" Size="Size.Small" Variant="Variant.Text">
                                     <MudMenuItem Icon="@(context.IsEnabled ? MythetechFrameworkIcons.Block : MythetechFrameworkIcons.CheckCircle)"
                                                  OnClick="@(() => HandleTogglePlugin(context))">
                                         @(context.IsEnabled ? "Disable" : "Enable")
@@ -165,6 +165,7 @@
     private string _installedTabName = "Installed (0)";
     private string _availableTabName = "Available (0)";
     private bool _showPreviewPlugins;
+    private readonly Dictionary<string, MudMenu> _rowMenus = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -280,6 +281,10 @@
     
     private async Task HandleDeletePlugin(PluginInfo plugin)
     {
+        // MudBlazor closes a menu only after an item's OnClick finishes, so close it before the confirmation.
+        if (_rowMenus.TryGetValue(plugin.Manifest.Id, out var menu))
+            await menu.CloseMenuAsync();
+
         var result = await DialogService.ShowMessageBoxAsync(
             title: "Delete Plugin",
             message: $"Are you sure you want to delete '{plugin.Manifest.Name}'? This action cannot be undone.",
