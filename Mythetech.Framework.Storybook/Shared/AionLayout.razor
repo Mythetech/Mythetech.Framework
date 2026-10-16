@@ -7,7 +7,7 @@
 @code {
     private MudTheme _theme = new()
     {
-        PaletteLight = new PaletteLight()
+        PaletteLight = new MudMarkdownPaletteLight()
         {
             Primary = Colors.Indigo.Lighten2,
             Secondary = Colors.Purple.Lighten4,
@@ -19,7 +19,7 @@
             TableHover = Colors.Indigo.Lighten2 + "33",
         },
 
-        PaletteDark = new PaletteDark()
+        PaletteDark = new MudMarkdownPaletteDark()
         {
             Primary = Colors.Indigo.Default,
             Secondary = Colors.DeepPurple.Darken4,
