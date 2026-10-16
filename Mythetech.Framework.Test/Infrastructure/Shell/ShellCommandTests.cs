@@ -58,14 +58,32 @@ public class ShellCommandTests
     }
 
     [Fact(DisplayName = "IShellProcess_ImplementerWithoutTheNewMembers_GetsTheDefaults")]
-    public void IShellProcess_ImplementerWithoutTheNewMembers_GetsTheDefaults()
+    public async Task IShellProcess_ImplementerWithoutTheNewMembers_GetsTheDefaults()
     {
-        IShellProcess process = new MinimalShellProcess(Environment.ProcessId);
+        var stub = new MinimalShellProcess(Environment.ProcessId);
+        IShellProcess process = stub;
         using var current = Process.GetCurrentProcess();
         DateTimeOffset osStartedAt = current.StartTime.ToUniversalTime();
 
         process.OwnsProcessGroup.ShouldBeFalse();
         (process.StartedAt - osStartedAt).Duration().ShouldBeLessThan(TimeSpan.FromSeconds(1));
+
+        var elapsed = Stopwatch.StartNew();
+        await process.StopAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+
+        stub.Calls.ShouldBe(["Interrupt", "WaitForExit", "Kill(entireProcessTree: True)"]);
+        elapsed.Elapsed.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(100));
+    }
+
+    [Fact(DisplayName = "StopAsync_DefaultForAProcessThatExitsWhenInterrupted_DoesNotKill")]
+    public async Task StopAsync_DefaultForAProcessThatExitsWhenInterrupted_DoesNotKill()
+    {
+        var stub = new MinimalShellProcess(Environment.ProcessId, exitsWhenInterrupted: true);
+        IShellProcess process = stub;
+
+        await process.StopAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        stub.Calls.ShouldBe(["Interrupt", "WaitForExit"]);
     }
 
     [Fact(DisplayName = "StartedAt_DefaultForAProcessThatIsGone_IsMinValue")]
@@ -76,18 +94,33 @@ public class ShellCommandTests
         process.StartedAt.ShouldBe(DateTimeOffset.MinValue);
     }
 
-    private sealed class MinimalShellProcess(int processId) : IShellProcess
+    private sealed class MinimalShellProcess(int processId, bool exitsWhenInterrupted = false) : IShellProcess
     {
+        private readonly TaskCompletionSource<int> _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public List<string> Calls { get; } = [];
         public int ProcessId => processId;
-        public bool HasExited => false;
+        public bool HasExited => _exited.Task.IsCompleted;
         public Stream StandardInput => Stream.Null;
         public event Action<string>? OutputReceived { add { } remove { } }
         public event Action<string>? ErrorReceived { add { } remove { } }
         public event Action<int>? Exited { add { } remove { } }
         public Task WriteInputAsync(string input, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task<int> WaitForExitAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
-        public void Interrupt() { }
-        public void Kill(bool entireProcessTree = true) { }
+
+        public Task<int> WaitForExitAsync(CancellationToken cancellationToken = default)
+        {
+            Calls.Add("WaitForExit");
+            return _exited.Task.WaitAsync(cancellationToken);
+        }
+
+        public void Interrupt()
+        {
+            Calls.Add("Interrupt");
+            if (exitsWhenInterrupted)
+                _exited.TrySetResult(130);
+        }
+
+        public void Kill(bool entireProcessTree = true) => Calls.Add($"Kill(entireProcessTree: {entireProcessTree})");
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

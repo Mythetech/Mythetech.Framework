@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.Versioning;
 using Mythetech.Framework.Desktop.Services;
 using Mythetech.Framework.Infrastructure.Shell;
 using Shouldly;
@@ -9,9 +11,13 @@ namespace Mythetech.Framework.Test.Infrastructure.Shell;
 /// <summary>
 /// Starts real processes through <see cref="ShellExecutor"/> and checks the process group each lands in.
 /// </summary>
+[UnsupportedOSPlatform("windows")]
 public class ShellProcessGroupTests
 {
+    private const string PerlPath = "/usr/bin/perl";
+
     private static readonly TimeSpan SettleTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan GoneTimeout = TimeSpan.FromSeconds(2);
 
     private readonly ShellExecutor _executor = new();
 
@@ -20,6 +26,10 @@ public class ShellProcessGroupTests
 
     private static ShellCommand SleepCommand =>
         new ShellCommand { Command = "/bin/sleep" }.WithArgumentList("30");
+
+    // The subshell exits once it has printed, which orphans the sleep: the leader's tree no longer reaches it, its group does.
+    private static ShellCommand OrphanedChildCommand =>
+        new ShellCommand { Command = "/bin/sh" }.WithArgumentList("-c", "(sleep 60 & echo $!); sleep 60").WithOwnProcessGroup();
 
     [Fact(DisplayName = "StartProcess_OwnProcessGroup_LeadsItsGroup")]
     public async Task StartProcess_OwnProcessGroup_LeadsItsGroup()
@@ -156,6 +166,268 @@ public class ShellProcessGroupTests
         (await WhenTrueAsync(() => ProcessGroups.IsEmpty(process.ProcessId))).ShouldBeTrue();
     }
 
+    [Fact(DisplayName = "StopAsync_EndsAChildThatIgnoresSigint_AfterTheLeaderExited")]
+    public async Task StopAsync_EndsAChildThatIgnoresSigint_AfterTheLeaderExited()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", "trap '' INT; (trap '' INT; sleep 60) & echo $!; exit 0")
+            .WithOwnProcessGroup();
+        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var backgroundPid = FirstPidPrinted(process);
+        try
+        {
+            var childPid = await backgroundPid;
+            (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
+
+            await process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_GroupThatEndsOnSigint_ReturnsBeforeTheGrace")]
+    public async Task StopAsync_GroupThatEndsOnSigint_ReturnsBeforeTheGrace()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = await _executor.StartProcessAsync(
+            SleepCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
+        try
+        {
+            (await CommandNameOnceSettledAsync(process.ProcessId, "sleep")).ShouldEndWith("sleep");
+
+            var elapsed = Stopwatch.StartNew();
+            await process.StopAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+            elapsed.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
+            ProcessGroups.IsEmpty(process.ProcessId).ShouldBeTrue();
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_ChildThatTrapsSigterm_GetsSigtermThenSigkill")]
+    public async Task StopAsync_ChildThatTrapsSigterm_GetsSigtermThenSigkill()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", "(trap 'echo got TERM' TERM; while :; do sleep 0.1; done) & echo $!; wait")
+            .WithOwnProcessGroup();
+        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var lines = new ConcurrentQueue<string>();
+        process.OutputReceived += lines.Enqueue;
+        var backgroundPid = FirstPidPrinted(process);
+        try
+        {
+            var childPid = await backgroundPid;
+
+            await process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+
+            (await WhenTrueAsync(() => lines.Contains("got TERM"))).ShouldBeTrue();
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_LeaderAliveAtSigkill_KillsAChildThatCalledSetsid")]
+    public async Task StopAsync_LeaderAliveAtSigkill_KillsAChildThatCalledSetsid()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", $"trap '' INT TERM; {PerlPath} -e 'use POSIX; setsid(); sleep 60' & echo $!; wait")
+            .WithOwnProcessGroup();
+        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var backgroundPid = FirstPidPrinted(process);
+        int? escapedPid = null;
+        try
+        {
+            escapedPid = await backgroundPid;
+            (await WhenTrueAsync(() => ProcessGroups.GroupOf(escapedPid.Value) == escapedPid.Value)).ShouldBeTrue();
+
+            await process.StopAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+
+            (await WhenTrueAsync(() => IsGone(escapedPid.Value), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            process.Kill();
+            if (escapedPid is { } pid)
+                ProcessGroups.SignalProcess(pid, ProcessGroups.SIGKILL);
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_EmptyGroup_ReturnsAtOnce")]
+    public async Task StopAsync_EmptyGroup_ReturnsAtOnce()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/usr/bin/true" }.WithOwnProcessGroup();
+        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        try
+        {
+            (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
+
+            var elapsed = Stopwatch.StartNew();
+            await process.StopAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+            elapsed.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_Twice_SecondReturnsAtOnce")]
+    public async Task StopAsync_Twice_SecondReturnsAtOnce()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = await _executor.StartProcessAsync(
+            BackgroundChildCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
+        var backgroundPid = FirstPidPrinted(process);
+        try
+        {
+            await backgroundPid;
+            await process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+
+            var second = Stopwatch.StartNew();
+            await process.StopAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            second.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
+
+            var concurrent = Stopwatch.StartNew();
+            await Task.WhenAll(
+                process.StopAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken),
+                process.StopAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            concurrent.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_ConcurrentlyOnALiveGroup_BothReturnAndTheGroupEnds")]
+    public async Task StopAsync_ConcurrentlyOnALiveGroup_BothReturnAndTheGroupEnds()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = await _executor.StartProcessAsync(
+            BackgroundChildCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
+        var backgroundPid = FirstPidPrinted(process);
+        try
+        {
+            var childPid = await backgroundPid;
+
+            await Task.WhenAll(
+                process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken),
+                process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken));
+
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "StopAsync_ChildThatCalledSetsid_DoesNotHang")]
+    public async Task StopAsync_ChildThatCalledSetsid_DoesNotHang()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
+
+        var command = new ShellCommand { Command = "/bin/sh" }
+            .WithArgumentList("-c", $"{PerlPath} -e 'use POSIX; setsid(); sleep 60' & echo $!; wait")
+            .WithOwnProcessGroup();
+        await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var backgroundPid = FirstPidPrinted(process);
+        int? escapedPid = null;
+        try
+        {
+            escapedPid = await backgroundPid;
+            (await WhenTrueAsync(() => ProcessGroups.GroupOf(escapedPid.Value) == escapedPid.Value)).ShouldBeTrue();
+
+            var elapsed = Stopwatch.StartNew();
+            await process.StopAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+
+            elapsed.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(3));
+        }
+        finally
+        {
+            process.Kill();
+            if (escapedPid is { } pid)
+                ProcessGroups.SignalProcess(pid, ProcessGroups.SIGKILL);
+        }
+    }
+
+    [Fact(DisplayName = "Kill_GroupLeader_KillsTheGroup")]
+    public async Task Kill_GroupLeader_KillsTheGroup()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = await _executor.StartProcessAsync(OrphanedChildCommand, TestContext.Current.CancellationToken);
+        var backgroundPid = FirstPidPrinted(process);
+        try
+        {
+            var childPid = await backgroundPid;
+
+            process.Kill();
+
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "DisposeAsync_GroupLeader_StopsTheGroup")]
+    public async Task DisposeAsync_GroupLeader_StopsTheGroup()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        await using var process = await _executor.StartProcessAsync(OrphanedChildCommand, TestContext.Current.CancellationToken);
+        var backgroundPid = FirstPidPrinted(process);
+        try
+        {
+            var childPid = await backgroundPid;
+
+            await process.DisposeAsync();
+
+            (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "DisposeAsync_GroupProcessNeverStarted_DoesNotThrow")]
+    public async Task DisposeAsync_GroupProcessNeverStarted_DoesNotThrow()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var process = new ShellProcess(new ProcessStartInfo("/bin/sleep", "30"), logger: null, ownProcessGroup: true);
+
+        process.Kill();
+        await process.DisposeAsync();
+    }
+
     private static Task<int> FirstPidPrinted(IShellProcess process)
     {
         var pid = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -186,12 +458,14 @@ public class ShellProcessGroupTests
         return name;
     }
 
-    private static async Task<bool> WhenTrueAsync(Func<bool> condition)
+    private static bool IsGone(int pid) => !ProcessGroups.SignalProcess(pid, 0);
+
+    private static async Task<bool> WhenTrueAsync(Func<bool> condition, TimeSpan? timeout = null)
     {
         var elapsed = Stopwatch.StartNew();
         while (!condition())
         {
-            if (elapsed.Elapsed > SettleTimeout)
+            if (elapsed.Elapsed > (timeout ?? SettleTimeout))
                 return false;
             await Task.Delay(50, TestContext.Current.CancellationToken);
         }

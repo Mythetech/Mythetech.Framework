@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Shell;
 
@@ -12,9 +13,18 @@ namespace Mythetech.Framework.Desktop.Services;
 /// </summary>
 public class ShellProcess : IShellProcess
 {
+    private static readonly TimeSpan GroupPollInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan DisposeGrace = TimeSpan.FromSeconds(3);
+
+    [UnsupportedOSPlatform("windows")]
+    private static readonly int[] GroupStopSignals = [ProcessGroups.SIGINT, ProcessGroups.SIGTERM];
+
     private readonly Process _process;
     private readonly ILogger? _logger;
     private readonly bool _ownProcessGroup;
+
+    // Read once at start, so a stop running alongside DisposeAsync can still reach the group.
+    private int _processId;
     private bool _disposed;
 
     public ShellProcess(ProcessStartInfo startInfo, ILogger? logger = null)
@@ -57,13 +67,17 @@ public class ShellProcess : IShellProcess
     }
 
     /// <inheritdoc />
-    public int ProcessId => _process.Id;
+    public int ProcessId => _processId;
 
     /// <inheritdoc />
     public DateTimeOffset StartedAt { get; private set; } = DateTimeOffset.MinValue;
 
     /// <inheritdoc />
     public bool OwnsProcessGroup => _ownProcessGroup;
+
+    // A process that was never started has no group, and pid 0 would reach the caller's own.
+    [UnsupportedOSPlatformGuard("windows")]
+    private bool SignalsItsGroup => _ownProcessGroup && _processId != 0 && !OperatingSystem.IsWindows();
 
     /// <inheritdoc />
     public bool HasExited
@@ -96,6 +110,7 @@ public class ShellProcess : IShellProcess
     internal void Start()
     {
         _process.Start();
+        _processId = _process.Id;
         StartedAt = ReadStartTime();
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
@@ -110,7 +125,7 @@ public class ShellProcess : IShellProcess
         catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
         {
             // A process that exits at once can be reaped before the OS is asked.
-            _logger?.LogDebug(ex, "Could not read the start time of process {ProcessId}", _process.Id);
+            _logger?.LogDebug(ex, "Could not read the start time of process {ProcessId}", _processId);
             return DateTimeOffset.MinValue;
         }
     }
@@ -154,31 +169,57 @@ public class ShellProcess : IShellProcess
                     Kill(entireProcessTree: false);
                 }
             }
-            else
+            else if (!ProcessGroups.SignalProcess(_processId, ProcessGroups.SIGINT))
             {
-                // Unix: Send SIGINT
-                SendSignal(_process.Id, Signal.SIGINT);
+                _logger?.LogWarning(
+                    "Failed to interrupt process {ProcessId}: errno {Errno}", _processId, Marshal.GetLastWin32Error());
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "Failed to interrupt process {ProcessId}", _process.Id);
+            _logger?.LogWarning(ex, "Failed to interrupt process {ProcessId}", _processId);
         }
     }
 
     /// <inheritdoc />
     public void Kill(bool entireProcessTree = true)
     {
-        if (HasExited) return;
+        if (SignalsItsGroup)
+        {
+            KillGroup(entireProcessTree);
+            return;
+        }
 
-        try
+        KillRoot(entireProcessTree);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// For a process that owns its group on Unix: SIGINT, then SIGTERM, then SIGKILL to the group, waiting up to
+    /// <paramref name="grace"/> after each and returning once the group is empty or SIGKILL has been sent.
+    /// </remarks>
+    public async Task StopAsync(TimeSpan grace, CancellationToken cancellationToken = default)
+    {
+        if (!SignalsItsGroup)
         {
-            _process.Kill(entireProcessTree);
+            await IShellProcess.InterruptThenKillAsync(this, grace, cancellationToken);
+            return;
         }
-        catch (Exception ex)
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(grace, TimeSpan.Zero);
+
+        foreach (var signal in GroupStopSignals)
         {
-            _logger?.LogWarning(ex, "Failed to kill process {ProcessId}", _process.Id);
+            if (ProcessGroups.IsEmpty(_processId) || !MayStillOwnGroup())
+                return;
+
+            ProcessGroups.Signal(_processId, signal);
+
+            if (await GroupEmptiesWithinAsync(grace, cancellationToken))
+                return;
         }
+
+        KillGroup(entireProcessTree: true);
     }
 
     /// <inheritdoc />
@@ -189,23 +230,7 @@ public class ShellProcess : IShellProcess
 
         try
         {
-            if (!HasExited)
-            {
-                // Try graceful shutdown first
-                Interrupt();
-
-                // Wait a bit for graceful exit
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-                try
-                {
-                    await _process.WaitForExitAsync(cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Force kill if graceful shutdown didn't work
-                    Kill(entireProcessTree: true);
-                }
-            }
+            await StopAsync(DisposeGrace);
         }
         finally
         {
@@ -215,32 +240,53 @@ public class ShellProcess : IShellProcess
         GC.SuppressFinalize(this);
     }
 
-    #region Platform Signal Handling
-
-    private enum Signal
+    private void KillRoot(bool entireProcessTree)
     {
-        SIGINT = 2,
-        SIGTERM = 15,
-        SIGKILL = 9
-    }
+        if (HasExited) return;
 
-    private static void SendSignal(int pid, Signal signal)
-    {
-        if (OperatingSystem.IsWindows())
-            return;
-
-        // P/Invoke to send signal on Unix
-        var result = kill(pid, (int)signal);
-        if (result != 0)
+        try
         {
-            var error = Marshal.GetLastWin32Error();
-            throw new InvalidOperationException($"Failed to send signal {signal} to process {pid}. Error: {error}");
+            _process.Kill(entireProcessTree);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to kill process {ProcessId}", _processId);
         }
     }
 
-    // Unix: libc kill()
-    [DllImport("libc", SetLastError = true)]
-    private static extern int kill(int pid, int sig);
+    // The leader's tree goes first, while it lives, so a descendant that left the group is reached too.
+    [UnsupportedOSPlatform("windows")]
+    private void KillGroup(bool entireProcessTree)
+    {
+        if (ProcessGroups.IsEmpty(_processId) || !MayStillOwnGroup())
+            return;
+
+        KillRoot(entireProcessTree);
+        ProcessGroups.Signal(_processId, ProcessGroups.SIGKILL);
+    }
+
+    // A leader not yet reaped still holds its pid, so only a reaped leader's pid can have been reused.
+    [UnsupportedOSPlatform("windows")]
+    private bool MayStillOwnGroup() =>
+        !HasExited || ProcessGroups.MayStillOwnGroup(_processId, StartedAt, ProcessGroups.StartTimeOf);
+
+    [UnsupportedOSPlatform("windows")]
+    private async Task<bool> GroupEmptiesWithinAsync(TimeSpan grace, CancellationToken cancellationToken)
+    {
+        var elapsed = Stopwatch.StartNew();
+        while (!ProcessGroups.IsEmpty(_processId))
+        {
+            var remaining = grace - elapsed.Elapsed;
+            if (remaining <= TimeSpan.Zero)
+                return false;
+
+            await Task.Delay(remaining < GroupPollInterval ? remaining : GroupPollInterval, cancellationToken);
+        }
+
+        return true;
+    }
+
+    #region Platform Signal Handling
 
     // Windows: Ctrl+C event
     private const uint CTRL_C_EVENT = 0;
