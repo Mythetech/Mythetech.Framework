@@ -19,6 +19,7 @@ public class ShellProcessGroupTests
     private static readonly TimeSpan SettleTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan GoneTimeout = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan SurvivesTimeout = TimeSpan.FromMilliseconds(500);
+    private static readonly DateTimeOffset AnotherStartTime = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     private readonly ShellExecutor _executor = new();
 
@@ -35,6 +36,24 @@ public class ShellProcessGroupTests
     // The leader exits at once and leaves the sleep in its group, so only the pid-reuse check decides whether it is signalled.
     private static ShellCommand LeaderExitsLeavingAChildCommand =>
         new ShellCommand { Command = "/bin/sh" }.WithArgumentList("-c", "sleep 60 & echo $!; exit 0").WithOwnProcessGroup();
+
+    // The leader prints its child's pid once the child has called setsid, then exits; the child ignores SIGPIPE and ticks every 100 ms.
+    private const string EscapedTickerScript = """
+        use POSIX;
+        $| = 1;
+        pipe(my $ready, my $signal) or die;
+        my $pid = fork() // die;
+        if ($pid == 0) {
+            close $ready;
+            setsid();
+            close $signal;
+            $SIG{PIPE} = 'IGNORE';
+            while (1) { print "tick\n"; select(undef, undef, undef, 0.1); }
+        }
+        close $signal;
+        <$ready>;
+        print "$pid\n";
+        """;
 
     [Fact(DisplayName = "StartProcess_OwnProcessGroup_LeadsItsGroup")]
     public async Task StartProcess_OwnProcessGroup_LeadsItsGroup()
@@ -406,7 +425,7 @@ public class ShellProcessGroupTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
 
-        await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, leader => leader.StartedAt.AddHours(-1));
+        await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, _ => AnotherStartTime);
         var printed = new PrintedPids();
         process.OutputReceived += printed.Collect;
         var backgroundPid = FirstPidPrinted(process);
@@ -414,6 +433,7 @@ public class ShellProcessGroupTests
         try
         {
             var childPid = await backgroundPid;
+            Assert.SkipWhen(process.StartedAt == DateTimeOffset.MinValue, "The OS gave no start time for the leader to compare");
             (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
 
             await process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
@@ -441,6 +461,7 @@ public class ShellProcessGroupTests
         try
         {
             var childPid = await backgroundPid;
+            Assert.SkipWhen(process.StartedAt == DateTimeOffset.MinValue, "The OS gave no start time for the leader to compare");
             (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
 
             await process.StopAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
@@ -466,6 +487,7 @@ public class ShellProcessGroupTests
         try
         {
             var childPid = await backgroundPid;
+            Assert.SkipWhen(process.StartedAt == DateTimeOffset.MinValue, "The OS gave no start time for the leader to compare");
             (await WhenTrueAsync(() => process.HasExited)).ShouldBeTrue();
 
             process.Kill();
@@ -650,6 +672,43 @@ public class ShellProcessGroupTests
             lines.ShouldContain("got TERM");
             var childPid = printed.All.ShouldHaveSingleItem();
             (await WhenTrueAsync(() => IsGone(childPid), GoneTimeout)).ShouldBeTrue();
+        }
+        finally
+        {
+            printed.KillStillRunning();
+        }
+    }
+
+    [Fact(DisplayName = "ExecuteStreaming_OwnProcessGroup_ChildThatLeftTheGroup_NoCallbackAfterTheCallReturns")]
+    public async Task ExecuteStreaming_OwnProcessGroup_ChildThatLeftTheGroup_NoCallbackAfterTheCallReturns()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
+
+        var command = new ShellCommand { Command = PerlPath }
+            .WithArgumentList("-e", EscapedTickerScript)
+            .WithOwnProcessGroup()
+            .WithoutShell()
+            .WithTimeout(TimeSpan.FromSeconds(30));
+        var callbacks = 0;
+        var printed = new PrintedPids();
+        try
+        {
+            await _executor.ExecuteStreamingAsync(
+                command,
+                line =>
+                {
+                    Interlocked.Increment(ref callbacks);
+                    printed.Collect(line);
+                },
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            var afterReturn = Volatile.Read(ref callbacks);
+            var escapedPid = printed.All.ShouldHaveSingleItem();
+            await Task.Delay(SurvivesTimeout, TestContext.Current.CancellationToken);
+
+            IsGone(escapedPid).ShouldBeFalse();
+            Volatile.Read(ref callbacks).ShouldBe(afterReturn);
         }
         finally
         {

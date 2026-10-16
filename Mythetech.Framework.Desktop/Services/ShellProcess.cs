@@ -356,7 +356,9 @@ public class ShellProcess : IShellProcess
             return;
 
         KillRoot(entireProcessTree);
-        ProcessGroups.Signal(_processId, ProcessGroups.SIGKILL, _logger);
+
+        // Nothing follows SIGKILL, so a failure leaves a process in the group running.
+        ProcessGroups.Signal(_processId, ProcessGroups.SIGKILL, _logger, LogLevel.Warning);
     }
 
     // A leader not yet reaped still holds its pid, so only a reaped leader's pid can have been reused.

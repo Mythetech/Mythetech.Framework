@@ -99,6 +99,36 @@ public class ProcessGroupsTests
         }
     }
 
+    [Fact(DisplayName = "Signal_FailsWithAFailureLevel_LogsAtThatLevel")]
+    public async Task Signal_FailsWithAFailureLevel_LogsAtThatLevel()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        var command = new ShellCommand { Command = "/bin/sleep" }.WithArgumentList("30").WithOwnProcessGroup().WithoutShell();
+        await using var process = await new ShellExecutor().StartProcessAsync(command, TestContext.Current.CancellationToken);
+        var logger = new RecordingLogger();
+        try
+        {
+            ProcessGroups.Signal(process.ProcessId, InvalidSignal, logger, LogLevel.Warning).ShouldBeFalse();
+
+            logger.Entries.ShouldHaveSingleItem().Level.ShouldBe(LogLevel.Warning);
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
+    [Fact(DisplayName = "IsEmpty_GroupIdOneOrLess_Throws")]
+    public void IsEmpty_GroupIdOneOrLess_Throws()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+
+        Should.Throw<ArgumentOutOfRangeException>(() => ProcessGroups.IsEmpty(1));
+        Should.Throw<ArgumentOutOfRangeException>(() => ProcessGroups.IsEmpty(0));
+        Should.Throw<ArgumentOutOfRangeException>(() => ProcessGroups.IsEmpty(-1));
+    }
+
     [Fact(DisplayName = "Signal_NoSuchGroup_LogsNothing")]
     public void Signal_NoSuchGroup_LogsNothing()
     {

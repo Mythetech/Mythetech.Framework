@@ -72,9 +72,10 @@ internal sealed class WindowsJobObject : IDisposable
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Could not put process {ProcessId} in a job object, so it runs without one", process.Id);
             job?.Dispose();
             job = null;
+            LogQuietly(() => logger?.LogWarning(
+                ex, "Could not put process {ProcessId} in a job object, so it runs without one", process.Id));
         }
 
         if (!process.StartInfo.StartSuspended)
@@ -100,10 +101,24 @@ internal sealed class WindowsJobObject : IDisposable
                 }
                 catch (Exception killFailure)
                 {
-                    logger?.LogWarning(killFailure, "Could not kill process {ProcessId}, which failed to resume", process.Id);
+                    LogQuietly(() => logger?.LogWarning(
+                        killFailure, "Could not kill process {ProcessId}, which failed to resume", process.Id));
                 }
             }
             throw;
+        }
+    }
+
+    // A logger that throws must not keep a suspended process from being resumed or killed.
+    private static void LogQuietly(Action log)
+    {
+        try
+        {
+            log();
+        }
+        catch (Exception)
+        {
+            // There is nowhere left to report it.
         }
     }
 

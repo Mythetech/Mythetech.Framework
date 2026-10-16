@@ -77,7 +77,8 @@ public partial class ShellExecutor : IShellExecutor
     /// its output. Once the command itself exits, its group is stopped as <see cref="IShellProcess.StopAsync"/> stops it,
     /// so nothing it started is left running; a timeout or cancellation stops the group the same way. The output is then
     /// drained for at most 1 second before the call returns or throws, so lines a slow callback has not yet taken may be
-    /// dropped.
+    /// dropped. The callbacks are unsubscribed before it returns or throws, so a process that left the group and still
+    /// holds the output does not reach them afterwards.
     /// </remarks>
     public async Task<ShellResult> ExecuteStreamingAsync(
         ShellCommand command,
@@ -168,10 +169,9 @@ public partial class ShellExecutor : IShellExecutor
         if (onStdErr != null) process.ErrorReceived += onStdErr;
 
         var startTime = DateTimeOffset.Now;
-        process.Start();
-
         try
         {
+            process.Start();
             var exitCode = await process.WaitForLeaderExitAsync(cancellationToken);
             var exitTime = DateTimeOffset.Now;
 
@@ -189,6 +189,12 @@ public partial class ShellExecutor : IShellExecutor
         {
             await StopGroupAndDrainAsync(process);
             throw;
+        }
+        finally
+        {
+            // A process that left the group can still hold the output after the drain gives up on it.
+            if (onStdOut != null) process.OutputReceived -= onStdOut;
+            if (onStdErr != null) process.ErrorReceived -= onStdErr;
         }
     }
 

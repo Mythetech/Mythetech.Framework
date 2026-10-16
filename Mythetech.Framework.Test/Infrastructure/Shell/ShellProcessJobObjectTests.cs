@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Desktop.Services;
 using Mythetech.Framework.Infrastructure.Shell;
 using Shouldly;
@@ -175,6 +176,50 @@ public class ShellProcessJobObjectTests
         process.OwnsProcessGroup.ShouldBeFalse();
     }
 
+    // The command starts suspended, so its output shows it was resumed although the warning could not be logged.
+    [Fact(DisplayName = "StartProcess_JobFailsAndTheLoggerThrows_ResumesTheCommand")]
+    [SupportedOSPlatform("windows")]
+    public async Task StartProcess_JobFailsAndTheLoggerThrows_ResumesTheCommand()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+
+        var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c echo started" };
+        await using var process = CreateGroupCommandWhoseJobFails(
+            command, new InvalidOperationException("No job"), new ThrowingLogger());
+        var lines = new ConcurrentQueue<string>();
+        process.OutputReceived += lines.Enqueue;
+        process.Start();
+
+        var exitCode = await process.WaitForExitAsync(TestContext.Current.CancellationToken)
+            .WaitAsync(SettleTimeout, TestContext.Current.CancellationToken);
+
+        exitCode.ShouldBe(0);
+        lines.ShouldContain(line => line.Trim() == "started");
+        process.OwnsProcessGroup.ShouldBeFalse();
+    }
+
+    // Not suspended, so it runs off Windows too: a logger that throws must not escape the no-job path.
+    [Fact(DisplayName = "JoinNewJob_JobFailsAndTheLoggerThrows_ReturnsWithoutAJob")]
+    public void JoinNewJob_JobFailsAndTheLoggerThrows_ReturnsWithoutAJob()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "StartProcess_JobFailsAndTheLoggerThrows_ResumesTheCommand covers Windows");
+
+        using var process = Process.Start(new ProcessStartInfo("/bin/sleep", "30"))!;
+        try
+        {
+#pragma warning disable CA1416
+            var job = WindowsJobObject.JoinNewJob(
+                process, new ThrowingLogger(), () => throw new InvalidOperationException("No job"));
+#pragma warning restore CA1416
+
+            job.ShouldBeNull();
+        }
+        finally
+        {
+            process.Kill();
+        }
+    }
+
     [Fact(DisplayName = "StartProcess_WithoutOwnProcessGroupOnWindows_HasNoJob")]
     [SupportedOSPlatform("windows")]
     public async Task StartProcess_WithoutOwnProcessGroupOnWindows_HasNoJob()
@@ -206,10 +251,10 @@ public class ShellProcessJobObjectTests
 
     // Not started, so a test can subscribe first. Making its job throws, as on a machine that refuses one.
     [SupportedOSPlatform("windows")]
-    private ShellProcess CreateGroupCommandWhoseJobFails(ShellCommand command, Exception jobFailure) =>
+    private ShellProcess CreateGroupCommandWhoseJobFails(ShellCommand command, Exception jobFailure, ILogger? logger = null) =>
         new(
             _executor.CreateProcessStartInfo(command.WithOwnProcessGroup(), redirectInput: true),
-            logger: null,
+            logger,
             ownProcessGroup: true,
             startTimeOf: null,
             createJob: () => throw jobFailure);
@@ -276,5 +321,16 @@ public class ShellProcessJobObjectTests
             await Task.Delay(50, TestContext.Current.CancellationToken);
         }
         return true;
+    }
+
+    private sealed class ThrowingLogger : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            throw new InvalidOperationException("The logger failed");
     }
 }

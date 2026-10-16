@@ -24,8 +24,12 @@ internal static class ProcessGroups
     /// <summary>
     /// Whether no process is left in the group. A group the caller may not signal (EPERM) still has members.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The id is 1 or less: kill(-1) checks every process the user owns, and kill(0) the caller's own group.
+    /// </exception>
     public static bool IsEmpty(int processGroupId)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(processGroupId, 1);
         if (kill(-processGroupId, 0) == 0)
             return false;
 
@@ -39,12 +43,13 @@ internal static class ProcessGroups
 
     /// <summary>
     /// Sends <paramref name="signal"/> to every process in the group. False when none could be signalled,
-    /// as when the group is empty. Any failure but an empty group is logged to <paramref name="logger"/> at debug level.
+    /// as when the group is empty. Any failure but an empty group is logged to <paramref name="logger"/> at
+    /// <paramref name="failureLevel"/>.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
     /// The id is 1 or less: kill(-1) signals every process the user owns, and kill(0) the caller's own group.
     /// </exception>
-    public static bool Signal(int processGroupId, int signal, ILogger? logger = null)
+    public static bool Signal(int processGroupId, int signal, ILogger? logger = null, LogLevel failureLevel = LogLevel.Debug)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(processGroupId, 1);
         if (kill(-processGroupId, signal) == 0)
@@ -53,8 +58,12 @@ internal static class ProcessGroups
         var errno = Marshal.GetLastWin32Error();
         if (errno != ESRCH)
         {
-            logger?.LogDebug(
-                "Failed to send signal {Signal} to process group {ProcessGroupId}: errno {Errno}", signal, processGroupId, errno);
+            logger?.Log(
+                failureLevel,
+                "Failed to send signal {Signal} to process group {ProcessGroupId}: errno {Errno}",
+                signal,
+                processGroupId,
+                errno);
         }
         return false;
     }
