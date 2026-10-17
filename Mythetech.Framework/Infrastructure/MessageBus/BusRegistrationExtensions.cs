@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Mythetech.Framework.Infrastructure.Plugins;
 
@@ -10,6 +9,9 @@ namespace Mythetech.Framework.Infrastructure.MessageBus;
 /// </summary>
 public static class BusRegistrationExtensions
 {
+    private static readonly MethodInfo RegisterConsumerTypeMethod = typeof(IMessageBus).GetMethod(nameof(IMessageBus.RegisterConsumerType))!;
+    private static readonly MethodInfo RegisterQueryHandlerMethod = typeof(IMessageBus).GetMethod(nameof(IMessageBus.RegisterQueryHandler))!;
+
     #region Pipe and Filter Registration
     
     /// <summary>
@@ -74,17 +76,7 @@ public static class BusRegistrationExtensions
     /// <param name="assembly">Assembly to search</param>
     public static void RegisterConsumers(this IServiceCollection services, Assembly assembly)
     {
-        var consumerTypes = assembly
-            .GetTypes()
-            .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
-            .SelectMany(t => t.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
-                .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))
-            .Where(c => !typeof(ComponentBase).IsAssignableFrom(c.ConsumerType))
-            .Where(c => !c.MessageType.ContainsGenericParameters);
-
-        foreach (var consumer in consumerTypes)
+        foreach (var consumer in BusAssemblyScan.Get(assembly).Consumers)
         {
             services.AddTransient(consumer.ConsumerType);
         }
@@ -97,32 +89,12 @@ public static class BusRegistrationExtensions
     /// <param name="assembly">Assembly to search for query handlers</param>
     public static void RegisterQueryHandlers(this IServiceCollection services, Assembly assembly)
     {
-        var handlerTypes = assembly
-            .GetTypes()
-            .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
-            .SelectMany(t => t.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryHandler<,>))
-                .Select(i => new
-                {
-                    HandlerType = t,
-                    MessageType = i.GetGenericArguments()[0],
-                    ResponseType = i.GetGenericArguments()[1]
-                }))
-            .Where(h => !typeof(ComponentBase).IsAssignableFrom(h.HandlerType));
-
-        foreach (var handler in handlerTypes)
+        foreach (var handler in BusAssemblyScan.Get(assembly).QueryHandlers)
         {
             services.AddTransient(handler.HandlerType);
         }
     }
 
-    private static bool IsMcpHandler(Type type)
-        => type.Namespace?.Contains(".Mcp") == true;
-
-    private static bool IsFeatureFlagHandler(Type type)
-        => type.Namespace?.Contains(".FeatureFlags") == true;
-    
     /// <summary>
     /// Registers consumers to the bus
     /// </summary>
@@ -130,17 +102,7 @@ public static class BusRegistrationExtensions
     /// <param name="assembly">Assembly to search</param>
     public static void RegisterConsumersToBus(this IMessageBus bus, Assembly assembly)
     {
-        var consumerTypes = assembly
-            .GetTypes()
-            .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
-            .SelectMany(t => t.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
-                .Select(i => new { ConsumerType = t, MessageType = i.GetGenericArguments()[0] }))
-            .Where(c => !typeof(ComponentBase).IsAssignableFrom(c.ConsumerType))
-            .Where(c => !c.MessageType.ContainsGenericParameters);
-
-        foreach (var consumer in consumerTypes)
+        foreach (var consumer in BusAssemblyScan.Get(assembly).Consumers)
         {
             bus.RegisterConsumerType(consumer.MessageType, consumer.ConsumerType);
         }
@@ -154,9 +116,16 @@ public static class BusRegistrationExtensions
     /// <param name="consumerType">Consumer Type</param>
     public static void RegisterConsumerType(this IMessageBus bus, Type messageType, Type consumerType)
     {
-        var method = typeof(IMessageBus).GetMethod(nameof(IMessageBus.RegisterConsumerType))?
-            .MakeGenericMethod(messageType, consumerType);
-        method?.Invoke(bus, null);
+        if (bus is InMemoryMessageBus inMemoryBus)
+        {
+            if (messageType.IsValueType || !typeof(IConsumer<>).MakeGenericType(messageType).IsAssignableFrom(consumerType))
+                throw new ArgumentException($"{consumerType} does not consume {messageType}.", nameof(consumerType));
+
+            inMemoryBus.RegisterConsumerType(messageType, consumerType);
+            return;
+        }
+
+        RegisterConsumerTypeMethod.MakeGenericMethod(messageType, consumerType).Invoke(bus, null);
     }
 
     /// <summary>
@@ -166,21 +135,7 @@ public static class BusRegistrationExtensions
     /// <param name="assembly">Assembly to search for query handlers</param>
     public static void RegisterQueryHandlersToBus(this IMessageBus bus, Assembly assembly)
     {
-        var handlerTypes = assembly
-            .GetTypes()
-            .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
-            .SelectMany(t => t.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryHandler<,>))
-                .Select(i => new
-                {
-                    HandlerType = t,
-                    MessageType = i.GetGenericArguments()[0],
-                    ResponseType = i.GetGenericArguments()[1]
-                }))
-            .Where(h => !typeof(ComponentBase).IsAssignableFrom(h.HandlerType));
-
-        foreach (var handler in handlerTypes)
+        foreach (var handler in BusAssemblyScan.Get(assembly).QueryHandlers)
         {
             bus.RegisterQueryHandler(handler.MessageType, handler.ResponseType, handler.HandlerType);
         }
@@ -195,9 +150,16 @@ public static class BusRegistrationExtensions
     /// <param name="handlerType">Handler type</param>
     public static void RegisterQueryHandler(this IMessageBus bus, Type messageType, Type responseType, Type handlerType)
     {
-        var method = typeof(IMessageBus).GetMethod(nameof(IMessageBus.RegisterQueryHandler))?
-            .MakeGenericMethod(messageType, responseType, handlerType);
-        method?.Invoke(bus, null);
+        if (bus is InMemoryMessageBus inMemoryBus)
+        {
+            if (!typeof(IQueryHandler<,>).MakeGenericType(messageType, responseType).IsAssignableFrom(handlerType))
+                throw new ArgumentException($"{handlerType} does not answer {messageType} with {responseType}.", nameof(handlerType));
+
+            inMemoryBus.RegisterQueryHandler(messageType, responseType, handlerType);
+            return;
+        }
+
+        RegisterQueryHandlerMethod.MakeGenericMethod(messageType, responseType, handlerType).Invoke(bus, null);
     }
 
     /// <summary>

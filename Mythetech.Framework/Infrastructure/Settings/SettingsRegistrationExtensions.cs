@@ -148,9 +148,10 @@ public static class SettingsRegistrationExtensions
         this IServiceCollection services,
         Assembly assembly)
     {
-        var settingsTypes = assembly.GetTypes()
+        var settingsTypes = AssemblyTypes.Get(assembly)
             .Where(t => !t.IsAbstract && typeof(SettingsBase).IsAssignableFrom(t))
-            .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
+            .Where(t => t.GetConstructor(Type.EmptyTypes) != null)
+            .ToArray();
 
         foreach (var type in settingsTypes)
         {
@@ -230,7 +231,7 @@ public static class SettingsRegistrationExtensions
     public static IServiceProvider RegisterSettingsFromAssembly(this IServiceProvider serviceProvider, Assembly assembly)
     {
         var provider = serviceProvider.GetRequiredService<ISettingsProvider>();
-        var settingsTypes = assembly.GetTypes()
+        var settingsTypes = AssemblyTypes.Get(assembly)
             .Where(t => !t.IsAbstract && typeof(SettingsBase).IsAssignableFrom(t))
             .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
 

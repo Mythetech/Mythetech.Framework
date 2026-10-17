@@ -74,7 +74,7 @@ public static class McpRegistrationExtensions
     /// </summary>
     public static IServiceCollection AddMcpTools(this IServiceCollection services, Assembly assembly)
     {
-        var toolTypes = assembly.GetTypes()
+        var toolTypes = AssemblyTypes.Get(assembly)
             .Where(t => !t.IsAbstract && !t.IsInterface)
             .Where(t => typeof(IMcpTool).IsAssignableFrom(t))
             .Where(t => t.GetCustomAttribute<McpToolAttribute>() is not null);
