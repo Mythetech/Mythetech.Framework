@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
@@ -60,20 +59,13 @@ public class SettingsPersister : IConsumer<SettingsModelChanged>
     private static string SerializeSettings(SettingsBase settings)
     {
         // Only serialize properties with [Setting] attribute
-        var properties = settings.GetType()
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.GetCustomAttribute<SettingAttribute>() != null && p.CanRead);
-
         var dict = new Dictionary<string, object?>();
-        foreach (var prop in properties)
+        foreach (var setting in SettingsPropertyCache.GetSettingProperties(settings.GetType()))
         {
-            var value = prop.GetValue(settings);
-            dict[prop.Name] = value;
+            if (setting.Property.CanRead)
+                dict[setting.Property.Name] = setting.Property.GetValue(settings);
         }
 
-        return JsonSerializer.Serialize(dict, new JsonSerializerOptions
-        {
-            WriteIndented = false
-        });
+        return JsonSerializer.Serialize(dict);
     }
 }
