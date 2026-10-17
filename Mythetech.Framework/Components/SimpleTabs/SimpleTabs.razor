@@ -146,13 +146,7 @@
             {
                 _containerWidth = newSize.Width;
                 EvaluateCompactMode();
-                InvokeAsync(StateHasChanged).ContinueWith(t =>
-                {
-                    if (t.IsFaulted && t.Exception != null)
-                    {
-                        Console.Error.WriteLine($"Error in HandleResize: {t.Exception}");
-                    }
-                }, TaskScheduler.Default);
+                InvokeAsync(StateHasChanged);
             }
         }
     }

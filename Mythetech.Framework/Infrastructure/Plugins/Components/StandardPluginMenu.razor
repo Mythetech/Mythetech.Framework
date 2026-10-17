@@ -116,13 +116,7 @@
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(StateHasChanged).ContinueWith(t =>
-        {
-            if (t.IsFaulted && t.Exception != null)
-            {
-                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
-            }
-        }, TaskScheduler.Default);
+        InvokeAsync(StateHasChanged);
     }
 
     // MudBlazor closes a menu only after an item's OnClick finishes, so close it before waiting on the user.
