@@ -144,6 +144,26 @@ public class MtKeyBindingsTests : BunitContext
         await _service.Received(1).InvokeAsync("save", Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Pressing a hotkey gives every MudHotkey the same modifiers, so none registers again")]
+    public async Task Pressing_hotkey_keeps_modifier_references()
+    {
+        _service.GetAll().Returns(new[]
+        {
+            Resolved("save", KeyBinding.CtrlOrCmd(JsKey.KeyS)),
+            Resolved("find", KeyBinding.CtrlOrCmd(JsKey.KeyF, shift: true)),
+        });
+        var cut = Render<MtKeyBindings>();
+        var modifiers = cut.FindComponents<MudHotkey>().Select(h => h.Instance.KeyModifiers).ToArray();
+        var hotkey = cut.FindComponent<MudHotkey>().Instance;
+
+        await cut.InvokeAsync(() => hotkey.MudHotkeyProviderJsCallback());
+
+        var after = cut.FindComponents<MudHotkey>().Select(h => h.Instance.KeyModifiers).ToArray();
+        after.Length.ShouldBe(modifiers.Length);
+        for (var i = 0; i < after.Length; i++)
+            after[i].ShouldBeSameAs(modifiers[i]);
+    }
+
     [Fact(DisplayName = "A key binding settings change re-registers the hotkeys")]
     public async Task Settings_change_rerenders()
     {

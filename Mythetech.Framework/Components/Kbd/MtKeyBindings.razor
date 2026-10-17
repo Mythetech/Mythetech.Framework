@@ -1,4 +1,5 @@
 @namespace Mythetech.Framework.Components.Kbd
+@using System.Collections.Concurrent
 @using MudBlazor
 @using MudBlazor.Utilities
 @using Mythetech.Framework.Infrastructure.Keyboard
@@ -25,6 +26,9 @@
 }
 
 @code {
+    // MudHotkey registers again over JS interop whenever KeyModifiers changes by reference, so each set is built once.
+    private static readonly ConcurrentDictionary<(JsKeyModifier? Accelerator, bool Shift, bool Alt), JsKeyModifier[]> ModifierSets = new();
+
     /// <summary>
     /// Re-renders when the shortcut settings change so newly assigned bindings
     /// register without a restart. This covers settings loaded asynchronously
@@ -55,42 +59,41 @@
     {
         if (!binding.Ctrl)
         {
-            return [new("none", CommonModifiers(binding))];
+            return [new("none", Modifiers(binding, accelerator: null))];
         }
 
         if (!PlatformDetector.IsMacOS)
         {
-            return [new("ctrl", Accelerated(binding, JsKeyModifier.ControlLeft))];
+            return [new("ctrl", Modifiers(binding, JsKeyModifier.ControlLeft))];
         }
 
         return
         [
-            new("meta", Accelerated(binding, JsKeyModifier.MetaLeft)),
-            new("ctrl", Accelerated(binding, JsKeyModifier.ControlLeft)),
+            new("meta", Modifiers(binding, JsKeyModifier.MetaLeft)),
+            new("ctrl", Modifiers(binding, JsKeyModifier.ControlLeft)),
         ];
     }
 
-    private static IEnumerable<JsKeyModifier> Accelerated(KeyBinding binding, JsKeyModifier accelerator)
-    {
-        var modifiers = new List<JsKeyModifier>(3) { accelerator };
-        modifiers.AddRange(CommonModifiers(binding));
-        return modifiers;
-    }
-
-    private static List<JsKeyModifier> CommonModifiers(KeyBinding binding)
-    {
-        var modifiers = new List<JsKeyModifier>(2);
-
-        if (binding.Shift)
+    private static IEnumerable<JsKeyModifier> Modifiers(KeyBinding binding, JsKeyModifier? accelerator)
+        => ModifierSets.GetOrAdd((accelerator, binding.Shift, binding.Alt), static set =>
         {
-            modifiers.Add(JsKeyModifier.ShiftLeft);
-        }
+            var modifiers = new List<JsKeyModifier>(3);
 
-        if (binding.Alt)
-        {
-            modifiers.Add(JsKeyModifier.AltLeft);
-        }
+            if (set.Accelerator is { } key)
+            {
+                modifiers.Add(key);
+            }
 
-        return modifiers;
-    }
+            if (set.Shift)
+            {
+                modifiers.Add(JsKeyModifier.ShiftLeft);
+            }
+
+            if (set.Alt)
+            {
+                modifiers.Add(JsKeyModifier.AltLeft);
+            }
+
+            return modifiers.ToArray();
+        });
 }
