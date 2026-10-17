@@ -1,9 +1,38 @@
 # Changelog
 
-## [Unreleased]
+## [0.21.10] - 2026-10-17
+
+### Changed
+
+- `Mythetech.Framework` moves to `MudBlazor` 9.11.0, from 9.3.0. Every MudBlazor component does less work: each one allocates about 600 bytes less (#13711), the localizer is cached instead of rebuilt per component (#13712), and `MudText`, `MudStack`, buttons, `MudListItem`, `MudMenuItem` and `MudChip` render their element directly instead of through a child `MudElement`. `MudSelect` builds its options once per open instead of on every render (#13851). See the MudBlazor release notes for the full list
+  - A menu item's `OnClick` now finishes before its menu closes (#13374). `StandardPluginMenu` closes its menu before it shows the plugin file picker or the delete confirmation, and the row menu in `PluginManagementDialog` closes before its delete confirmation. A plugin menu item whose `OnClick` waits on the user keeps the menu open until it returns
+  - `MudNumericField` no longer steps its value on mouse wheel (#13405), so `IntSettingEditor` and `DoubleSettingEditor` no longer do either
+  - A `MudMenu` closing during navigation no longer throws a JS interop error on WebView (#13317)
+- `Microsoft.AspNetCore.Components`, `Microsoft.AspNetCore.Components.WebAssembly`, `Microsoft.Extensions.Http`, `Microsoft.Data.Sqlite` and `Microsoft.Extensions.Logging.Console` move to 10.0.13, from 10.0.12. 10.0.13 is a security release; see the .NET 10.0.13 release notes
+- `Mythetech.Framework.WebAssembly` pins `MessagePack` 3.1.12, from 3.1.8, for three advisories patched since 3.1.8: GHSA-qhrr-8q5h-9q3h, GHSA-fx6j-x9m5-vmrf and GHSA-7rj2-5w9w-r9jx. `SqliteWasmBlazor` still depends on 3.1.8 in 0.9.4-pre, so the pin stays
+- The desktop settings and plugin state stores read on the thread pool. `LiteDbSettingsStorage` and `SqliteSettingsStorage` did all their work synchronously and returned a finished task, and apps load settings from a layout's `OnAfterRenderAsync`, so opening the database and reading every settings entry ran on the UI thread at startup. `LoadSettingsAsync`, `LoadAllSettingsAsync` and the storage probe now run on the thread pool, and so does `LoadDisabledPluginsAsync` in `LiteDbPluginStateProvider` and `SqlitePluginStateProvider`
+  - Saves still run on the caller, so two quick saves of the same settings are written in the order they were made
+- `PluginState.InitializePluginsAsync` loads the plugin directory on the thread pool. Loading opens every DLL in the plugin directory and its subdirectories and scans their types, which ran on the UI thread when an app called it from `OnAfterRenderAsync`. Registering the loaded plugins still runs back on the caller's synchronization context, such as the UI thread
+- `PluginLoader` lists the loaded assemblies once per scan instead of once per DLL, and reads each assembly's types once instead of three times
+- `NativeSecretManager` calls the macOS keychain, the Windows credential store and libsecret on the thread pool. These calls block, and a keychain access prompt blocks until the user answers it, which froze the window
+- `DisabledPluginConsumerFilter` no longer allocates. It runs for every consumer on every publish in an app that calls `AddPluginFramework`, and each call locked `PluginState`, copied its plugin list and ran a LINQ query over it
+- `PluginState.Plugins` returns a snapshot that is replaced when a plugin is added or removed, instead of copying the list under a lock on every read
+- `ComponentConsumer` no longer creates a `CancellationTokenSource` for each message. Nothing cancelled it, and `Consume` now receives `CancellationToken.None`
+- `MtKeyBindings` passes each `MudHotkey` the same modifier list on every render. `MudHotkey` registers its hotkey again over JS interop whenever `KeyModifiers` changes by reference, and pressing any shortcut re-renders `MtKeyBindings`, so every press registered every shortcut again, twice per shortcut on macOS
+- `DesktopPluginAssetLoader.LoadPluginAssetsAsync` skips assets it has already injected. Each plugin component calls it on first render, and every call read each asset file, base64-encoded it and sent it to the WebView again
+- `HoverStack` attaches a click handler only when `OnClick` is set, so clicking a row without one no longer calls into .NET and re-renders it
+- `CommandPalettePanel` selects a row on `mouseenter` instead of `mouseover`, which fired again for every element inside the row, and doesn't re-render for a key it doesn't handle, such as each character typed into the search box
+- `SettingsPanel` searches 250ms after typing pauses instead of on every keystroke. It and `SettingsSectionDisplay` read setting properties from the cached property list instead of reflecting over each settings type on every render
+- `VirtualizeContainer` re-renders when it is shown or hidden, not on every resize; `Virtualize` tracks its own viewport
+- Startup reads each assembly's types once. `AddMessageBus`, `UseMessageBus`, `RegisterSettingsFromAssembly`, `AddMcpTools` and the MCP tool loader share one list of an assembly's types, and the bus's four registration paths share one list of its consumers and query handlers. `InMemoryMessageBus` registers them directly instead of invoking its generic `RegisterConsumerType` and `RegisterQueryHandler` through reflection, and `RegisterSettingsFromAssembly` no longer scans the assembly again when its options are resolved
+- `FeatureFlagsSettingsBase` reads its flags' metadata once per type. `GetFeatureFlags`, `GetFlagValue` and `SetFlagValue` reflected over every property and ran a regex for each label on every call
+- `SettingsPersister` serializes from the cached property list with the default `JsonSerializerOptions`. It created new options for every save, so System.Text.Json built its serialization metadata again each time
 
 ### Added
 
+- `FeatureFlagsInitializationHook`, which runs `UseFeatureFlags()` at order 200, after `SettingsInitializationHook`. Register it with `AddInitializationHook<FeatureFlagsInitializationHook>()` instead of calling `UseFeatureFlags()` before `app.Run()`
+  - `UseFeatureFlags()` raises `FeatureFlagStateChanged` once the flags are registered, so flag-gated UI that rendered before it ran, as it does when the hook runs after the first render, shows the loaded values
+- `ComponentConsumer` and its two, three and four message variants have `protected virtual ValueTask DisposeAsyncCore()`, which `DisposeAsync` calls after the component unsubscribes. A subclass that cleans up in it can't forget to unsubscribe
 - `ShellCommand.OwnProcessGroup` (and `WithOwnProcessGroup()`) starts a command as the leader of its own process group, a new session on Unix and a kill-on-close job object on Windows, so everything it starts can be stopped as one
   - `ExecuteAsync` and `ExecuteStreamingAsync` don't wait for something the command started that still holds its output: once the command itself exits, the call stops its group as `StopAsync` does, with a grace of 2 seconds after each signal, and drains the remaining output for up to 1 second before it returns, so nothing it started is left running. A timeout or cancellation stops the group the same way before the call throws, so on Unix a cancelled or timed-out group command can take about 5 seconds to throw: two graces, SIGKILL, and up to 1 second of drain
   - `ExecuteStreamingAsync` unsubscribes its callbacks before it returns or throws, so a process that left the group and still holds the output does not reach them afterwards
@@ -13,13 +42,25 @@
 - `IShellProcess.StopAsync(grace)` stops a process: for a group, SIGINT, SIGTERM and then SIGKILL to the whole group on Unix, waiting up to `grace` after each, or on Windows a wait of up to `grace` for the process and then the job's termination, even after the process itself has exited; for a Windows group command that got no job, a wait of up to `grace` and then a tree kill, with no interrupt; without a group, an interrupt, a wait and a tree kill
   - Before signalling a group whose leader has exited, it checks that no process with another start time has taken the leader's pid, so a reused group id is never signalled
 
+### Fixed
+
+- `AppContextDrawer` handles `ActivatePanel` on the renderer's dispatcher. The bus can deliver it from any thread, and one published from a background thread threw "The current thread is not associated with the Dispatcher" and left the panel closed
+- A query handler that replaces an earlier one for the same message type takes effect after a query was already sent. The bus kept the handler it cached on the first query
+- A consumer registered after its message type was first published receives later messages. The bus cached each message type's consumers on its first publish, an empty list included, and registering a consumer didn't clear the cache
+- `DisabledPluginConsumerFilter` blocks a disabled plugin's `ComponentConsumer<T1, T2>`, `<T1, T2, T3>` and `<T1, T2, T3, T4>` components. Each message type is subscribed through an adapter defined in `Mythetech.Framework`, so the filter looked up the Framework's assembly instead of the plugin's and let them through
+
 ### Notes
 
+- Don't block on `LoadPersistedSettingsAsync()`, `UseFeatureFlags()`, `PluginState.InitializePluginsAsync()` or `PluginState.LoadStateAsync()` with `.GetAwaiter().GetResult()` after `Build()` in a Hermes app. They now finish on the thread pool and resume on the UI thread's synchronization context, which Hermes installs in `Build()` but only runs from `app.Run()`, so the blocked UI thread never lets them finish. Run them from initialization hooks instead
+- A `ComponentConsumer` subclass that re-declares `@implements IAsyncDisposable` with its own `public new ValueTask DisposeAsync()` must still call `base.DisposeAsync()`. Blazor calls the subclass's method, so without the base call the component stays subscribed: it, and the tree it holds, stay in memory and keep handling messages. Moving the cleanup into `DisposeAsyncCore` avoids that
+- Apps that reference `MudBlazor` directly must remove that reference, or move it to at least 9.11.0. A lower direct version than the one `Mythetech.Framework` depends on fails restore with NU1605 (package downgrade)
+- In `MudBlazor.Markdown` 9.10, `MudMarkdownStyling.CodeBlock.Theme` is obsolete and has no effect. Code block colors come from `MudMarkdownThemeProvider` in place of `MudThemeProvider`, with `MudMarkdownPaletteLight` and `MudMarkdownPaletteDark` as the theme's palettes
 - `StartedAt`, `OwnsProcessGroup` and `StopAsync` have default implementations on `IShellProcess`, so existing implementers still compile. The defaults read the start time from the OS by `ProcessId`, return false, and interrupt, wait and kill the process tree
 - The login shell wrapper `exec`s a group command, so the group's leader is the command and not the shell. A group command's `Command` must therefore be an executable, never a shell builtin or a compound line, and this applies to the `Arguments` string form too
 - On Linux a group command also sets `ProcessStartInfo.KillOnParentExit` (PR_SET_PDEATHSIG), so the command itself is killed when the app exits. PR_SET_PDEATHSIG fires when the forking thread exits, but .NET 11 forks every such child from one dedicated thread that lives as long as the app, so a thread-pool thread that started the command can exit safely. It covers the leader only, not what the leader starts
   - On Linux a group command is therefore started by a real `fork()` on that one runtime thread, which is how .NET implements `KillOnParentExit`, so group starts are serialised and each costs a full fork
 - `IShellProcess.Exited` is unchanged, and a test now pins it: it fires when the command itself exits, without waiting for a process it started to close stdout or stderr. `WaitForExitAsync` on a group process still waits for every descendant holding stdout or stderr, so a caller that needs the leader's exit uses `Exited` and then `StopAsync`
+- All four packages move to `0.21.10`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
 
 ## [0.21.9] - 2026-10-14
 
