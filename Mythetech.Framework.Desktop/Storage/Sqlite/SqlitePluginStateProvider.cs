@@ -45,13 +45,16 @@ public class SqlitePluginStateProvider : IPluginStateProvider, IDisposable
         });
     }
 
+    // The load runs on the thread pool since it opens the database; saves stay on the caller to keep their order.
     /// <inheritdoc />
-    public Task<IReadOnlySet<string>> LoadDisabledPluginsAsync()
+    public Task<IReadOnlySet<string>> LoadDisabledPluginsAsync() => Task.Run(LoadDisabledPlugins);
+
+    private IReadOnlySet<string> LoadDisabledPlugins()
     {
         var connStr = _connectionString.Value;
         if (connStr == null)
         {
-            return Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+            return new HashSet<string>();
         }
 
         try
@@ -65,17 +68,17 @@ public class SqlitePluginStateProvider : IPluginStateProvider, IDisposable
             var json = cmd.ExecuteScalar() as string;
             if (json == null)
             {
-                return Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+                return new HashSet<string>();
             }
 
             var plugins = JsonSerializer.Deserialize<HashSet<string>>(json);
             _logger?.LogDebug("Loaded {Count} disabled plugins from state provider", plugins?.Count ?? 0);
-            return Task.FromResult<IReadOnlySet<string>>(plugins ?? new HashSet<string>());
+            return plugins ?? new HashSet<string>();
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load disabled plugins");
-            return Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+            return new HashSet<string>();
         }
     }
 
