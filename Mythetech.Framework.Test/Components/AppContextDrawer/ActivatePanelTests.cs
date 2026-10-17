@@ -41,6 +41,18 @@ public class ActivatePanelTests : BunitContext
         cut.Markup.ShouldContain("body of b");
     }
 
+    [Fact(DisplayName = "An ActivatePanel message consumed off the renderer's dispatcher opens the panel")]
+    public async Task ActivatePanel_ConsumedOffDispatcher_OpensNamedPanel()
+    {
+        var cut = Render<BoundPanelsTestHost>();
+        var drawer = cut.FindComponent<Drawer>();
+
+        await Task.Run(() => drawer.Instance.Consume(new ActivatePanel("b")));
+
+        cut.WaitForAssertion(() => cut.Instance.ActivePanelId.ShouldBe("b"));
+        cut.Instance.IsOpen.ShouldBeTrue();
+    }
+
     [Fact(DisplayName = "An ActivatePanel message for the panel that is already open leaves it open")]
     public async Task ActivatePanel_ForOpenPanel_LeavesItOpen()
     {

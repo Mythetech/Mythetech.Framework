@@ -486,13 +486,14 @@
         InvokeAsync(StateHasChanged);
     }
 
-    public async Task Consume(ActivatePanel message)
+    // The bus can deliver from any thread, and this reads and renders the drawer's state.
+    public Task Consume(ActivatePanel message) => InvokeAsync(async () =>
     {
         if (FindPanel(message.PanelId) is { } panel && !IsOnScreen(panel))
         {
             await HandlePanelItemClicked(panel);
         }
-    }
+    });
 
     /// <summary>
     /// Whether the drawer is open on this panel. A lit item is no sign of that: the app can collapse the
