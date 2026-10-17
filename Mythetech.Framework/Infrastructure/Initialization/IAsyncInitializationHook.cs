@@ -8,10 +8,7 @@ public interface IAsyncInitializationHook
 {
     /// <summary>
     /// The execution order for this hook. Lower values run first.
-    /// Default hooks use orders like:
-    /// - 100: Settings loading
-    /// - 200: Feature flags
-    /// - 300: MCP server
+    /// The built-in hooks use 100 (<see cref="SettingsInitializationHook"/>) and 200 (<see cref="FeatureFlagsInitializationHook"/>).
     /// Custom hooks should use higher values (e.g., 500+) to run after framework initialization.
     /// </summary>
     int Order => 500;

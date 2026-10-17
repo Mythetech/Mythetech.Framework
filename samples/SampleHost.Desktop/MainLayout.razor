@@ -61,7 +61,6 @@
 
 @code {
     private bool _drawerOpen = true;
-    private bool _pluginLoadingStarted;
     private SampleAppSettings _appSettings = new();
 
     protected override void OnInitialized()
@@ -74,46 +73,20 @@
         {
             _appSettings = settings;
         }
-
-        _drawerOpen = _appSettings.DrawerExpandedOnStart;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_pluginLoadingStarted && !PluginState.PluginsLoaded)
-        {
-            _pluginLoadingStarted = true;
-            await InitializePluginsAsync();
-        }
+        if (!firstRender)
+            return;
 
-        // Runs the initialization hooks and publishes ApplicationReady, which in a smoke run is what
-        // releases the checks.
-        if (firstRender)
-            await InitializationHost.InitializeAsync();
-    }
+        // Runs the initialization hooks, which load settings and plugins, and publishes ApplicationReady,
+        // which in a smoke run is what releases the checks.
+        await InitializationHost.InitializeAsync();
 
-    private async Task InitializePluginsAsync()
-    {
-        try
-        {
-            // Get custom plugin directory from settings if configured
-            var pluginSettings = SettingsProvider.GetSettings<PluginSettings>();
-            string? pluginDirectory = null;
-
-            if (!string.IsNullOrWhiteSpace(pluginSettings?.CustomPluginDirectory)
-                && Directory.Exists(pluginSettings.CustomPluginDirectory))
-            {
-                pluginDirectory = pluginSettings.CustomPluginDirectory;
-            }
-
-            await PluginState.InitializePluginsAsync(pluginDirectory);
-            await PluginState.LoadStateAsync();
-            await LoadAllPluginAssetsAsync();
-        }
-        catch
-        {
-            // Silently handle errors - plugin loading is optional
-        }
+        _drawerOpen = _appSettings.DrawerExpandedOnStart;
+        await LoadAllPluginAssetsAsync();
+        StateHasChanged();
     }
 
     private async Task LoadAllPluginAssetsAsync()

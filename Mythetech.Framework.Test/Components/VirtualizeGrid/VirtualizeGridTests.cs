@@ -64,7 +64,7 @@ public class VirtualizeGridTests : BunitContext
 
         // Assert
         var container = cut.Find(".mf-virtualize-grid");
-        container.GetAttribute("style").ShouldContain("max-height: 500px");
+        container.GetAttribute("style").ShouldNotBeNull().ShouldContain("max-height: 500px");
     }
 
     [Fact(DisplayName = "VirtualizeGrid with empty items renders container only")]

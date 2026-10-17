@@ -41,8 +41,12 @@ public class NativeSecretManager : ISecretManager, ISecretWriter
         }
     }
 
+    // Keychain and credential store calls block, a keychain prompt until the user answers, so they run on the thread pool.
     /// <inheritdoc />
     public Task<SecretOperationResult<Secret>> GetSecretAsync(string key, CancellationToken cancellationToken = default)
+        => Task.Run(() => GetSecretCoreAsync(key, cancellationToken));
+
+    private Task<SecretOperationResult<Secret>> GetSecretCoreAsync(string key, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -80,6 +84,9 @@ public class NativeSecretManager : ISecretManager, ISecretWriter
 
     /// <inheritdoc />
     public Task<SecretOperationResult> TestConnectionAsync(CancellationToken cancellationToken = default)
+        => Task.Run(() => TestConnectionCoreAsync(cancellationToken));
+
+    private Task<SecretOperationResult> TestConnectionCoreAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -110,6 +117,9 @@ public class NativeSecretManager : ISecretManager, ISecretWriter
 
     /// <inheritdoc />
     public Task<SecretOperationResult> SetSecretAsync(string key, string value, CancellationToken cancellationToken = default)
+        => Task.Run(() => SetSecretCoreAsync(key, value, cancellationToken));
+
+    private Task<SecretOperationResult> SetSecretCoreAsync(string key, string value, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -147,6 +157,9 @@ public class NativeSecretManager : ISecretManager, ISecretWriter
 
     /// <inheritdoc />
     public Task<SecretOperationResult> DeleteSecretAsync(string key, CancellationToken cancellationToken = default)
+        => Task.Run(() => DeleteSecretCoreAsync(key, cancellationToken));
+
+    private Task<SecretOperationResult> DeleteSecretCoreAsync(string key, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(key))
         {

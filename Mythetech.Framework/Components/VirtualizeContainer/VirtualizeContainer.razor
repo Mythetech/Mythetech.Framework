@@ -94,10 +94,12 @@
     {
         if (changes.TryGetValue(_containerRef, out var rect))
         {
-            var newSize = IsHorizontal ? rect.Width : rect.Height;
-            if (Math.Abs(_containerSize - newSize) > 1)
+            var wasVisible = _containerSize > 0;
+            _containerSize = IsHorizontal ? rect.Width : rect.Height;
+
+            // Virtualize tracks its own viewport, so only showing or hiding the container needs a render.
+            if (wasVisible != _containerSize > 0)
             {
-                _containerSize = newSize;
                 StateHasChanged();
             }
         }

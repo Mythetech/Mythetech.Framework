@@ -33,11 +33,7 @@ public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMe
     }
 
     /// <inheritdoc />
-    public async Task Consume(TMessage message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    public Task Consume(TMessage message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
     /// <summary>
     /// Overrideable consume method with the message and a cancellation token
@@ -56,14 +52,19 @@ public abstract class ComponentConsumer<TMessage> : ComponentBase, IConsumer<TMe
     }
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        if (_disposed) return ValueTask.CompletedTask;
+        if (_disposed) return;
         _disposed = true;
         MessageBus.Unsubscribe(this);
+        await DisposeAsyncCore();
         GC.SuppressFinalize(this);
-        return ValueTask.CompletedTask;
     }
+
+    /// <summary>
+    /// Releases a subclass's own resources on dispose, after the component has unsubscribed from the bus.
+    /// </summary>
+    protected virtual ValueTask DisposeAsyncCore() => ValueTask.CompletedTask;
 }
 
 /// <summary>
@@ -73,13 +74,17 @@ public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable, IA
     where T1 : class
     where T2 : class
 {
-    private sealed class Consumer1(ComponentConsumer<T1, T2> parent) : IConsumer<T1>
+    private sealed class Consumer1(ComponentConsumer<T1, T2> parent) : IConsumer<T1>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T1 message) => parent.HandleMessage1(message);
     }
 
-    private sealed class Consumer2(ComponentConsumer<T1, T2> parent) : IConsumer<T2>
+    private sealed class Consumer2(ComponentConsumer<T1, T2> parent) : IConsumer<T2>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T2 message) => parent.HandleMessage2(message);
     }
 
@@ -114,17 +119,9 @@ public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable, IA
         }
     }
 
-    private async Task HandleMessage1(T1 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage1(T1 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
-    private async Task HandleMessage2(T2 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage2(T2 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
     /// <summary>
     /// Consume the first message type
@@ -147,15 +144,20 @@ public abstract class ComponentConsumer<T1, T2> : ComponentBase, IDisposable, IA
     }
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        if (_disposed) return ValueTask.CompletedTask;
+        if (_disposed) return;
         _disposed = true;
         if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
         if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
+        await DisposeAsyncCore();
         GC.SuppressFinalize(this);
-        return ValueTask.CompletedTask;
     }
+
+    /// <summary>
+    /// Releases a subclass's own resources on dispose, after the component has unsubscribed from the bus.
+    /// </summary>
+    protected virtual ValueTask DisposeAsyncCore() => ValueTask.CompletedTask;
 }
 
 /// <summary>
@@ -166,18 +168,24 @@ public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
     where T2 : class
     where T3 : class
 {
-    private sealed class Consumer1(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T1>
+    private sealed class Consumer1(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T1>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T1 message) => parent.HandleMessage1(message);
     }
 
-    private sealed class Consumer2(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T2>
+    private sealed class Consumer2(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T2>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T2 message) => parent.HandleMessage2(message);
     }
 
-    private sealed class Consumer3(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T3>
+    private sealed class Consumer3(ComponentConsumer<T1, T2, T3> parent) : IConsumer<T3>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T3 message) => parent.HandleMessage3(message);
     }
 
@@ -216,23 +224,11 @@ public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
         }
     }
 
-    private async Task HandleMessage1(T1 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage1(T1 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
-    private async Task HandleMessage2(T2 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage2(T2 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
-    private async Task HandleMessage3(T3 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage3(T3 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
     /// <summary>
     /// Consume the first message type
@@ -261,16 +257,21 @@ public abstract class ComponentConsumer<T1, T2, T3> : ComponentBase, IDisposable
     }
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        if (_disposed) return ValueTask.CompletedTask;
+        if (_disposed) return;
         _disposed = true;
         if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
         if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
         if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
+        await DisposeAsyncCore();
         GC.SuppressFinalize(this);
-        return ValueTask.CompletedTask;
     }
+
+    /// <summary>
+    /// Releases a subclass's own resources on dispose, after the component has unsubscribed from the bus.
+    /// </summary>
+    protected virtual ValueTask DisposeAsyncCore() => ValueTask.CompletedTask;
 }
 
 /// <summary>
@@ -282,23 +283,31 @@ public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDispos
     where T3 : class
     where T4 : class
 {
-    private sealed class Consumer1(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T1>
+    private sealed class Consumer1(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T1>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T1 message) => parent.HandleMessage1(message);
     }
 
-    private sealed class Consumer2(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T2>
+    private sealed class Consumer2(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T2>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T2 message) => parent.HandleMessage2(message);
     }
 
-    private sealed class Consumer3(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T3>
+    private sealed class Consumer3(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T3>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T3 message) => parent.HandleMessage3(message);
     }
 
-    private sealed class Consumer4(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T4>
+    private sealed class Consumer4(ComponentConsumer<T1, T2, T3, T4> parent) : IConsumer<T4>, IComponentConsumerAdapter
     {
+        public ComponentBase Component => parent;
+
         public Task Consume(T4 message) => parent.HandleMessage4(message);
     }
 
@@ -341,29 +350,13 @@ public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDispos
         }
     }
 
-    private async Task HandleMessage1(T1 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage1(T1 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
-    private async Task HandleMessage2(T2 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage2(T2 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
-    private async Task HandleMessage3(T3 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage3(T3 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
-    private async Task HandleMessage4(T4 message)
-    {
-        using var cts = new CancellationTokenSource();
-        await InvokeAsync(async () => await Consume(message, cts.Token));
-    }
+    private Task HandleMessage4(T4 message) => InvokeAsync(() => Consume(message, CancellationToken.None));
 
     /// <summary>
     /// Consume the first message type
@@ -398,15 +391,26 @@ public abstract class ComponentConsumer<T1, T2, T3, T4> : ComponentBase, IDispos
     }
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        if (_disposed) return ValueTask.CompletedTask;
+        if (_disposed) return;
         _disposed = true;
         if (_consumer1 is not null) MessageBus.Unsubscribe(_consumer1);
         if (_consumer2 is not null) MessageBus.Unsubscribe(_consumer2);
         if (_consumer3 is not null) MessageBus.Unsubscribe(_consumer3);
         if (_consumer4 is not null) MessageBus.Unsubscribe(_consumer4);
+        await DisposeAsyncCore();
         GC.SuppressFinalize(this);
-        return ValueTask.CompletedTask;
     }
+
+    /// <summary>
+    /// Releases a subclass's own resources on dispose, after the component has unsubscribed from the bus.
+    /// </summary>
+    protected virtual ValueTask DisposeAsyncCore() => ValueTask.CompletedTask;
+}
+
+// Lets a consumer filter see the component behind each per-message adapter a multi-message ComponentConsumer subscribes.
+internal interface IComponentConsumerAdapter
+{
+    ComponentBase Component { get; }
 }

@@ -41,13 +41,16 @@ public class LiteDbPluginStateProvider : IPluginStateProvider, IDisposable
         return db?.GetCollection<PluginStateEntry>(CollectionName);
     }
 
+    // The load runs on the thread pool since it opens the database; saves stay on the caller to keep their order.
     /// <inheritdoc />
-    public Task<IReadOnlySet<string>> LoadDisabledPluginsAsync()
+    public Task<IReadOnlySet<string>> LoadDisabledPluginsAsync() => Task.Run(LoadDisabledPlugins);
+
+    private IReadOnlySet<string> LoadDisabledPlugins()
     {
         var collection = GetCollection();
         if (collection == null)
         {
-            return Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+            return new HashSet<string>();
         }
 
         try
@@ -55,17 +58,17 @@ public class LiteDbPluginStateProvider : IPluginStateProvider, IDisposable
             var entry = collection.FindById(DocumentId);
             if (entry?.DisabledPluginsJson == null)
             {
-                return Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+                return new HashSet<string>();
             }
 
             var plugins = JsonSerializer.Deserialize<HashSet<string>>(entry.DisabledPluginsJson);
             _logger?.LogDebug("Loaded {Count} disabled plugins from state provider", plugins?.Count ?? 0);
-            return Task.FromResult<IReadOnlySet<string>>(plugins ?? new HashSet<string>());
+            return plugins ?? new HashSet<string>();
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load disabled plugins");
-            return Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+            return new HashSet<string>();
         }
     }
 

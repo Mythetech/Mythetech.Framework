@@ -47,7 +47,7 @@
                      data-command-id="@cmd.Id"
                      class="@RowClass(idx)"
                      aria-selected="@(idx == _selectedIndex ? "true" : "false")"
-                     @onmouseover="() => Select(idx)"
+                     @onmouseenter="() => Select(idx)"
                      @onclick="() => InvokeCommandAsync(cmd)">
                     <MudStack Row="true"
                               AlignItems="AlignItems.Center"
@@ -95,6 +95,8 @@
     private string _query = string.Empty;
     private List<PaletteCommand> _results = new();
     private int _selectedIndex;
+    // Set by a handler that changed nothing, so the render Blazor runs after every event is skipped.
+    private bool _skipNextRender;
     private bool _hasErrors;
     private Dictionary<string, object> _inputAttributes = new();
 
@@ -208,18 +210,32 @@
             case "Escape":
                 await OnCancel.InvokeAsync();
                 break;
+            default:
+                _skipNextRender = true;
+                break;
         }
     }
 
     private void Select(int idx)
     {
-        if (idx < 0 || idx >= _results.Count)
+        if (idx < 0 || idx >= _results.Count || idx == _selectedIndex)
         {
+            _skipNextRender = true;
             return;
         }
         _selectedIndex = idx;
         UpdateInputAttributes();
-        StateHasChanged();
+    }
+
+    protected override bool ShouldRender()
+    {
+        if (!_skipNextRender)
+        {
+            return true;
+        }
+
+        _skipNextRender = false;
+        return false;
     }
 
     private async Task InvokeCommandAsync(PaletteCommand cmd)

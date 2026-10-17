@@ -101,6 +101,22 @@ public class DisabledPluginConsumerFilterTests
         result.ShouldBeTrue();
     }
 
+    [Fact(DisplayName = "ShouldInvoke does not allocate")]
+    public async Task ShouldInvoke_DoesNotAllocate()
+    {
+        await _pluginState.RegisterPluginAsync(CreatePluginInfo("test-plugin", typeof(TestConsumer).Assembly, isEnabled: true));
+        var consumer = new TestConsumer();
+        var message = new TestMessage("Test");
+        _filter.ShouldInvoke(consumer, message);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 100; i++)
+            _filter.ShouldInvoke(consumer, message);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        allocated.ShouldBe(0);
+    }
+
     private static PluginInfo CreatePluginInfo(string id, Assembly assembly, bool isEnabled)
     {
         var manifest = Substitute.For<IPluginManifest>();

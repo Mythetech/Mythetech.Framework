@@ -75,13 +75,21 @@ public class SqliteSettingsStorage : ISettingsStorage, ISettingsStorageProbe, ID
         return Task.CompletedTask;
     }
 
+    // Reads run on the thread pool since the first one opens the database; saves stay on the caller to keep their order.
     /// <inheritdoc />
-    public Task<string?> LoadSettingsAsync(string settingsId)
+    public Task<string?> LoadSettingsAsync(string settingsId) => Task.Run(() => LoadSettings(settingsId));
+
+    /// <inheritdoc />
+    public Task<Dictionary<string, string>> LoadAllSettingsAsync() => Task.Run(LoadAllSettings);
+
+    Task ISettingsStorageProbe.ProbeAsync(CancellationToken cancellationToken) => Task.Run(Probe, cancellationToken);
+
+    private string? LoadSettings(string settingsId)
     {
         var connStr = _connectionString.Value;
         if (connStr == null)
         {
-            return Task.FromResult<string?>(null);
+            return null;
         }
 
         try
@@ -92,24 +100,23 @@ public class SqliteSettingsStorage : ISettingsStorage, ISettingsStorageProbe, ID
             cmd.CommandText = "SELECT json_data FROM settings WHERE settings_id = @id";
             cmd.Parameters.AddWithValue("@id", settingsId);
             var result = cmd.ExecuteScalar() as string;
-            return Task.FromResult(result);
+            return result;
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load settings for {SettingsId}", settingsId);
-            return Task.FromResult<string?>(null);
+            return null;
         }
     }
 
-    /// <inheritdoc />
-    public Task<Dictionary<string, string>> LoadAllSettingsAsync()
+    private Dictionary<string, string> LoadAllSettings()
     {
         var result = new Dictionary<string, string>();
         var connStr = _connectionString.Value;
 
         if (connStr == null)
         {
-            return Task.FromResult(result);
+            return result;
         }
 
         try
@@ -129,10 +136,10 @@ public class SqliteSettingsStorage : ISettingsStorage, ISettingsStorageProbe, ID
             _logger?.LogError(ex, "Failed to load all settings");
         }
 
-        return Task.FromResult(result);
+        return result;
     }
 
-    Task ISettingsStorageProbe.ProbeAsync(CancellationToken cancellationToken)
+    private void Probe()
     {
         var connectionString = _connectionString.Value
             ?? throw new InvalidOperationException($"The settings store could not be opened: {_openError?.Message}", _openError);
@@ -141,7 +148,6 @@ public class SqliteSettingsStorage : ISettingsStorage, ISettingsStorageProbe, ID
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM settings";
         command.ExecuteScalar();
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

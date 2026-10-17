@@ -58,6 +58,7 @@ public class PluginLoader
     
     private void PreloadDependencies(string directory, string mainDllName)
     {
+        var loadedAssemblies = GetLoadedAssembliesByName();
         foreach (var dllPath in Directory.GetFiles(directory, "*.dll"))
         {
             var fileName = Path.GetFileName(dllPath);
@@ -70,17 +71,16 @@ public class PluginLoader
             {
                 // Check if already loaded in default context
                 var assemblyName = AssemblyName.GetAssemblyName(dllPath);
-                var existingAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == assemblyName.Name);
-                
-                if (existingAssembly != null)
+                if (assemblyName.Name is not null && loadedAssemblies.ContainsKey(assemblyName.Name))
                 {
                     _logger.LogDebug("Dependency {Name} already loaded, skipping", assemblyName.Name);
                     continue;
                 }
                 
                 // Load into default context so it's available to all plugins
-                AssemblyLoadContext.Default.LoadFromAssemblyPath(dllPath);
+                var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dllPath);
+                if (assemblyName.Name is not null)
+                    loadedAssemblies.TryAdd(assemblyName.Name, assembly);
                 _logger.LogDebug("Pre-loaded dependency: {Name}", assemblyName.Name);
             }
             catch (BadImageFormatException)
@@ -105,15 +105,16 @@ public class PluginLoader
     {
         try
         {
-            var manifest = DiscoverManifest(assembly);
+            var types = assembly.GetTypes();
+            var manifest = DiscoverManifest(types);
             if (manifest is null)
             {
                 _logger.LogWarning("No IPluginManifest implementation found in assembly {Assembly}", assembly.FullName);
                 return null;
             }
 
-            var menuComponents = DiscoverComponentsOfType<Components.PluginMenu>(assembly);
-            var contextPanelComponents = DiscoverComponentsOfType<Components.PluginContextPanel>(assembly);
+            var menuComponents = DiscoverComponentsOfType<Components.PluginMenu>(types);
+            var contextPanelComponents = DiscoverComponentsOfType<Components.PluginContextPanel>(types);
 
             var menuMetadata = ExtractMenuMetadata(menuComponents);
             var panelMetadata = ExtractContextPanelMetadata(contextPanelComponents);
@@ -169,9 +170,10 @@ public class PluginLoader
         
         _logger.LogDebug("Scanning {Count} directories for plugins", directoriesToScan.Count);
 
+        var loadedAssemblies = GetLoadedAssembliesByName();
         foreach (var directory in directoriesToScan)
         {
-            var loadedPlugins = LoadPluginsFromSingleDirectory(directory);
+            var loadedPlugins = LoadPluginsFromSingleDirectory(directory, loadedAssemblies);
             plugins.AddRange(loadedPlugins);
         }
         
@@ -179,7 +181,7 @@ public class PluginLoader
         return plugins;
     }
     
-    private List<PluginInfo> LoadPluginsFromSingleDirectory(string directory)
+    private List<PluginInfo> LoadPluginsFromSingleDirectory(string directory, Dictionary<string, Assembly> loadedAssemblies)
     {
         var plugins = new List<PluginInfo>();
         var allDlls = Directory.GetFiles(directory, "*.dll");
@@ -192,7 +194,7 @@ public class PluginLoader
         _logger.LogDebug("Found {Count} DLLs in {Directory}", allDlls.Length, directory);
         
         // Step 1: Pre-load ALL DLLs as dependencies into the default context
-        var loadedAssemblies = new List<(string Path, Assembly Assembly)>();
+        var directoryAssemblies = new List<(string Path, Assembly Assembly)>();
         foreach (var dllPath in allDlls)
         {
             try
@@ -200,19 +202,17 @@ public class PluginLoader
                 var fullPath = Path.GetFullPath(dllPath);
                 var assemblyName = AssemblyName.GetAssemblyName(fullPath);
                 
-                // Check if already loaded
-                var existing = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == assemblyName.Name);
-                
-                if (existing != null)
+                if (assemblyName.Name is not null && loadedAssemblies.TryGetValue(assemblyName.Name, out var existing))
                 {
-                    loadedAssemblies.Add((fullPath, existing));
+                    directoryAssemblies.Add((fullPath, existing));
                     _logger.LogDebug("Assembly {Name} already loaded", assemblyName.Name);
                 }
                 else
                 {
                     var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPath);
-                    loadedAssemblies.Add((fullPath, assembly));
+                    if (assemblyName.Name is not null)
+                        loadedAssemblies.TryAdd(assemblyName.Name, assembly);
+                    directoryAssemblies.Add((fullPath, assembly));
                     _logger.LogDebug("Loaded assembly: {Name}", assemblyName.Name);
                 }
             }
@@ -227,7 +227,7 @@ public class PluginLoader
         }
         
         // Step 2: Find which assemblies are actual plugins (have IPluginManifest)
-        foreach (var (path, assembly) in loadedAssemblies)
+        foreach (var (path, assembly) in directoryAssemblies)
         {
             var plugin = LoadPlugin(assembly, path);
             if (plugin is not null)
@@ -239,9 +239,22 @@ public class PluginLoader
         return plugins;
     }
     
-    private IPluginManifest? DiscoverManifest(Assembly assembly)
+    // Built once per scan and updated as the scan loads DLLs, so checking each DLL is a dictionary lookup.
+    private static Dictionary<string, Assembly> GetLoadedAssembliesByName()
     {
-        var manifestType = assembly.GetTypes()
+        var loaded = new Dictionary<string, Assembly>(StringComparer.Ordinal);
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var name = assembly.GetName().Name;
+            if (name is not null)
+                loaded.TryAdd(name, assembly);
+        }
+        return loaded;
+    }
+
+    private IPluginManifest? DiscoverManifest(Type[] types)
+    {
+        var manifestType = types
             .FirstOrDefault(t => 
                 !t.IsAbstract && 
                 !t.IsInterface && 
@@ -261,9 +274,9 @@ public class PluginLoader
         return Activator.CreateInstance(manifestType) as IPluginManifest;
     }
     
-    private List<Type> DiscoverComponentsOfType<TBase>(Assembly assembly) where TBase : class
+    private static List<Type> DiscoverComponentsOfType<TBase>(Type[] types) where TBase : class
     {
-        return assembly.GetTypes()
+        return types
             .Where(t => 
                 !t.IsAbstract && 
                 !t.IsInterface && 

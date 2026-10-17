@@ -1,4 +1,12 @@
 @inherits LayoutComponentBase
-<MudLayoutWrapper Theme="@(new MudTheme())">
+<MudLayoutWrapper Theme="@(_theme)">
     @Body
 </MudLayoutWrapper>
+
+@code {
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new MudMarkdownPaletteLight(),
+        PaletteDark = new MudMarkdownPaletteDark(),
+    };
+}

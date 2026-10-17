@@ -32,7 +32,8 @@ public static class FeatureFlagRegistrationExtensions
     /// <summary>
     /// Initializes feature flags after the service provider is built.
     /// Registers all discovered FeatureFlagsSettingsBase instances with the registry.
-    /// Call this after LoadPersistedSettingsAsync().
+    /// Call this after LoadPersistedSettingsAsync(), or register <see cref="Initialization.FeatureFlagsInitializationHook"/>
+    /// to run it during async initialization.
     /// </summary>
     public static async Task<IServiceProvider> UseFeatureFlags(this IServiceProvider serviceProvider)
     {
@@ -57,6 +58,9 @@ public static class FeatureFlagRegistrationExtensions
         // Emit initialization event
         var allFlags = registry.GetAllFlags().Select(f => f.Key).ToList();
         await bus.PublishAsync(new FeatureFlagsInitialized(allFlags));
+
+        // From an initialization hook this runs after the first render, which saw no flags.
+        serviceProvider.GetRequiredService<DefaultFeatureFlagStateProvider>().NotifyStateChanged();
 
         return serviceProvider;
     }

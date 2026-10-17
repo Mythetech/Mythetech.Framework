@@ -84,6 +84,10 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     {
         foreach (var asset in pluginInfo.Manifest.Assets)
         {
+            // Every plugin component loads its plugin's assets on first render, so most calls find them loaded.
+            if (_loadedAssets.ContainsKey(asset.Path))
+                continue;
+
             var resolvedPath = ResolveAssetToFilePath(pluginInfo, asset.Path);
             
             _logger.LogDebug("Loading plugin asset: {OriginalPath} -> {ResolvedPath}", 

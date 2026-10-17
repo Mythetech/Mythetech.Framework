@@ -26,6 +26,7 @@ public class InMemoryMessageBus : IMessageBus
     private readonly ConcurrentDictionary<Type, object> _cachedQueryHandlers = new();
     private readonly ConcurrentDictionary<Type, object> _cachedTypedPipes = new();
     private readonly Lock _subscribersLock = new();
+    private readonly Lock _queryHandlersLock = new();
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<InMemoryMessageBus> _logger;
@@ -225,33 +226,57 @@ public class InMemoryMessageBus : IMessageBus
 
     /// <inheritdoc/>
     public void RegisterConsumerType<TMessage, TConsumer>() where TMessage : class where TConsumer : IConsumer<TMessage>
+        => RegisterConsumerType(typeof(TMessage), typeof(TConsumer));
+
+    internal void RegisterConsumerType(Type messageType, Type consumerType)
     {
-        var consumerTypes = _registeredConsumerTypes.GetOrAdd(typeof(TMessage), _ => new List<Type>());
+        var consumerTypes = _registeredConsumerTypes.GetOrAdd(messageType, _ => new List<Type>());
         lock (consumerTypes)
         {
             // Hosts often register the same assembly twice (UseSettingsFramework and UseMessageBus), which ran each consumer twice.
-            if (!consumerTypes.Contains(typeof(TConsumer)))
-                consumerTypes.Add(typeof(TConsumer));
+            if (consumerTypes.Contains(consumerType))
+                return;
+
+            consumerTypes.Add(consumerType);
+            // A publish before this registration cached the consumers without it.
+            _cachedConsumers.TryRemove(messageType, out _);
         }
     }
 
+    // Consumers resolve outside the lock, since a constructor may register more, and are cached only if no
+    // registration arrived meanwhile; the list only grows, so its count tells.
     private IConsumer<TMessage>[] GetOrResolveConsumers<TMessage>() where TMessage : class
-        => (IConsumer<TMessage>[])_cachedConsumers.GetOrAdd(typeof(TMessage), messageType =>
-        {
-            if (!_registeredConsumerTypes.TryGetValue(messageType, out var consumerTypes))
-                return Array.Empty<IConsumer<TMessage>>();
+    {
+        if (_cachedConsumers.TryGetValue(typeof(TMessage), out var cached))
+            return (IConsumer<TMessage>[])cached;
 
-            Type[] typesCopy;
+        var consumerTypes = _registeredConsumerTypes.GetOrAdd(typeof(TMessage), _ => new List<Type>());
+        while (true)
+        {
+            Type[] types;
             lock (consumerTypes)
             {
-                typesCopy = consumerTypes.ToArray();
+                types = consumerTypes.ToArray();
             }
 
-            return typesCopy
+            var consumers = types
                 .Select(type => _serviceProvider.GetService(type))
                 .OfType<IConsumer<TMessage>>()
                 .ToArray();
-        });
+
+            lock (consumerTypes)
+            {
+                if (_cachedConsumers.TryGetValue(typeof(TMessage), out cached))
+                    return (IConsumer<TMessage>[])cached;
+
+                if (consumerTypes.Count == types.Length)
+                {
+                    _cachedConsumers[typeof(TMessage)] = consumers;
+                    return consumers;
+                }
+            }
+        }
+    }
 
     private IConsumer<TMessage>[] GetSubscribers<TMessage>() where TMessage : class
         => _subscribers.TryGetValue(typeof(TMessage), out var subscribers)
@@ -356,19 +381,25 @@ public class InMemoryMessageBus : IMessageBus
         where TMessage : class
         where TResponse : class
         where THandler : IQueryHandler<TMessage, TResponse>
+        => RegisterQueryHandler(typeof(TMessage), typeof(TResponse), typeof(THandler));
+
+    internal void RegisterQueryHandler(Type messageType, Type responseType, Type handlerType)
     {
-        var messageType = typeof(TMessage);
-
-        if (_registeredQueryHandlerTypes.ContainsKey(messageType))
+        lock (_queryHandlersLock)
         {
-            _logger.LogWarning(
-                "Query handler for message type {MessageType} is being overwritten. Previous: {PreviousHandler}, New: {NewHandler}",
-                messageType.Name,
-                _registeredQueryHandlerTypes[messageType].HandlerType.Name,
-                typeof(THandler).Name);
-        }
+            if (_registeredQueryHandlerTypes.TryGetValue(messageType, out var previous))
+            {
+                _logger.LogWarning(
+                    "Query handler for message type {MessageType} is being overwritten. Previous: {PreviousHandler}, New: {NewHandler}",
+                    messageType.Name,
+                    previous.HandlerType.Name,
+                    handlerType.Name);
+            }
 
-        _registeredQueryHandlerTypes[messageType] = (typeof(THandler), typeof(TResponse));
+            _registeredQueryHandlerTypes[messageType] = (handlerType, responseType);
+            // A query sent before this registration cached the handler it replaces.
+            _cachedQueryHandlers.TryRemove(messageType, out _);
+        }
     }
 
     private IQueryHandler<TMessage, TResponse>? GetOrResolveQueryHandler<TMessage, TResponse>()
@@ -389,9 +420,15 @@ public class InMemoryMessageBus : IMessageBus
 
         var handler = _serviceProvider.GetService(registration.HandlerType);
 
-        if (handler != null)
+        // Cached only if the handler wasn't replaced while it resolved, so a stale one can't stick.
+        lock (_queryHandlersLock)
         {
-            _cachedQueryHandlers[messageType] = handler;
+            if (handler != null
+                && _registeredQueryHandlerTypes.TryGetValue(messageType, out var current)
+                && current == registration)
+            {
+                _cachedQueryHandlers[messageType] = handler;
+            }
         }
 
         return handler as IQueryHandler<TMessage, TResponse>;

@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Events;
@@ -12,6 +14,8 @@ public class PluginState : IDisposable
 {
     private readonly List<PluginInfo> _plugins = [];
     private readonly Lock _pluginsLock = new();
+    // Replaced under the lock whenever _plugins changes, so readers get a stable copy without locking.
+    private volatile ReadOnlyCollection<PluginInfo> _pluginSnapshot = ReadOnlyCollection<PluginInfo>.Empty;
     private IPluginStateProvider? _stateProvider;
     private IPluginStorageFactory? _storageFactory;
     private PluginStateStore? _stateStore;
@@ -68,30 +72,27 @@ public class PluginState : IDisposable
     /// <summary>
     /// All loaded plugins regardless of enabled state
     /// </summary>
-    public IReadOnlyList<PluginInfo> Plugins
-    {
-        get
-        {
-            lock (_pluginsLock)
-            {
-                return _plugins.ToList().AsReadOnly();
-            }
-        }
-    }
+    public IReadOnlyList<PluginInfo> Plugins => _pluginSnapshot;
 
     /// <summary>
     /// Enabled plugins only (respects PluginsActive flag)
     /// </summary>
     public IEnumerable<PluginInfo> EnabledPlugins
+        => PluginsActive ? _pluginSnapshot.Where(p => p.IsEnabled).ToList() : [];
+
+    // Runs for every consumer on every publish, so it reads the snapshot without allocating.
+    internal bool BlocksConsumersFrom(Assembly assembly)
     {
-        get
+        var plugins = _pluginSnapshot;
+        for (var i = 0; i < plugins.Count; i++)
         {
-            lock (_pluginsLock)
-            {
-                return PluginsActive ? _plugins.Where(p => p.IsEnabled).ToList() : [];
-            }
+            if (plugins[i].Assembly == assembly)
+                return !plugins[i].IsEnabled || !PluginsActive;
         }
+        return false;
     }
+
+    private void RefreshPluginSnapshot() => _pluginSnapshot = new ReadOnlyCollection<PluginInfo>(_plugins.ToArray());
 
     /// <summary>
     /// All menu components from enabled plugins (types only)
@@ -179,6 +180,8 @@ public class PluginState : IDisposable
             {
                 _plugins.Add(plugin);
             }
+
+            RefreshPluginSnapshot();
         }
 
         NotifyStateChanged();
@@ -308,6 +311,9 @@ public class PluginState : IDisposable
                 _plugins.Add(plugin);
                 registered = true;
             }
+
+            if (registered)
+                RefreshPluginSnapshot();
         }
 
         if (registered)
@@ -341,6 +347,7 @@ public class PluginState : IDisposable
         lock (_pluginsLock)
         {
             _plugins.Remove(plugin);
+            RefreshPluginSnapshot();
         }
 
         if (_storageFactory is not null)
@@ -544,7 +551,9 @@ public class PluginState : IDisposable
             await _messageBus.PublishAsync(new Events.PluginsLoadingStarted(fullPath));
         }
 
-        var plugins = _pluginLoader.LoadPluginsFromDirectory(fullPath);
+        var loader = _pluginLoader;
+        // Loading reads and type-scans every DLL in the directory, so keep it off the caller's (UI) thread.
+        var plugins = await Task.Run(() => loader.LoadPluginsFromDirectory(fullPath));
 
         foreach (var plugin in plugins)
         {
@@ -641,6 +650,7 @@ public class PluginState : IDisposable
                 }
             }
             _plugins.Clear();
+            RefreshPluginSnapshot();
         }
         GC.SuppressFinalize(this);
     }

@@ -20,11 +20,8 @@
 
     private void OnFeatureFlagStateChanged(Task<FeatureFlagState> newFeatureFlagStateTask)
     {
-        _ = InvokeAsync(() =>
-        {
-            _currentFeatureFlagStateTask = newFeatureFlagStateTask;
-            StateHasChanged();
-        });
+        _currentFeatureFlagStateTask = newFeatureFlagStateTask;
+        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()

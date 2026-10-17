@@ -68,6 +68,28 @@ public class CommandPalettePanelTests : BunitContext
         options[0].GetAttribute("data-command-id").ShouldBe("messaging");
     }
 
+    [Fact(DisplayName = "A key the palette does not handle does not re-render it")]
+    public async Task Unhandled_key_does_not_rerender()
+    {
+        var cut = Render();
+        var renders = cut.RenderCount;
+
+        await cut.Find(".mf-cmd-palette-content").KeyDownAsync(new KeyboardEventArgs { Key = "a" });
+
+        cut.RenderCount.ShouldBe(renders);
+    }
+
+    [Fact(DisplayName = "Pointing at the selected row does not re-render the palette")]
+    public async Task Pointing_at_selected_row_does_not_rerender()
+    {
+        var cut = Render();
+        var renders = cut.RenderCount;
+
+        await cut.FindAll("[role='option']")[0].TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+        cut.RenderCount.ShouldBe(renders);
+    }
+
     [Fact(DisplayName = "Filter matches description text via keyword")]
     public void Filter_matches_description_through_service()
     {
@@ -196,7 +218,7 @@ public class CommandPalettePanelTests : BunitContext
         var cut = Render();
 
         var historyRow = cut.FindAll("[role='option']")[2];
-        historyRow.MouseOver();
+        historyRow.TriggerEvent("onmouseenter", new MouseEventArgs());
 
         cut.Find("input").GetAttribute("aria-activedescendant").ShouldBe("cmd-2");
     }

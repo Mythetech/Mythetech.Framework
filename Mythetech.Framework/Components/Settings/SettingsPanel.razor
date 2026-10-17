@@ -28,7 +28,7 @@
                           Margin="Margin.Dense"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@MythetechFrameworkIcons.Search"
-                          Immediate="true"
+                          DebounceInterval="250"
                           Clearable="true"
                           Class="@SearchClass"
                           Style="@SearchStyle"
@@ -417,13 +417,7 @@
         if (settings.BeginningContent != null || settings.EndingContent != null)
             return true;
 
-        return settings.GetType()
-            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-            .Any(p =>
-            {
-                var attr = p.GetCustomAttribute<SettingAttribute>();
-                return attr != null && !attr.Hide;
-            });
+        return SettingsPropertyCache.GetSettingProperties(settings.GetType()).Any(p => !p.Attribute!.Hide);
     }
 
     private int GetMatchCountForSection(string sectionId)

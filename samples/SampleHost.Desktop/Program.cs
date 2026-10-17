@@ -76,6 +76,9 @@ class Program
         builder.Services.AddDesktopSettingsStorage("SampleHost");
         builder.Services.AddPluginStateProvider("SampleHost");
         builder.Services.AddAsyncInitialization();
+        builder.Services.AddInitializationHook<SettingsInitializationHook>();
+        builder.Services.AddInitializationHook<FeatureFlagsInitializationHook>();
+        builder.Services.AddInitializationHook<SamplePluginsHook>();
         builder.Services.AddInitializationHook<SampleStartupHook>();
         builder.Services.AddSmokeChecks()
             .WithSmokeCheck<SampleSettingsSmokeCheck>();
@@ -94,11 +97,8 @@ class Program
         app.Services.UseMcp();
         app.Services.UsePluginFramework();
         app.Services.UseSettingsFramework();
-        app.Services.LoadPersistedSettingsAsync().GetAwaiter().GetResult();
-        app.Services.UseFeatureFlags().GetAwaiter().GetResult();
 
-        // Plugin loading is deferred to MainLayout.OnAfterRenderAsync
-        // This allows custom plugin directory setting to take effect
+        // Settings, feature flags and plugins load in initialization hooks, which MainLayout runs after the first render.
 
         AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
         {
