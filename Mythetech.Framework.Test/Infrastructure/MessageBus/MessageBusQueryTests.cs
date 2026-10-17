@@ -15,6 +15,7 @@ public class MessageBusQueryTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<TestQueryHandler>();
+        services.AddSingleton<ReplacementQueryHandler>();
         services.AddSingleton<SlowQueryHandler>();
         services.AddSingleton<ExceptionThrowingQueryHandler>();
 
@@ -40,6 +41,18 @@ public class MessageBusQueryTests
         // Assert
         response.ShouldNotBeNull();
         response.Result.ShouldBe("Handled: Hello");
+    }
+
+    [Fact(DisplayName = "A query handler registered after a query was sent replaces the one that answered it")]
+    public async Task Handler_registered_after_send_replaces_previous_handler()
+    {
+        _bus.RegisterQueryHandler<TestQuery, TestQueryResponse, TestQueryHandler>();
+        await _bus.SendAsync<TestQuery, TestQueryResponse>(new TestQuery("First"));
+
+        _bus.RegisterQueryHandler<TestQuery, TestQueryResponse, ReplacementQueryHandler>();
+        var response = await _bus.SendAsync<TestQuery, TestQueryResponse>(new TestQuery("Second"));
+
+        response.Result.ShouldBe("Replaced: Second");
     }
 
     [Fact(DisplayName = "SendAsync throws InvalidOperationException when no handler registered")]
@@ -259,6 +272,12 @@ public class MessageBusQueryTests
 // Basic query/response
 public record TestQuery(string Input);
 public record TestQueryResponse(string Result);
+
+public class ReplacementQueryHandler : IQueryHandler<TestQuery, TestQueryResponse>
+{
+    public Task<TestQueryResponse> Handle(TestQuery message)
+        => Task.FromResult(new TestQueryResponse($"Replaced: {message.Input}"));
+}
 
 public class TestQueryHandler : IQueryHandler<TestQuery, TestQueryResponse>
 {
