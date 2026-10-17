@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Mythetech.Framework.Infrastructure.Shell;
 using Shouldly;
 
@@ -42,5 +43,84 @@ public class ShellCommandTests
         var command = new ShellCommand { Command = "git", Arguments = "", ArgumentList = ["status"] };
 
         command.ArgumentList.ShouldBe(["status"]);
+    }
+
+    [Fact(DisplayName = "OwnProcessGroup_DefaultsToFalse")]
+    public void OwnProcessGroup_DefaultsToFalse()
+    {
+        new ShellCommand { Command = "git" }.OwnProcessGroup.ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "WithOwnProcessGroup_SetsTheFlag")]
+    public void WithOwnProcessGroup_SetsTheFlag()
+    {
+        new ShellCommand { Command = "git" }.WithOwnProcessGroup().OwnProcessGroup.ShouldBeTrue();
+    }
+
+    [Fact(DisplayName = "IShellProcess_ImplementerWithoutTheNewMembers_GetsTheDefaults")]
+    public async Task IShellProcess_ImplementerWithoutTheNewMembers_GetsTheDefaults()
+    {
+        var stub = new MinimalShellProcess(Environment.ProcessId);
+        IShellProcess process = stub;
+        using var current = Process.GetCurrentProcess();
+        DateTimeOffset osStartedAt = current.StartTime.ToUniversalTime();
+
+        process.OwnsProcessGroup.ShouldBeFalse();
+        (process.StartedAt - osStartedAt).Duration().ShouldBeLessThan(TimeSpan.FromSeconds(1));
+
+        var elapsed = Stopwatch.StartNew();
+        await process.StopAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+
+        stub.Calls.ShouldBe(["Interrupt", "WaitForExit", "Kill(entireProcessTree: True)"]);
+        elapsed.Elapsed.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(100));
+    }
+
+    [Fact(DisplayName = "StopAsync_DefaultForAProcessThatExitsWhenInterrupted_DoesNotKill")]
+    public async Task StopAsync_DefaultForAProcessThatExitsWhenInterrupted_DoesNotKill()
+    {
+        var stub = new MinimalShellProcess(Environment.ProcessId, exitsWhenInterrupted: true);
+        IShellProcess process = stub;
+
+        await process.StopAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        stub.Calls.ShouldBe(["Interrupt", "WaitForExit"]);
+    }
+
+    [Fact(DisplayName = "StartedAt_DefaultForAProcessThatIsGone_IsMinValue")]
+    public void StartedAt_DefaultForAProcessThatIsGone_IsMinValue()
+    {
+        IShellProcess process = new MinimalShellProcess(int.MaxValue);
+
+        process.StartedAt.ShouldBe(DateTimeOffset.MinValue);
+    }
+
+    private sealed class MinimalShellProcess(int processId, bool exitsWhenInterrupted = false) : IShellProcess
+    {
+        private readonly TaskCompletionSource<int> _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public List<string> Calls { get; } = [];
+        public int ProcessId => processId;
+        public bool HasExited => _exited.Task.IsCompleted;
+        public Stream StandardInput => Stream.Null;
+        public event Action<string>? OutputReceived { add { } remove { } }
+        public event Action<string>? ErrorReceived { add { } remove { } }
+        public event Action<int>? Exited { add { } remove { } }
+        public Task WriteInputAsync(string input, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<int> WaitForExitAsync(CancellationToken cancellationToken = default)
+        {
+            Calls.Add("WaitForExit");
+            return _exited.Task.WaitAsync(cancellationToken);
+        }
+
+        public void Interrupt()
+        {
+            Calls.Add("Interrupt");
+            if (exitsWhenInterrupted)
+                _exited.TrySetResult(130);
+        }
+
+        public void Kill(bool entireProcessTree = true) => Calls.Add($"Kill(entireProcessTree: {entireProcessTree})");
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

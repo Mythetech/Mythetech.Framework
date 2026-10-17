@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `ShellCommand.OwnProcessGroup` (and `WithOwnProcessGroup()`) starts a command as the leader of its own process group, a new session on Unix and a kill-on-close job object on Windows, so everything it starts can be stopped as one
+  - `ExecuteAsync` and `ExecuteStreamingAsync` don't wait for something the command started that still holds its output: once the command itself exits, the call stops its group as `StopAsync` does, with a grace of 2 seconds after each signal, and drains the remaining output for up to 1 second before it returns, so nothing it started is left running. A timeout or cancellation stops the group the same way before the call throws, so on Unix a cancelled or timed-out group command can take about 5 seconds to throw: two graces, SIGKILL, and up to 1 second of drain
+  - `ExecuteStreamingAsync` unsubscribes its callbacks before it returns or throws, so a process that left the group and still holds the output does not reach them afterwards
+  - For a process that owns its group, `Kill` also kills the group (or terminates the job), and `DisposeAsync` stops the whole group, as `StopAsync` does, with a 3 second grace
+- `IShellProcess.StartedAt` is the process's start time as the OS records it, in UTC, read when it starts; precision varies by OS, so compare it with a tolerance
+- `IShellProcess.OwnsProcessGroup` says whether the process leads its own group; on Windows it is false when no job object could be made, and the process then runs without one
+- `IShellProcess.StopAsync(grace)` stops a process: for a group, SIGINT, SIGTERM and then SIGKILL to the whole group on Unix, waiting up to `grace` after each, or on Windows a wait of up to `grace` for the process and then the job's termination, even after the process itself has exited; for a Windows group command that got no job, a wait of up to `grace` and then a tree kill, with no interrupt; without a group, an interrupt, a wait and a tree kill
+  - Before signalling a group whose leader has exited, it checks that no process with another start time has taken the leader's pid, so a reused group id is never signalled
+
+### Notes
+
+- `StartedAt`, `OwnsProcessGroup` and `StopAsync` have default implementations on `IShellProcess`, so existing implementers still compile. The defaults read the start time from the OS by `ProcessId`, return false, and interrupt, wait and kill the process tree
+- The login shell wrapper `exec`s a group command, so the group's leader is the command and not the shell. A group command's `Command` must therefore be an executable, never a shell builtin or a compound line, and this applies to the `Arguments` string form too
+- On Linux a group command also sets `ProcessStartInfo.KillOnParentExit` (PR_SET_PDEATHSIG), so the command itself is killed when the app exits. PR_SET_PDEATHSIG fires when the forking thread exits, but .NET 11 forks every such child from one dedicated thread that lives as long as the app, so a thread-pool thread that started the command can exit safely. It covers the leader only, not what the leader starts
+  - On Linux a group command is therefore started by a real `fork()` on that one runtime thread, which is how .NET implements `KillOnParentExit`, so group starts are serialised and each costs a full fork
+- `IShellProcess.Exited` is unchanged, and a test now pins it: it fires when the command itself exits, without waiting for a process it started to close stdout or stderr. `WaitForExitAsync` on a group process still waits for every descendant holding stdout or stderr, so a caller that needs the leader's exit uses `Exited` and then `StopAsync`
+
 ## [0.21.9] - 2026-10-14
 
 ### Changed

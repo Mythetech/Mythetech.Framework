@@ -1,5 +1,8 @@
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.Shell;
 
@@ -11,14 +14,59 @@ namespace Mythetech.Framework.Desktop.Services;
 /// </summary>
 public class ShellProcess : IShellProcess
 {
+    private static readonly TimeSpan GroupPollInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan DisposeGrace = TimeSpan.FromSeconds(3);
+
+    [UnsupportedOSPlatform("windows")]
+    private static readonly int[] GroupStopSignals = [ProcessGroups.SIGINT, ProcessGroups.SIGTERM];
+
     private readonly Process _process;
     private readonly ILogger? _logger;
+    private readonly bool _ownProcessGroup;
+    private readonly Func<int, DateTimeOffset?>? _startTimeOf;
+    private readonly Func<WindowsJobObject>? _createJob;
+
+    // Read once at start, so a stop running alongside DisposeAsync can still reach the group.
+    private int _processId;
+    private WindowsJobObject? _job;
     private bool _disposed;
 
     public ShellProcess(ProcessStartInfo startInfo, ILogger? logger = null)
+        : this(startInfo, logger, ownProcessGroup: false)
+    {
+    }
+
+    /// <param name="startInfo">How to start the process.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="ownProcessGroup">
+    /// Whether the process leads its own group. On Unix <paramref name="startInfo"/> sets that up; on Windows the process
+    /// is put in a new job object as it starts, and resumed if <paramref name="startInfo"/> starts it suspended.
+    /// </param>
+    public ShellProcess(ProcessStartInfo startInfo, ILogger? logger, bool ownProcessGroup)
+        : this(startInfo, logger, ownProcessGroup, startTimeOf: null, createJob: null)
+    {
+    }
+
+    /// <param name="startInfo">How to start the process.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="ownProcessGroup">Whether the process leads its own group.</param>
+    /// <param name="startTimeOf">
+    /// Reads a pid's start time for the check that the group's id was not reused; null for
+    /// <see cref="ProcessGroups.StartTimeOf"/>.
+    /// </param>
+    /// <param name="createJob">Makes the job a group command joins on Windows; null for <see cref="WindowsJobObject.Create"/>.</param>
+    internal ShellProcess(
+        ProcessStartInfo startInfo,
+        ILogger? logger,
+        bool ownProcessGroup,
+        Func<int, DateTimeOffset?>? startTimeOf,
+        Func<WindowsJobObject>? createJob)
     {
         _process = new Process { StartInfo = startInfo };
         _logger = logger;
+        _ownProcessGroup = ownProcessGroup;
+        _startTimeOf = startTimeOf;
+        _createJob = createJob;
 
         _process.OutputDataReceived += (_, args) =>
         {
@@ -46,7 +94,22 @@ public class ShellProcess : IShellProcess
     }
 
     /// <inheritdoc />
-    public int ProcessId => _process.Id;
+    public int ProcessId => _processId;
+
+    /// <inheritdoc />
+    public DateTimeOffset StartedAt { get; private set; } = DateTimeOffset.MinValue;
+
+    /// <inheritdoc />
+    /// <remarks>On Windows, true once the process is in its job object, and false if none could be made.</remarks>
+    public bool OwnsProcessGroup => OperatingSystem.IsWindows() ? _job is not null : _ownProcessGroup;
+
+    // A process that was never started has no group, and pid 0 would reach the caller's own.
+    [UnsupportedOSPlatformGuard("windows")]
+    private bool SignalsItsGroup => _ownProcessGroup && _processId != 0 && !OperatingSystem.IsWindows();
+
+    [SupportedOSPlatformGuard("windows")]
+    [MemberNotNullWhen(true, nameof(_job))]
+    private bool InJob => OperatingSystem.IsWindows() && _job is not null;
 
     /// <inheritdoc />
     public bool HasExited
@@ -74,13 +137,46 @@ public class ShellProcess : IShellProcess
     public event Action<string>? ErrorReceived;
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Raised when the process itself exits, without waiting for a process it started to close stdout or stderr,
+    /// so output can still arrive afterwards.
+    /// </remarks>
     public event Action<int>? Exited;
 
     internal void Start()
     {
         _process.Start();
+        _processId = _process.Id;
+        if (_ownProcessGroup && OperatingSystem.IsWindows())
+        {
+            try
+            {
+                _job = WindowsJobObject.JoinNewJob(_process, _logger, _createJob);
+            }
+            catch
+            {
+                // JoinNewJob ended the process it could not resume, so only the handle is left to release.
+                _process.Dispose();
+                throw;
+            }
+        }
+        StartedAt = ReadStartTime();
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
+    }
+
+    private DateTimeOffset ReadStartTime()
+    {
+        try
+        {
+            return _process.StartTime.ToUniversalTime();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+        {
+            // A process that exits at once can be reaped before the OS is asked.
+            _logger?.LogDebug(ex, "Could not read the start time of process {ProcessId}", _processId);
+            return DateTimeOffset.MinValue;
+        }
     }
 
     /// <inheritdoc />
@@ -105,6 +201,16 @@ public class ShellProcess : IShellProcess
         return _process.ExitCode;
     }
 
+    /// <summary>
+    /// Waits for the process itself to exit and returns its exit code. Unlike <see cref="WaitForExitAsync"/>, it does
+    /// not wait for a descendant that still holds its stdout or stderr, and output may still be arriving.
+    /// </summary>
+    internal async Task<int> WaitForLeaderExitAsync(CancellationToken cancellationToken)
+    {
+        var status = await _process.SafeHandle.WaitForExitAsync(cancellationToken);
+        return status.ExitCode;
+    }
+
     /// <inheritdoc />
     public void Interrupt()
     {
@@ -117,36 +223,93 @@ public class ShellProcess : IShellProcess
                 // Windows: Send Ctrl+C via GenerateConsoleCtrlEvent
                 if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0))
                 {
-                    // If Ctrl+C fails, fall back to kill
-                    _logger?.LogDebug("GenerateConsoleCtrlEvent failed, falling back to Kill");
-                    Kill(entireProcessTree: false);
+                    // If Ctrl+C fails, kill the root only; Kill would end the whole job.
+                    _logger?.LogDebug(
+                        "GenerateConsoleCtrlEvent failed, so killing process {ProcessId} without its descendants", _processId);
+                    KillRoot(entireProcessTree: false);
                 }
             }
-            else
+            else if (!ProcessGroups.SignalProcess(_processId, ProcessGroups.SIGINT))
             {
-                // Unix: Send SIGINT
-                SendSignal(_process.Id, Signal.SIGINT);
+                _logger?.LogWarning(
+                    "Failed to interrupt process {ProcessId}: errno {Errno}", _processId, Marshal.GetLastWin32Error());
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "Failed to interrupt process {ProcessId}", _process.Id);
+            _logger?.LogWarning(ex, "Failed to interrupt process {ProcessId}", _processId);
         }
     }
 
     /// <inheritdoc />
     public void Kill(bool entireProcessTree = true)
     {
-        if (HasExited) return;
+        if (InJob)
+        {
+            if (!TerminateJob(_job))
+                KillRoot(entireProcessTree: true);
+            return;
+        }
 
-        try
+        if (SignalsItsGroup)
         {
-            _process.Kill(entireProcessTree);
+            KillGroup(entireProcessTree);
+            return;
         }
-        catch (Exception ex)
+
+        KillRoot(entireProcessTree);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// For a process that owns its group on Unix: SIGINT, then SIGTERM, then SIGKILL to the group, waiting up to
+    /// <paramref name="grace"/> after each and returning once the group is empty or SIGKILL has been sent.
+    /// On Windows: waits up to <paramref name="grace"/> for the process to exit, then terminates its job, or for a group
+    /// command that runs without a job, kills its tree if it is still running.
+    /// </remarks>
+    public async Task StopAsync(TimeSpan grace, CancellationToken cancellationToken = default)
+    {
+        if (InJob)
         {
-            _logger?.LogWarning(ex, "Failed to kill process {ProcessId}", _process.Id);
+            ArgumentOutOfRangeException.ThrowIfLessThan(grace, TimeSpan.Zero);
+
+            // Polled, because WaitForExitAsync also waits for every descendant holding the leader's stdout or stderr.
+            await TrueWithinAsync(() => HasExited, grace, cancellationToken);
+            if (!TerminateJob(_job))
+                KillRoot(entireProcessTree: true);
+            return;
         }
+
+        if (_ownProcessGroup && OperatingSystem.IsWindows())
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(grace, TimeSpan.Zero);
+
+            // Interrupt would send Ctrl+C to the caller's own console, and the tree can only be found while the root lives.
+            if (!await TrueWithinAsync(() => HasExited, grace, cancellationToken))
+                KillRoot(entireProcessTree: true);
+            return;
+        }
+
+        if (!SignalsItsGroup)
+        {
+            await IShellProcess.InterruptThenKillAsync(this, grace, cancellationToken);
+            return;
+        }
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(grace, TimeSpan.Zero);
+
+        foreach (var signal in GroupStopSignals)
+        {
+            if (ProcessGroups.IsEmpty(_processId) || !MayStillOwnGroup())
+                return;
+
+            ProcessGroups.Signal(_processId, signal, _logger);
+
+            if (await GroupEmptiesWithinAsync(grace, cancellationToken))
+                return;
+        }
+
+        KillGroup(entireProcessTree: true);
     }
 
     /// <inheritdoc />
@@ -157,58 +320,87 @@ public class ShellProcess : IShellProcess
 
         try
         {
-            if (!HasExited)
-            {
-                // Try graceful shutdown first
-                Interrupt();
-
-                // Wait a bit for graceful exit
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-                try
-                {
-                    await _process.WaitForExitAsync(cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Force kill if graceful shutdown didn't work
-                    Kill(entireProcessTree: true);
-                }
-            }
+            await StopAsync(DisposeGrace);
         }
         finally
         {
+            if (InJob)
+            {
+                _job.Dispose();
+            }
             _process.Dispose();
         }
 
         GC.SuppressFinalize(this);
     }
 
-    #region Platform Signal Handling
-
-    private enum Signal
+    private void KillRoot(bool entireProcessTree)
     {
-        SIGINT = 2,
-        SIGTERM = 15,
-        SIGKILL = 9
-    }
+        if (HasExited) return;
 
-    private static void SendSignal(int pid, Signal signal)
-    {
-        if (OperatingSystem.IsWindows())
-            return;
-
-        // P/Invoke to send signal on Unix
-        var result = kill(pid, (int)signal);
-        if (result != 0)
+        try
         {
-            var error = Marshal.GetLastWin32Error();
-            throw new InvalidOperationException($"Failed to send signal {signal} to process {pid}. Error: {error}");
+            _process.Kill(entireProcessTree);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to kill process {ProcessId}", _processId);
         }
     }
 
-    // Unix: libc kill()
-    [DllImport("libc", SetLastError = true)]
-    private static extern int kill(int pid, int sig);
+    // The leader's tree goes first, while it lives, so a descendant that left the group is reached too.
+    [UnsupportedOSPlatform("windows")]
+    private void KillGroup(bool entireProcessTree)
+    {
+        if (ProcessGroups.IsEmpty(_processId) || !MayStillOwnGroup())
+            return;
+
+        KillRoot(entireProcessTree);
+
+        // Nothing follows SIGKILL, so a failure leaves a process in the group running.
+        ProcessGroups.Signal(_processId, ProcessGroups.SIGKILL, _logger, LogLevel.Warning);
+    }
+
+    // A leader not yet reaped still holds its pid, so only a reaped leader's pid can have been reused.
+    [UnsupportedOSPlatform("windows")]
+    private bool MayStillOwnGroup() =>
+        !HasExited || ProcessGroups.MayStillOwnGroup(_processId, StartedAt, _startTimeOf ?? ProcessGroups.StartTimeOf);
+
+    [SupportedOSPlatform("windows")]
+    private bool TerminateJob(WindowsJobObject job)
+    {
+        try
+        {
+            job.Terminate(1);
+            return true;
+        }
+        catch (Exception ex) when (ex is Win32Exception or ObjectDisposedException)
+        {
+            _logger?.LogWarning(ex, "Failed to terminate the job of process {ProcessId}", _processId);
+            return false;
+        }
+    }
+
+    [UnsupportedOSPlatform("windows")]
+    private Task<bool> GroupEmptiesWithinAsync(TimeSpan grace, CancellationToken cancellationToken) =>
+        TrueWithinAsync(() => ProcessGroups.IsEmpty(_processId), grace, cancellationToken);
+
+    private static async Task<bool> TrueWithinAsync(Func<bool> condition, TimeSpan grace, CancellationToken cancellationToken)
+    {
+        var elapsed = Stopwatch.StartNew();
+        while (!condition())
+        {
+            var remaining = grace - elapsed.Elapsed;
+            if (remaining <= TimeSpan.Zero)
+                return false;
+
+            await Task.Delay(remaining < GroupPollInterval ? remaining : GroupPollInterval, cancellationToken);
+        }
+
+        return true;
+    }
+
+    #region Platform Signal Handling
 
     // Windows: Ctrl+C event
     private const uint CTRL_C_EVENT = 0;

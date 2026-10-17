@@ -12,6 +12,9 @@ namespace Mythetech.Framework.Desktop.Services;
 /// </summary>
 public partial class ShellExecutor : IShellExecutor
 {
+    private static readonly TimeSpan GroupStopGrace = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan OutputDrainTimeout = TimeSpan.FromSeconds(1);
+
     private readonly ILogger<ShellExecutor>? _logger;
 
     /// <summary>
@@ -69,12 +72,36 @@ public partial class ShellExecutor : IShellExecutor
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// A command with <see cref="ShellCommand.OwnProcessGroup"/> doesn't wait for something it started that still holds
+    /// its output. Once the command itself exits, its group is stopped as <see cref="IShellProcess.StopAsync"/> stops it,
+    /// so nothing it started is left running; a timeout or cancellation stops the group the same way. The output is then
+    /// drained for at most 1 second before the call returns or throws, so lines a slow callback has not yet taken may be
+    /// dropped. The callbacks are unsubscribed before it returns or throws, so a process that left the group and still
+    /// holds the output does not reach them afterwards.
+    /// </remarks>
     public async Task<ShellResult> ExecuteStreamingAsync(
         ShellCommand command,
         Action<string>? onStdOut = null,
         Action<string>? onStdErr = null,
         CancellationToken cancellationToken = default)
     {
+        using var timeoutCts = command.Timeout.HasValue
+            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            : null;
+
+        if (command.Timeout.HasValue && timeoutCts != null)
+        {
+            timeoutCts.CancelAfter(command.Timeout.Value);
+        }
+
+        var effectiveCt = timeoutCts?.Token ?? cancellationToken;
+
+        if (command.OwnProcessGroup)
+        {
+            return await ExecuteInOwnGroupAsync(command, onStdOut, onStdErr, effectiveCt);
+        }
+
         var startInfo = CreateProcessStartInfo(command);
         using var process = new Process { StartInfo = startInfo };
 
@@ -95,17 +122,6 @@ public partial class ShellExecutor : IShellExecutor
                 if (args.Data != null) onStdErr(args.Data);
             };
         }
-
-        using var timeoutCts = command.Timeout.HasValue
-            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
-            : null;
-
-        if (command.Timeout.HasValue && timeoutCts != null)
-        {
-            timeoutCts.CancelAfter(command.Timeout.Value);
-        }
-
-        var effectiveCt = timeoutCts?.Token ?? cancellationToken;
 
         try
         {
@@ -141,18 +157,75 @@ public partial class ShellExecutor : IShellExecutor
         }
     }
 
+    private async Task<ShellResult> ExecuteInOwnGroupAsync(
+        ShellCommand command,
+        Action<string>? onStdOut,
+        Action<string>? onStdErr,
+        CancellationToken cancellationToken)
+    {
+        await using var process = new ShellProcess(CreateProcessStartInfo(command), _logger, ownProcessGroup: true);
+
+        if (onStdOut != null) process.OutputReceived += onStdOut;
+        if (onStdErr != null) process.ErrorReceived += onStdErr;
+
+        var startTime = DateTimeOffset.Now;
+        try
+        {
+            process.Start();
+            var exitCode = await process.WaitForLeaderExitAsync(cancellationToken);
+            var exitTime = DateTimeOffset.Now;
+
+            await StopGroupAndDrainAsync(process);
+
+            return new ShellResult
+            {
+                ExitCode = exitCode,
+                StartTime = startTime,
+                ExitTime = exitTime,
+                Duration = exitTime - startTime
+            };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await StopGroupAndDrainAsync(process);
+            throw;
+        }
+        finally
+        {
+            // A process that left the group can still hold the output after the drain gives up on it.
+            if (onStdOut != null) process.OutputReceived -= onStdOut;
+            if (onStdErr != null) process.ErrorReceived -= onStdErr;
+        }
+    }
+
+    // The stop is not cancellable: the caller's token may be the reason for it.
+    private static async Task StopGroupAndDrainAsync(ShellProcess process)
+    {
+        await process.StopAsync(GroupStopGrace, CancellationToken.None);
+
+        using var drain = new CancellationTokenSource(OutputDrainTimeout);
+        try
+        {
+            await process.WaitForExitAsync(drain.Token);
+        }
+        catch (OperationCanceledException) when (drain.IsCancellationRequested)
+        {
+            // A process that left the group still holds the output, so the rest of it is not waited for.
+        }
+    }
+
     /// <inheritdoc />
     public Task<IShellProcess> StartProcessAsync(
         ShellCommand command,
         CancellationToken cancellationToken = default)
     {
         var startInfo = CreateProcessStartInfo(command, redirectInput: true);
-        var shellProcess = new ShellProcess(startInfo, _logger);
+        var shellProcess = new ShellProcess(startInfo, _logger, command.OwnProcessGroup);
         shellProcess.Start();
         return Task.FromResult<IShellProcess>(shellProcess);
     }
 
-    private ProcessStartInfo CreateProcessStartInfo(ShellCommand command, bool redirectInput = false)
+    internal ProcessStartInfo CreateProcessStartInfo(ShellCommand command, bool redirectInput = false)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -166,6 +239,23 @@ public partial class ShellExecutor : IShellExecutor
         if (!string.IsNullOrEmpty(command.WorkingDirectory))
         {
             startInfo.WorkingDirectory = command.WorkingDirectory;
+        }
+
+        if (command.OwnProcessGroup && OperatingSystem.IsWindows())
+        {
+            // Held until it is in its job, so nothing it starts escapes. StartDetached here would mean DETACHED_PROCESS.
+            startInfo.StartSuspended = true;
+        }
+        else if (command.OwnProcessGroup)
+        {
+            // The child calls setsid() before exec and keeps its redirected stdio.
+            startInfo.StartDetached = true;
+
+            // .NET forks these children from one long-lived thread, so PR_SET_PDEATHSIG fires only when the app exits.
+            if (OperatingSystem.IsLinux())
+            {
+                startInfo.KillOnParentExit = true;
+            }
         }
 
         if (command.UseShell)
@@ -212,12 +302,15 @@ public partial class ShellExecutor : IShellExecutor
     /// <summary>
     /// Builds the command line for a POSIX -c string. With <see cref="ShellCommand.ArgumentList"/> the
     /// executor quotes the command and every argument; the legacy string form is passed through as given.
+    /// A group command is <c>exec</c>ed, so the group's leader is the command itself rather than the shell.
     /// </summary>
-    private static string BuildPosixCommandLine(ShellCommand command)
+    internal static string BuildPosixCommandLine(ShellCommand command)
     {
+        var exec = command.OwnProcessGroup ? "exec " : string.Empty;
+
         if (command.ArgumentList is { } argumentList)
         {
-            var builder = new StringBuilder(ShellQuoting.Quote(command.Command));
+            var builder = new StringBuilder(exec).Append(ShellQuoting.Quote(command.Command));
             foreach (var argument in argumentList)
             {
                 builder.Append(' ').Append(ShellQuoting.Quote(argument));
@@ -226,8 +319,8 @@ public partial class ShellExecutor : IShellExecutor
         }
 
         return string.IsNullOrEmpty(command.Arguments)
-            ? command.Command
-            : $"{command.Command} {command.Arguments}";
+            ? $"{exec}{command.Command}"
+            : $"{exec}{command.Command} {command.Arguments}";
     }
 
     private static void ConfigureDirectExecution(ProcessStartInfo startInfo, ShellCommand command)
