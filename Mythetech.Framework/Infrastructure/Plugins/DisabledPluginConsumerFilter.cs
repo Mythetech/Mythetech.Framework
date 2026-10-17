@@ -22,14 +22,8 @@ public class DisabledPluginConsumerFilter : IConsumerFilter
     public bool ShouldInvoke<TMessage>(IConsumer<TMessage> consumer, TMessage message) 
         where TMessage : class
     {
-        var consumerAssembly = consumer.GetType().Assembly;
-        
-        var plugin = _pluginState.Plugins.FirstOrDefault(p => p.Assembly == consumerAssembly);
-        
-        if (plugin is null)
-            return true;
-        
-        return plugin.IsEnabled && _pluginState.PluginsActive;
+        var consumerType = consumer is IComponentConsumerAdapter adapter ? adapter.Component.GetType() : consumer.GetType();
+        return !_pluginState.BlocksConsumersFrom(consumerType.Assembly);
     }
 }
 
