@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.21.10] - 2026-10-17
+## [0.22.0] - 2026-10-17
 
 ### Changed
 
@@ -60,7 +60,7 @@
 - On Linux a group command also sets `ProcessStartInfo.KillOnParentExit` (PR_SET_PDEATHSIG), so the command itself is killed when the app exits. PR_SET_PDEATHSIG fires when the forking thread exits, but .NET 11 forks every such child from one dedicated thread that lives as long as the app, so a thread-pool thread that started the command can exit safely. It covers the leader only, not what the leader starts
   - On Linux a group command is therefore started by a real `fork()` on that one runtime thread, which is how .NET implements `KillOnParentExit`, so group starts are serialised and each costs a full fork
 - `IShellProcess.Exited` is unchanged, and a test now pins it: it fires when the command itself exits, without waiting for a process it started to close stdout or stderr. `WaitForExitAsync` on a group process still waits for every descendant holding stdout or stderr, so a caller that needs the leader's exit uses `Exited` and then `StopAsync`
-- All four packages move to `0.21.10`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+- All four packages move to `0.22.0`, a minor version because `IShellProcess` and `ShellCommand` gain members. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
 
 ## [0.21.9] - 2026-10-14
 
