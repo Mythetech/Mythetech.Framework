@@ -1,7 +1,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
 @inherits MudComponentBase
-<div class="@RowClass" style="@Style" @onclick="HandleClick">
+<div class="@RowClass" style="@Style" @onclick="OnClick">
     <MudStack Class="hover-stack-content" Row="@Row" Reverse="@Reverse" Spacing="@Spacing" Wrap="@Wrap"
         Justify="@Justify" AlignItems="@AlignItems" StretchItems="@StretchItems">
         @ChildContent
@@ -79,9 +79,4 @@
     public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     private string RowClass => string.IsNullOrWhiteSpace(Class) ? "mt-hover-row mud-width-full" : $"mt-hover-row mud-width-full {Class}";
-
-    private async Task HandleClick(MouseEventArgs args)
-    {
-        await OnClick.InvokeAsync(args);
-    }
 }

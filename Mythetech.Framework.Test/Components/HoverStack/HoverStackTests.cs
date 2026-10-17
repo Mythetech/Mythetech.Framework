@@ -81,6 +81,15 @@ public class HoverStackTests : BunitContext
         capturedArgs.ShouldNotBeNull();
     }
 
+    [Fact(DisplayName = "HoverStack attaches no click handler when OnClick is not set")]
+    public void HoverStack_WithoutOnClick_AttachesNoClickHandler()
+    {
+        var cut = Render<HoverStackComponent>(parameters => parameters
+            .Add(p => p.ChildContent, Text("Row")));
+
+        cut.Find(".mt-hover-row").HasAttribute("blazor:onclick").ShouldBeFalse();
+    }
+
     [Fact(DisplayName = "HoverStack applies Class and Style to the row so they cover the actions too")]
     public void HoverStack_AppliesClassAndStyle_ToRow()
     {
