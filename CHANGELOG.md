@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.22.1] - 2026-10-31
+
+### Changed
+
+- `Mythetech.Framework.Desktop` moves to `Mythetech.Hermes` and `Mythetech.Hermes.Blazor` 1.4.5, from 1.4.4. See the Hermes changelog for the full list
+  - `HermesBlazorAppBuilder.MapRequestHandler` serves a path under the app's own origin from app code, so the page can load content the app produces, such as images from disk, by URL instead of receiving it through Blazor as data URIs
+  - On macOS and Linux, the stream a custom scheme handler returns is disposed once it has been read. A handler that returned a `FileStream` kept the file open until the stream was finalized
+
+### Notes
+
+- Apps that reference `Mythetech.Hermes` or `Mythetech.Hermes.Blazor` directly must remove those references, or move them to at least 1.4.5. A lower direct version than the one `Mythetech.Framework.Desktop` depends on fails restore with NU1605 (package downgrade)
+- Only `Mythetech.Framework.Desktop` moves to `0.22.1`. `Mythetech.Framework`, `Mythetech.Framework.WebAssembly` and `Mythetech.Framework.AI.Generator` are unchanged and stay at `0.22.0`
+
 ## [0.22.0] - 2026-10-17
 
 ### Changed
