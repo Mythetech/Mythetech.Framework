@@ -1,13 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [0.22.1] - 2026-10-31
 
 ### Added
 
 - `SimpleTabs.KeepPanelsAlive` keeps every tab's content rendered and hides the inactive ones, so a tab keeps its component state, such as an expanded tree or a scroll position, when another tab is selected. It defaults to `false`, which renders only the active tab as before
 - `SimpleTabs.Gutters` turns off the horizontal padding around the tab content, for a tab group inside a panel that already pads its content. It defaults to `true`
-
-## [0.22.1] - 2026-10-31
 
 ### Changed
 
@@ -18,7 +16,8 @@
 ### Notes
 
 - Apps that reference `Mythetech.Hermes` or `Mythetech.Hermes.Blazor` directly must remove those references, or move them to at least 1.4.5. A lower direct version than the one `Mythetech.Framework.Desktop` depends on fails restore with NU1605 (package downgrade)
-- Only `Mythetech.Framework.Desktop` moves to `0.22.1`. `Mythetech.Framework`, `Mythetech.Framework.WebAssembly` and `Mythetech.Framework.AI.Generator` are unchanged and stay at `0.22.0`
+- `Mythetech.Framework` and `Mythetech.Framework.Desktop` move to `0.22.1`. `Mythetech.Framework.WebAssembly` and `Mythetech.Framework.AI.Generator` are unchanged and stay at `0.22.0`
+- The `Mythetech.Framework.Desktop` 0.22.1 package was published before `Mythetech.Framework` 0.22.1 and depends on 0.22.0, so an app that uses the new `SimpleTabs` parameters references `Mythetech.Framework` 0.22.1 directly
 
 ## [0.22.0] - 2026-10-17
 
