@@ -1,9 +1,16 @@
 @using Mythetech.Framework.Components.SimpleTabs
-<SimpleTabs>
+<SimpleTabs KeepPanelsAlive="@KeepPanelsAlive" Gutters="@Gutters">
     <Tab Name="Tab1">
         <div>Tab1</div>
+        <TestStatefulPanel />
     </Tab>
     <Tab Name="Tab2">
         <div>Tab2</div>
     </Tab>
 </SimpleTabs>
+
+@code {
+    [Parameter] public bool KeepPanelsAlive { get; set; }
+
+    [Parameter] public bool Gutters { get; set; } = true;
+}

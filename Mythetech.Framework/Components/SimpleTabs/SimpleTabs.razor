@@ -68,10 +68,22 @@
         </MudStack>
     </div>
 
-    <div class="@($"mud-height-full mud-width-full px-4 {ContentClass}")">
-        @foreach (var tab in _tabs.Where(t => t.IsActive))
+    <div class="@ContentContainerClass">
+        @if (KeepPanelsAlive)
         {
-            @tab.ChildContent
+            @foreach (var tab in _tabs)
+            {
+                <div @key="tab" class="@(tab.IsActive ? "mud-height-full" : "mud-height-full d-none")">
+                    @tab.ChildContent
+                </div>
+            }
+        }
+        else
+        {
+            @foreach (var tab in _tabs.Where(t => t.IsActive))
+            {
+                @tab.ChildContent
+            }
         }
     </div>
 </MudStack>
@@ -102,6 +114,24 @@
     /// CSS class applied to the tab content container div
     /// </summary>
     [Parameter] public string ContentClass { get; set; } = "";
+
+    /// <summary>
+    /// Keeps every tab's content rendered, hiding the inactive ones, so a tab keeps its component state when another is selected.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>false</c>, which renders only the active tab's content.
+    /// </remarks>
+    [Parameter] public bool KeepPanelsAlive { get; set; }
+
+    /// <summary>
+    /// Adds horizontal padding around the tab content.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>true</c>.
+    /// </remarks>
+    [Parameter] public bool Gutters { get; set; } = true;
+
+    private string ContentContainerClass => $"mud-height-full mud-width-full{(Gutters ? " px-4" : "")} {ContentClass}";
 
     private List<Tab> _tabs = new();
     private ElementReference _tabBarRef;

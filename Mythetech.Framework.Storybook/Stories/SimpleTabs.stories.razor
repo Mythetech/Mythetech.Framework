@@ -34,6 +34,33 @@
             </SimpleTabs>
         </Template>
     </Story>
+    <Story Name="Keep Panels Alive" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                Type into the field, switch tabs and come back: the text is still there, because the inactive tab is hidden rather than removed.
+            </MudText>
+            <SimpleTabs KeepPanelsAlive="true">
+                <Tab Name="Notes" Icon="@MythetechFrameworkIcons.Info">
+                    <MudTextField T="string" Label="Unsaved note" />
+                </Tab>
+                <Tab Name="Other">
+                    <MudText>Switch back to Notes.</MudText>
+                </Tab>
+            </SimpleTabs>
+        </Template>
+    </Story>
+    <Story Name="Without Gutters" Layout="typeof(DefaultMudLayout)">
+        <Template>
+            <SimpleTabs Gutters="false" WrapperClass="">
+                <Tab Name="Edge">
+                    <MudPaper Outlined="true" Class="pa-2">Content runs to the edges of the tab group.</MudPaper>
+                </Tab>
+                <Tab Name="To Edge">
+                    <MudPaper Outlined="true" Class="pa-2">For panels that already pad their content.</MudPaper>
+                </Tab>
+            </SimpleTabs>
+        </Template>
+    </Story>
     <Story Name="Many Tabs (Responsive)" Layout="typeof(DefaultMudLayout)">
         <Template>
             <SimpleTabs>
