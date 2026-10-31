@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.21.10] - 2026-10-17
+## [0.22.0] - 2026-10-17
 
 ### Changed
 
@@ -48,6 +48,8 @@
 - A query handler that replaces an earlier one for the same message type takes effect after a query was already sent. The bus kept the handler it cached on the first query
 - A consumer registered after its message type was first published receives later messages. The bus cached each message type's consumers on its first publish, an empty list included, and registering a consumer didn't clear the cache
 - `DisabledPluginConsumerFilter` blocks a disabled plugin's `ComponentConsumer<T1, T2>`, `<T1, T2, T3>` and `<T1, T2, T3, T4>` components. Each message type is subscribed through an adapter defined in `Mythetech.Framework`, so the filter looked up the Framework's assembly instead of the plugin's and let them through
+- `DynamicSettingControl` sizes the editors it hosts. Its rules for text fields, selects, numeric fields and sliders were scoped to the row component, and the editors render those elements, so none of them applied and a text field shrank to its natural width, cutting off a value like a font stack. They now reach the editors through `::deep`, and a text field beside its label is 320px wide (full width when `Stacked`). The slider value uses tabular digits instead of the browser's `monospace` font
+- `SettingsPanel` highlights the section at the top when it opens. Its first check reported the first settings domain whatever was on screen, so a section added through `NavPrefix` and `ContentPrefix`, which sits above the domains, showed the domain beneath it as active
 
 ### Notes
 
@@ -60,7 +62,7 @@
 - On Linux a group command also sets `ProcessStartInfo.KillOnParentExit` (PR_SET_PDEATHSIG), so the command itself is killed when the app exits. PR_SET_PDEATHSIG fires when the forking thread exits, but .NET 11 forks every such child from one dedicated thread that lives as long as the app, so a thread-pool thread that started the command can exit safely. It covers the leader only, not what the leader starts
   - On Linux a group command is therefore started by a real `fork()` on that one runtime thread, which is how .NET implements `KillOnParentExit`, so group starts are serialised and each costs a full fork
 - `IShellProcess.Exited` is unchanged, and a test now pins it: it fires when the command itself exits, without waiting for a process it started to close stdout or stderr. `WaitForExitAsync` on a group process still waits for every descendant holding stdout or stderr, so a caller that needs the leader's exit uses `Exited` and then `StopAsync`
-- All four packages move to `0.21.10`. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
+- All four packages move to `0.22.0`, a minor version because `IShellProcess` and `ShellCommand` gain members. `Mythetech.Framework.AI.Generator` is unchanged apart from the version, which follows `Mythetech.Framework`
 
 ## [0.21.9] - 2026-10-14
 

@@ -74,9 +74,15 @@ export function setupScrollSpy(containerElement, dotNetRef, sectionIds) {
         observedElements
     };
 
-    // Trigger initial check
+    // Trigger initial check with the section at the top, matching the observer's 100px top margin.
     setTimeout(() => {
-        const firstSection = observedElements[0];
+        const containerTop = containerElement.getBoundingClientRect().top;
+        const sections = containerElement.querySelectorAll('[id^="section-"]');
+        let firstSection = sections[0];
+        for (const section of sections) {
+            if (section.getBoundingClientRect().top - containerTop > 100) break;
+            firstSection = section;
+        }
         if (firstSection) {
             const sectionId = firstSection.id.replace('section-', '');
             try {
