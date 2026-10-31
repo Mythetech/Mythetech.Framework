@@ -48,6 +48,7 @@
 - A query handler that replaces an earlier one for the same message type takes effect after a query was already sent. The bus kept the handler it cached on the first query
 - A consumer registered after its message type was first published receives later messages. The bus cached each message type's consumers on its first publish, an empty list included, and registering a consumer didn't clear the cache
 - `DisabledPluginConsumerFilter` blocks a disabled plugin's `ComponentConsumer<T1, T2>`, `<T1, T2, T3>` and `<T1, T2, T3, T4>` components. Each message type is subscribed through an adapter defined in `Mythetech.Framework`, so the filter looked up the Framework's assembly instead of the plugin's and let them through
+- `DynamicSettingControl` sizes the editors it hosts. Its rules for text fields, selects, numeric fields and sliders were scoped to the row component, and the editors render those elements, so none of them applied and a text field shrank to its natural width, cutting off a value like a font stack. They now reach the editors through `::deep`, and a text field beside its label is 320px wide (full width when `Stacked`). The slider value uses tabular digits instead of the browser's `monospace` font
 
 ### Notes
 

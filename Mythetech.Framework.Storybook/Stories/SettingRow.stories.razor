@@ -30,10 +30,35 @@
         </Template>
     </DefaultStory>
 
+    <DefaultStory Name="Every Editor" TComponent="DynamicSettingControl">
+        <Template>
+            <div class="setting-row-story pa-4 d-flex flex-column gap-2">
+                @foreach (var name in EditorRows)
+                {
+                    <DynamicSettingControl @key="name"
+                                           Settings="@_settings"
+                                           Property="@Property(name)"
+                                           Attribute="@Attribute(name)" />
+                }
+            </div>
+        </Template>
+    </DefaultStory>
+
 </Stories>
 
 @code {
     private readonly DemoSettings _settings = new();
+
+    private static readonly string[] EditorRows =
+    [
+        nameof(DemoSettings.FontFamily),
+        nameof(DemoSettings.LineEnding),
+        nameof(DemoSettings.Density),
+        nameof(DemoSettings.MaxResults),
+        nameof(DemoSettings.FontSize),
+        nameof(DemoSettings.Scale),
+        nameof(DemoSettings.ShowMinimap),
+    ];
 
     private static PropertyInfo Property(string name) => typeof(DemoSettings).GetProperty(name)!;
 
@@ -54,5 +79,28 @@
             CustomEditor = typeof(SettingRowStatusEditor),
             Stacked = true)]
         public string BuildService { get; set; } = "";
+
+        [Setting(Label = "Font Family", Description = "The font to use in the editor", CustomEditor = typeof(StringSettingEditor))]
+        public string FontFamily { get; set; } = "JetBrains Mono, Consolas, 'Courier New'";
+
+        [Setting(Label = "Line Endings", Description = "Used for new files", Options = "LF,CRLF", CustomEditor = typeof(StringSettingEditor))]
+        public string LineEnding { get; set; } = "LF";
+
+        [Setting(Label = "Density", Description = "Spacing between rows", CustomEditor = typeof(EnumSettingEditor))]
+        public RowDensity Density { get; set; } = RowDensity.Comfortable;
+
+        [Setting(Label = "Max Results", Description = "Search stops after this many matches", CustomEditor = typeof(IntSettingEditor))]
+        public int MaxResults { get; set; } = 500;
+
+        [Setting(Label = "Font Size", Min = 8, Max = 32, CustomEditor = typeof(IntSettingEditor))]
+        public int FontSize { get; set; } = 14;
+
+        [Setting(Label = "Scale", Description = "Interface zoom", CustomEditor = typeof(DoubleSettingEditor))]
+        public double Scale { get; set; } = 1.0;
+
+        [Setting(Label = "Show Minimap", Description = "A miniature view of the code on the right", CustomEditor = typeof(BoolSettingEditor))]
+        public bool ShowMinimap { get; set; } = true;
     }
+
+    private enum RowDensity { Compact, Comfortable, Spacious }
 }

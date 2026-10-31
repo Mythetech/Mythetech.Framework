@@ -55,31 +55,36 @@
     min-width: 0;
 }
 
-.mf-setting-slider-container {
+/* Editors render these elements, so the rules have to reach through the editor component. */
+.mf-setting-control ::deep .mf-setting-slider-container {
     display: flex;
     align-items: center;
     gap: 12px;
     width: 180px;
 }
 
-.mf-setting-slider {
+.mf-setting-control ::deep .mf-setting-slider {
     flex: 1;
 }
 
-.mf-setting-slider-value {
+.mf-setting-control ::deep .mf-setting-slider-value {
     min-width: 3rem;
     text-align: right;
-    font-family: monospace;
+    font-variant-numeric: tabular-nums;
 }
 
-.mf-setting-numeric {
+.mf-setting-control ::deep .mf-setting-numeric {
     max-width: 100px;
 }
 
-.mf-setting-select {
+.mf-setting-control ::deep .mf-setting-select {
     min-width: 150px;
 }
 
-.mf-setting-text {
-    min-width: 200px;
+.mf-setting-control ::deep .mf-setting-text {
+    width: 320px;
+}
+
+.mf-dynamic-setting-control--stacked .mf-setting-control ::deep .mf-setting-text {
+    width: 100%;
 }
