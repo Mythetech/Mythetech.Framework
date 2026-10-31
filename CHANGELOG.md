@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `SimpleTabs.KeepPanelsAlive` keeps every tab's content rendered and hides the inactive ones, so a tab keeps its component state, such as an expanded tree or a scroll position, when another tab is selected. It defaults to `false`, which renders only the active tab as before
+- `SimpleTabs.Gutters` turns off the horizontal padding around the tab content, for a tab group inside a panel that already pads its content. It defaults to `true`
+
 ## [0.22.1] - 2026-10-31
 
 ### Changed
