@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.22.2] - 2026-11-03
+
+### Changed
+
+- `ShellExecutor` reads the login environment once per process instead of once per command. On macOS and Linux a command with `UseShell` (the default) sourced the user's profile before it ran (`path_helper`, `brew shellenv`, `~/.zprofile` and `~/.zshrc` on macOS; `/etc/profile`, `~/.profile` and `~/.bashrc` on Linux), which took about 570ms per command with a typical `.zshrc`. The first shell command now runs the profile once and records the variables it sets, and every later command starts a plain `zsh -c` or `bash -c` with those variables, at about 35ms per command
+  - Commands that start at the same time share one run of the profile, and so does every `ShellExecutor` instance in the process
+  - A profile edit takes effect when the app restarts
+  - Functions and aliases the profile defines, such as `nvm use` or `conda activate`, are no longer available to a command. Tools the profile puts on `PATH` still are
+  - A tool that sets its environment for the current directory when the profile is sourced, such as `mise activate` or direnv, now sets it for the home directory instead of the command's working directory
+  - If the profile exits before printing its environment, or takes longer than 10 seconds, a warning is logged and each command sources the profile itself, as before. The profile is not tried again
+  - A command's `EnvironmentVariables` still override what the profile sets
+  - Commands with `UseShell` set to `false`, and every command on Windows, never run the profile
+
+### Fixed
+
+- `ShellProcess` keeps the lines a process prints before anything subscribes to `OutputReceived` or `ErrorReceived`, up to 1,000 per stream, and gives them to the first handler that subscribes. `StartProcessAsync` starts the process before it returns, so a command that printed straight away could lose its first lines before the caller subscribed. The profile sourced before each shell command used to hide this; without it, it happens far more often
+
+### Notes
+
+- Only `Mythetech.Framework.Desktop` moves to `0.22.2`. `Mythetech.Framework` stays at `0.22.1`, and `Mythetech.Framework.WebAssembly` and `Mythetech.Framework.AI.Generator` stay at `0.22.0`
+
 ## [0.22.1] - 2026-10-31
 
 ### Added

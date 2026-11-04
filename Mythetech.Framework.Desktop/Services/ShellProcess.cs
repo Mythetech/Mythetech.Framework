@@ -16,6 +16,7 @@ public class ShellProcess : IShellProcess
 {
     private static readonly TimeSpan GroupPollInterval = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan DisposeGrace = TimeSpan.FromSeconds(3);
+    private const int UnsubscribedLineCapacity = 1000;
 
     [UnsupportedOSPlatform("windows")]
     private static readonly int[] GroupStopSignals = [ProcessGroups.SIGINT, ProcessGroups.SIGTERM];
@@ -25,6 +26,8 @@ public class ShellProcess : IShellProcess
     private readonly bool _ownProcessGroup;
     private readonly Func<int, DateTimeOffset?>? _startTimeOf;
     private readonly Func<WindowsJobObject>? _createJob;
+    private readonly BufferedLineEvent _output = new(UnsubscribedLineCapacity);
+    private readonly BufferedLineEvent _error = new(UnsubscribedLineCapacity);
 
     // Read once at start, so a stop running alongside DisposeAsync can still reach the group.
     private int _processId;
@@ -70,12 +73,12 @@ public class ShellProcess : IShellProcess
 
         _process.OutputDataReceived += (_, args) =>
         {
-            if (args.Data != null) OutputReceived?.Invoke(args.Data);
+            if (args.Data != null) _output.Raise(args.Data);
         };
 
         _process.ErrorDataReceived += (_, args) =>
         {
-            if (args.Data != null) ErrorReceived?.Invoke(args.Data);
+            if (args.Data != null) _error.Raise(args.Data);
         };
 
         _process.Exited += (_, _) =>
@@ -131,10 +134,23 @@ public class ShellProcess : IShellProcess
     public Stream StandardInput => _process.StandardInput.BaseStream;
 
     /// <inheritdoc />
-    public event Action<string>? OutputReceived;
+    /// <remarks>
+    /// The process starts before a caller can subscribe, so up to 1,000 lines printed before the first handler
+    /// subscribes are kept and given to that handler when it does.
+    /// </remarks>
+    public event Action<string>? OutputReceived
+    {
+        add => _output.Add(value);
+        remove => _output.Remove(value);
+    }
 
     /// <inheritdoc />
-    public event Action<string>? ErrorReceived;
+    /// <remarks>As with <see cref="OutputReceived"/>, lines printed before the first handler subscribes are kept for it.</remarks>
+    public event Action<string>? ErrorReceived
+    {
+        add => _error.Add(value);
+        remove => _error.Remove(value);
+    }
 
     /// <inheritdoc />
     /// <remarks>

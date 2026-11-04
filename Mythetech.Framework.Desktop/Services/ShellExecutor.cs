@@ -10,18 +10,21 @@ namespace Mythetech.Framework.Desktop.Services;
 /// Desktop implementation of <see cref="IShellExecutor"/>.
 /// Handles platform-specific shell configuration for proper PATH setup.
 /// </summary>
+/// <remarks>
+/// On macOS and Linux the variables the login profile sets are read once per process and reused, so a profile edit
+/// takes effect when the app restarts, and the profile's functions and aliases are not available to commands.
+/// </remarks>
 public partial class ShellExecutor : IShellExecutor
 {
     private static readonly TimeSpan GroupStopGrace = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan OutputDrainTimeout = TimeSpan.FromSeconds(1);
 
     private readonly ILogger<ShellExecutor>? _logger;
+    private readonly LoginEnvironment _loginEnvironment;
 
     /// <summary>
-    /// Setup script that ensures proper PATH on macOS.
-    /// Runs path_helper, brew shellenv, and sources user profiles.
-    /// GUI apps launched from Finder don't inherit shell environment,
-    /// so we must explicitly set this up.
+    /// Sets up the login environment on macOS, which GUI apps launched from Finder don't inherit.
+    /// <see cref="LoginEnvironment"/> runs it once per process; a command runs it only when that fails.
     /// </summary>
     private const string MacOsSetupScript =
         "eval \"$(/usr/libexec/path_helper -s 2>/dev/null)\"; " +
@@ -46,7 +49,13 @@ public partial class ShellExecutor : IShellExecutor
         ". ~/.profile 2>/dev/null; ";
 
     public ShellExecutor(ILogger<ShellExecutor>? logger = null)
+        : this(LoginEnvironment.Shared, logger)
     {
+    }
+
+    internal ShellExecutor(LoginEnvironment loginEnvironment, ILogger<ShellExecutor>? logger = null)
+    {
+        _loginEnvironment = loginEnvironment;
         _logger = logger;
     }
 
@@ -96,13 +105,14 @@ public partial class ShellExecutor : IShellExecutor
         }
 
         var effectiveCt = timeoutCts?.Token ?? cancellationToken;
+        var loginEnvironment = await GetLoginEnvironmentAsync(command, effectiveCt);
 
         if (command.OwnProcessGroup)
         {
-            return await ExecuteInOwnGroupAsync(command, onStdOut, onStdErr, effectiveCt);
+            return await ExecuteInOwnGroupAsync(command, loginEnvironment, onStdOut, onStdErr, effectiveCt);
         }
 
-        var startInfo = CreateProcessStartInfo(command);
+        var startInfo = CreateProcessStartInfo(command, loginEnvironment: loginEnvironment);
         using var process = new Process { StartInfo = startInfo };
 
         var startTime = DateTimeOffset.Now;
@@ -159,11 +169,13 @@ public partial class ShellExecutor : IShellExecutor
 
     private async Task<ShellResult> ExecuteInOwnGroupAsync(
         ShellCommand command,
+        IReadOnlyDictionary<string, string>? loginEnvironment,
         Action<string>? onStdOut,
         Action<string>? onStdErr,
         CancellationToken cancellationToken)
     {
-        await using var process = new ShellProcess(CreateProcessStartInfo(command), _logger, ownProcessGroup: true);
+        await using var process = new ShellProcess(
+            CreateProcessStartInfo(command, loginEnvironment: loginEnvironment), _logger, ownProcessGroup: true);
 
         if (onStdOut != null) process.OutputReceived += onStdOut;
         if (onStdErr != null) process.ErrorReceived += onStdErr;
@@ -215,17 +227,34 @@ public partial class ShellExecutor : IShellExecutor
     }
 
     /// <inheritdoc />
-    public Task<IShellProcess> StartProcessAsync(
+    public async Task<IShellProcess> StartProcessAsync(
         ShellCommand command,
         CancellationToken cancellationToken = default)
     {
-        var startInfo = CreateProcessStartInfo(command, redirectInput: true);
+        var loginEnvironment = await GetLoginEnvironmentAsync(command, cancellationToken);
+        var startInfo = CreateProcessStartInfo(command, redirectInput: true, loginEnvironment);
         var shellProcess = new ShellProcess(startInfo, _logger, command.OwnProcessGroup);
         shellProcess.Start();
-        return Task.FromResult<IShellProcess>(shellProcess);
+        return shellProcess;
     }
 
-    internal ProcessStartInfo CreateProcessStartInfo(ShellCommand command, bool redirectInput = false)
+    private Task<IReadOnlyDictionary<string, string>?> GetLoginEnvironmentAsync(
+        ShellCommand command,
+        CancellationToken cancellationToken) =>
+        command.UseShell && !OperatingSystem.IsWindows()
+            ? _loginEnvironment.GetAsync(_logger, cancellationToken)
+            : Task.FromResult<IReadOnlyDictionary<string, string>?>(null);
+
+    /// <param name="command">The command to start.</param>
+    /// <param name="redirectInput">Whether the caller writes to the process's stdin.</param>
+    /// <param name="loginEnvironment">
+    /// The variables the login profile sets, from <see cref="LoginEnvironment"/>; null makes the shell source the
+    /// profile itself.
+    /// </param>
+    internal ProcessStartInfo CreateProcessStartInfo(
+        ShellCommand command,
+        bool redirectInput = false,
+        IReadOnlyDictionary<string, string>? loginEnvironment = null)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -260,7 +289,7 @@ public partial class ShellExecutor : IShellExecutor
 
         if (command.UseShell)
         {
-            ConfigureWithShell(startInfo, command);
+            ConfigureWithShell(startInfo, command, loginEnvironment);
         }
         else
         {
@@ -270,33 +299,47 @@ public partial class ShellExecutor : IShellExecutor
         return startInfo;
     }
 
-    private void ConfigureWithShell(ProcessStartInfo startInfo, ShellCommand command)
+    private void ConfigureWithShell(
+        ProcessStartInfo startInfo,
+        ShellCommand command,
+        IReadOnlyDictionary<string, string>? loginEnvironment)
     {
-        var envExports = BuildEnvironmentExports(command.EnvironmentVariables);
-
-        if (OperatingSystem.IsMacOS())
-        {
-            startInfo.FileName = "/bin/zsh";
-            startInfo.ArgumentList.Add("-c");
-
-            startInfo.ArgumentList.Add($"{MacOsSetupScript}{envExports}{BuildPosixCommandLine(command)}");
-        }
-        else if (OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows())
         {
             // Windows doesn't need shell wrapping for PATH
             ConfigureDirectExecution(startInfo, command);
+            return;
         }
-        else
+
+        var (shell, setupScript) = LoginShell();
+        if (loginEnvironment != null)
         {
-            // Linux: prefer bash, fall back to sh for minimal distros (e.g., Alpine)
-            var shell = File.Exists("/bin/bash") ? "/bin/bash" : "/bin/sh";
-            var setupScript = shell == "/bin/bash" ? LinuxSetupScript : ShSetupScript;
+            foreach (var (key, value) in loginEnvironment)
+            {
+                startInfo.Environment[key] = value;
+            }
 
-            startInfo.FileName = shell;
-            startInfo.ArgumentList.Add("-c");
-
-            startInfo.ArgumentList.Add($"{setupScript}{envExports}{BuildPosixCommandLine(command)}");
+            setupScript = string.Empty;
         }
+
+        startInfo.FileName = shell;
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(
+            $"{setupScript}{BuildEnvironmentExports(command.EnvironmentVariables)}{BuildPosixCommandLine(command)}");
+    }
+
+    /// <summary>
+    /// The shell a command runs in on macOS and Linux, and the script that sets up the user's login environment in it.
+    /// </summary>
+    internal static (string Shell, string SetupScript) LoginShell()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return ("/bin/zsh", MacOsSetupScript);
+        }
+
+        // Minimal distros such as Alpine have no bash.
+        return File.Exists("/bin/bash") ? ("/bin/bash", LinuxSetupScript) : ("/bin/sh", ShSetupScript);
     }
 
     /// <summary>
