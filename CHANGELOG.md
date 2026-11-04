@@ -13,6 +13,10 @@
   - A command's `EnvironmentVariables` still override what the profile sets
   - Commands with `UseShell` set to `false`, and every command on Windows, never run the profile
 
+### Fixed
+
+- `ShellProcess` keeps the lines a process prints before anything subscribes to `OutputReceived` or `ErrorReceived`, up to 1,000 per stream, and gives them to the first handler that subscribes. `StartProcessAsync` starts the process before it returns, so a command that printed straight away could lose its first lines before the caller subscribed. The profile sourced before each shell command used to hide this; without it, it happens far more often
+
 ### Notes
 
 - Only `Mythetech.Framework.Desktop` moves to `0.22.2`. `Mythetech.Framework` stays at `0.22.1`, and `Mythetech.Framework.WebAssembly` and `Mythetech.Framework.AI.Generator` stay at `0.22.0`
