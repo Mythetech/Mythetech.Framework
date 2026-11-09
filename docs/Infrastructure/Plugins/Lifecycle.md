@@ -44,7 +44,7 @@ var result = await installer.InstallFromUrlAsync(registryEntry.Uri, registryEntr
 // result.Succeeded, result.Plugins, and result.Message to show the user
 ```
 
-Each install goes into a new `{key}/install-{timestamp}` folder under the plugins directory, loads into a fresh `PluginLoadContext`, and replaces any registered plugin with the same ID. The replaced plugin's folder gets a `.removed` marker and is deleted at the next startup, before anything loads, so a loaded DLL is never deleted. If nothing in the package loads, the previous version stays registered.
+Each install goes into a new `{key}/install-{timestamp}` folder under the plugins directory, loads into a fresh `PluginLoadContext`, and replaces any registered plugin with the same ID. The replaced plugin's folder gets a `.removed` marker and is deleted at the next startup, before anything loads, so a loaded DLL is never deleted. If nothing in the package loads, the previous version stays registered, and an install interrupted before its plugin loads is deleted at the next startup.
 
 `ImportFromFileAsync(dllPath)` loads a DLL where it is and registers it for this session only.
 

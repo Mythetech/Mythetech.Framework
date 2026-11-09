@@ -41,6 +41,23 @@ public class PluginInstallerTests : IDisposable
         var folder = PluginFolder(plugin);
         Path.GetDirectoryName(folder).ShouldBe(Path.Combine(_pluginsDirectory, "Zip"));
         Path.GetFileName(folder).ShouldStartWith(PluginInstallLayout.InstallFolderPrefix);
+        IsMarked(folder).ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "An install interrupted before it loads is deleted at the next startup, which keeps the previous install")]
+    public async Task InterruptedInstall_NextStartup_KeepsPreviousInstall()
+    {
+        var name = UniqueName("Interrupted");
+        using var v1 = BuildPackage(name, "mythetech.test.interrupted", new Version(1, 0, 0));
+        var installed = await _installer.InstallFromStreamAsync(v1, $"{name}.zip", "Interrupted");
+        var v1Folder = PluginFolder(installed.Plugins.ShouldHaveSingleItem());
+        var partial = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Interrupted");
+        TestPluginBuilder.Build(partial, name, "mythetech.test.interrupted", new Version(2, 0, 0));
+
+        var folders = PluginInstallLayout.PrepareForLoad(_pluginsDirectory, NullLogger.Instance);
+
+        folders.ShouldBe([v1Folder]);
+        Directory.Exists(partial).ShouldBeFalse();
     }
 
     [Fact(DisplayName = "InstallFromStreamAsync of a newer version replaces the plugin and marks the old folder")]

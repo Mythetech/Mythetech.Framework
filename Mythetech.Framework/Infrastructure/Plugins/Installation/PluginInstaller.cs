@@ -75,22 +75,19 @@ public sealed class PluginInstaller : IPluginInstaller
     {
         ArgumentNullException.ThrowIfNull(package);
 
-        string? installFolder = null;
-        var registrationStarted = false;
         try
         {
             var pluginsDirectory = _state.ResolvePluginDirectory();
-            installFolder = PluginInstallLayout.CreateInstallFolder(pluginsDirectory, pluginKey);
+            var installFolder = PluginInstallLayout.CreateInstallFolder(pluginsDirectory, pluginKey);
             await WritePackageAsync(package, fileName, pluginKey, installFolder);
 
             var plugins = _loader.LoadPluginsFromFolder(installFolder);
             if (plugins.Count == 0)
-            {
-                TryMarkForRemoval(installFolder);
                 return Failed(NoPluginInPackageMessage);
-            }
 
-            registrationStarted = true;
+            // The folder is created marked, so every failure before this point leaves it for the next startup to delete.
+            File.Delete(Path.Combine(installFolder, PluginInstallLayout.RemovedMarkerFileName));
+
             var replacedAny = false;
             foreach (var plugin in plugins)
             {
@@ -107,13 +104,11 @@ public sealed class PluginInstaller : IPluginInstaller
         catch (InvalidDataException ex)
         {
             _logger.LogWarning(ex, "The package for plugin {PluginKey} isn't a valid plugin package", pluginKey);
-            MarkUnusedInstall(installFolder, registrationStarted);
             return Failed(InvalidPackageMessage);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to install plugin {PluginKey}", pluginKey);
-            MarkUnusedInstall(installFolder, registrationStarted);
             return Failed(InstallFailedMessage);
         }
     }
@@ -179,13 +174,6 @@ public sealed class PluginInstaller : IPluginInstaller
             return;
 
         TryMarkForRemoval(previousFolder);
-    }
-
-    // Once a plugin from the folder is registered the folder is in use, so it must survive the next startup.
-    private void MarkUnusedInstall(string? installFolder, bool registrationStarted)
-    {
-        if (installFolder is not null && !registrationStarted)
-            TryMarkForRemoval(installFolder);
     }
 
     private void TryMarkForRemoval(string folder)

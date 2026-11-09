@@ -24,7 +24,7 @@ public static class PluginInstallLayout
     private static readonly Lock CreateLock = new();
 
     /// <summary>
-    /// Creates a new, empty install folder for a plugin, named so the newest install sorts last.
+    /// Creates a new install folder for a plugin, already marked for removal, named so the newest install sorts last.
     /// </summary>
     /// <param name="pluginsDirectory">The plugins directory</param>
     /// <param name="pluginKey">Key naming the plugin's folder, such as its registry name</param>
@@ -44,6 +44,8 @@ public static class PluginInstallLayout
             }
 
             Directory.CreateDirectory(folder);
+            // Marked until the install loads, so an interrupted install is deleted at the next startup.
+            MarkForRemoval(folder);
             return folder;
         }
     }

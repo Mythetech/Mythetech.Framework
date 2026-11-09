@@ -19,7 +19,7 @@ public class PluginInstallLayoutTests : IDisposable
         var markedKey = CreateFolderWithDll("Removed");
         PluginInstallLayout.MarkForRemoval(markedKey);
         var keptInstall = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "FailedUpgrade");
-        WriteDll(keptInstall);
+        CompleteInstall(keptInstall);
         var markedInstall = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "FailedUpgrade");
         WriteDll(markedInstall);
         PluginInstallLayout.MarkForRemoval(markedInstall);
@@ -35,9 +35,9 @@ public class PluginInstallLayoutTests : IDisposable
     public void PrepareForLoad_KeepsOnlyNewestInstallFolder()
     {
         var older = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Notes");
-        WriteDll(older);
+        CompleteInstall(older);
         var newer = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Notes");
-        WriteDll(newer);
+        CompleteInstall(newer);
 
         var folders = PluginInstallLayout.PrepareForLoad(_pluginsDirectory, NullLogger.Instance);
 
@@ -75,7 +75,7 @@ public class PluginInstallLayoutTests : IDisposable
         Directory.CreateDirectory(legacyAssets);
         File.WriteAllText(Path.Combine(legacyAssets, "notes.css"), string.Empty);
         var install = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Notes");
-        WriteDll(install);
+        CompleteInstall(install);
         PluginInstallLayout.MarkForRemoval(legacy);
 
         var folders = PluginInstallLayout.PrepareForLoad(_pluginsDirectory, NullLogger.Instance);
@@ -100,6 +100,19 @@ public class PluginInstallLayoutTests : IDisposable
         string.CompareOrdinal(Path.GetFileName(second), Path.GetFileName(first)).ShouldBeGreaterThan(0);
     }
 
+    [Fact(DisplayName = "CreateInstallFolder returns a folder marked for removal until its install completes")]
+    public void CreateInstallFolder_NewFolder_IsMarkedUntilInstallCompletes()
+    {
+        var install = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Notes");
+        WriteDll(install);
+
+        File.Exists(Path.Combine(install, PluginInstallLayout.RemovedMarkerFileName)).ShouldBeTrue();
+        var folders = PluginInstallLayout.PrepareForLoad(_pluginsDirectory, NullLogger.Instance);
+
+        folders.ShouldBeEmpty();
+        Directory.Exists(install).ShouldBeFalse();
+    }
+
     private string CreateFolderWithDll(string name)
     {
         var folder = Path.Combine(_pluginsDirectory, name);
@@ -109,6 +122,13 @@ public class PluginInstallLayoutTests : IDisposable
     }
 
     private static void WriteDll(string folder) => File.WriteAllText(Path.Combine(folder, "Plugin.dll"), string.Empty);
+
+    // What the installer does once a plugin from the folder has loaded.
+    private static void CompleteInstall(string folder)
+    {
+        WriteDll(folder);
+        File.Delete(Path.Combine(folder, PluginInstallLayout.RemovedMarkerFileName));
+    }
 
     public void Dispose()
     {
