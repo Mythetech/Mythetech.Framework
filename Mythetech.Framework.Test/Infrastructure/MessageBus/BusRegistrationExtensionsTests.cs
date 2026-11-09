@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Mcp.Consumers;
 using Mythetech.Framework.Infrastructure.Mcp.Messages;
+using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Plugins.Consumers;
 using NSubstitute;
 using Shouldly;
 
@@ -102,6 +104,34 @@ namespace Mythetech.Framework.Test.Infrastructure.MessageBus
 
             consumerCount.ShouldBeGreaterThan(0,
                 "Non-MCP consumers should still be registered");
+        }
+
+        #endregion
+
+        #region Plugin Consumer Filtering Tests
+
+        [Fact(DisplayName = "RegisterConsumers excludes plugin consumers from automatic registration")]
+        public void RegisterConsumers_ExcludesPluginConsumers()
+        {
+            var services = new ServiceCollection();
+
+            services.RegisterConsumers(typeof(IMessageBus).Assembly);
+
+            var serviceProvider = services.BuildServiceProvider();
+            serviceProvider.GetService<PluginSettingsConsumer>().ShouldBeNull();
+        }
+
+        [Fact(DisplayName = "AddPluginFramework registers PluginSettingsConsumer")]
+        public void AddPluginFramework_ResolvesPluginSettingsConsumer()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddPluginFramework();
+            services.AddMessageBus();
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            serviceProvider.GetRequiredService<PluginSettingsConsumer>().ShouldNotBeNull();
         }
 
         #endregion

@@ -26,7 +26,7 @@ public class DesktopPluginAssetLoaderTests : IDisposable
             Assembly = typeof(DesktopPluginAssetLoaderTests).Assembly,
             SourcePath = Path.Combine(_pluginDirectory, "AssetTestPlugin.dll")
         };
-        var loader = new DesktopPluginAssetLoader(_jsRuntime, new PluginState(), NullLogger<DesktopPluginAssetLoader>.Instance);
+        var loader = new DesktopPluginAssetLoader(_jsRuntime, NullLogger<DesktopPluginAssetLoader>.Instance, new PluginState());
 
         await loader.LoadPluginAssetsAsync(plugin);
         await loader.LoadPluginAssetsAsync(plugin);

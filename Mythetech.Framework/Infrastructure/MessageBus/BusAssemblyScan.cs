@@ -15,7 +15,7 @@ internal static class BusAssemblyScan
     {
         var candidates = AssemblyTypes.Get(assembly)
             .Where(t => !t.IsAbstract && !t.IsInterface)
-            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t))
+            .Where(t => !IsMcpHandler(t) && !IsFeatureFlagHandler(t) && !IsPluginHandler(t))
             .Where(t => !typeof(ComponentBase).IsAssignableFrom(t))
             .ToArray();
 
@@ -40,6 +40,9 @@ internal static class BusAssemblyScan
 
     private static bool IsFeatureFlagHandler(Type type)
         => type.Namespace?.Contains(".FeatureFlags") == true;
+
+    private static bool IsPluginHandler(Type type)
+        => type.Namespace?.Contains(".Infrastructure.Plugins") == true;
 
     internal sealed record Result(ConsumerRegistration[] Consumers, QueryHandlerRegistration[] QueryHandlers);
 

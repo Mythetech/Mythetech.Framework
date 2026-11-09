@@ -15,14 +15,14 @@ namespace Mythetech.Framework.Desktop;
 public class DesktopPluginAssetLoader : IPluginAssetLoader
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly PluginState _pluginState;
+    private readonly PluginState? _pluginState;
     private readonly ILogger<DesktopPluginAssetLoader> _logger;
     private readonly ConcurrentDictionary<string, bool> _loadedAssets = new();
 
     public DesktopPluginAssetLoader(
         IJSRuntime jsRuntime, 
-        PluginState pluginState,
-        ILogger<DesktopPluginAssetLoader> logger)
+        ILogger<DesktopPluginAssetLoader> logger,
+        PluginState? pluginState = null)
     {
         _jsRuntime = jsRuntime;
         _pluginState = pluginState;
@@ -383,7 +383,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     private async Task<string?> TryReadAssetContentAsync(string path)
     {
         // Try to find which plugin this asset belongs to
-        foreach (var plugin in _pluginState.Plugins)
+        foreach (var plugin in _pluginState?.Plugins ?? [])
         {
             var resolved = ResolveAssetToFilePath(plugin, path);
             if (resolved != null && File.Exists(resolved))
