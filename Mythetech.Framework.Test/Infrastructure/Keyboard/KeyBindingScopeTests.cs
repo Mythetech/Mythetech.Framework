@@ -51,6 +51,19 @@ public class KeyBindingScopeTests
         conflictingId.ShouldBe("find-next");
     }
 
+    [Fact(DisplayName = "Reassigning an editor action to a key a global action holds leaves the global binding bound")]
+    public async Task Reassign_does_not_unbind_other_scope()
+    {
+        var service = CreateService(
+            Definition("global-find", KeyBinding.CtrlOrCmd(JsKey.KeyF), KeyBindingScope.Global),
+            Definition("editor-find", null, KeyBindingScope.Editor));
+
+        await service.ReassignAsync("editor-find", KeyBinding.CtrlOrCmd(JsKey.KeyF));
+
+        service.GetBinding("editor-find").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyF));
+        service.GetBinding("global-find").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyF));
+    }
+
     [Fact(DisplayName = "GetAll by scope returns only that scope's actions")]
     public void GetAll_filters_by_scope()
     {
