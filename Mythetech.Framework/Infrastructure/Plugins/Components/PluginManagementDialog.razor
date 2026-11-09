@@ -52,6 +52,10 @@
                                        Variant="Variant.Filled">
                                     @(context.IsEnabled ? "Enabled" : "Disabled")
                                 </MtBadge>
+                                @if (context.Manifest.IsDeprecated)
+                                {
+                                    <MtBadge Size="Size.Small" Color="Color.Warning">Deprecated</MtBadge>
+                                }
                             </MudTd>
                             <MudTd DataLabel="Actions">
                                 <MudMenu @ref="_rowMenus[context.Manifest.Id]" Icon="@MythetechFrameworkIcons.MoreVert" Size="Size.Small" Variant="Variant.Text">
@@ -242,27 +246,11 @@
         }
 
         _availablePlugins = _registry.Plugins
-            .Where(registryPlugin =>
-            {
-                // Hide dev plugins in production
-                if (registryPlugin.IsDevPlugin && RuntimeEnvironment.IsProduction())
-                    return false;
-
-                // Hide preview plugins unless checkbox is checked
-                if (registryPlugin.IsPreview && !_showPreviewPlugins)
-                    return false;
-
-                var installedPlugin = PluginState.GetPlugin(registryPlugin.Id);
-                var registryVersion = PluginInfo.ParseVersion(registryPlugin.Version);
-
-                if (installedPlugin is null)
-                    return true;
-
-                if (registryVersion is null)
-                    return false;
-
-                return installedPlugin.IsOlderThan(registryVersion);
-            })
+            .Where(registryPlugin => RegistryPluginFilter.ShouldList(
+                registryPlugin,
+                PluginState.GetPlugin(registryPlugin.Id),
+                RuntimeEnvironment.IsProduction(),
+                _showPreviewPlugins))
             .ToList();
     }
     

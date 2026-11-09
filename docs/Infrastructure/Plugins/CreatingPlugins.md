@@ -78,6 +78,7 @@ public class MyPluginManifest : IPluginManifest
 | `Assets` | No | CSS/JS assets to load |
 | `IsDevPlugin` | No | Only show in dev mode |
 | `IsPreview` | No | Mark as preview/beta |
+| `IsDeprecated` | No | Hide from the registry list |
 
 ## Step 3: Add UI Components
 
