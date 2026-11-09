@@ -39,6 +39,10 @@ public sealed class KeyBindingService : IKeyBindingService
         => _registry.GetAll().Select(Resolve).ToArray();
 
     /// <inheritdoc />
+    public IReadOnlyList<ResolvedKeyBinding> GetAll(KeyBindingScope scope)
+        => GetAll().Where(binding => binding.Scope == scope).ToArray();
+
+    /// <inheritdoc />
     public IEnumerable<IGrouping<string, ResolvedKeyBinding>> GetByCategory()
         => GetAll().GroupBy(binding => binding.Category);
 
@@ -126,7 +130,9 @@ public sealed class KeyBindingService : IKeyBindingService
     /// <inheritdoc />
     public bool TryFindConflict(string id, KeyBinding proposed, out string? conflictingId)
     {
-        foreach (var resolved in GetAll())
+        var scope = _registry.Get(id)?.Scope ?? KeyBindingScope.Global;
+
+        foreach (var resolved in GetAll(scope))
         {
             if (resolved.Id == id)
             {

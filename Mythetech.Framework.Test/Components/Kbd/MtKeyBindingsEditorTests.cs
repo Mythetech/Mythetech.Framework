@@ -74,6 +74,21 @@ public class MtKeyBindingsEditorTests : BunitContext
         cut.FindAll(".mf-keybinding-category").Count.ShouldBe(2);
     }
 
+    [Fact(DisplayName = "Lists editor-scoped actions so they can be rebound")]
+    public void Lists_editor_scoped_actions()
+    {
+        Configure(
+            Definition("save", KeyBinding.CtrlOrCmd(JsKey.KeyS)),
+            new KeyBindingDefinition(
+                "find-next", "Find next", null, "Editor", KeyBinding.CtrlOrCmd(JsKey.KeyG),
+                (_, _) => Task.CompletedTask, KeyBindingScope.Editor));
+
+        var cut = Render<MtKeyBindingsEditor>();
+
+        cut.FindAll(".mf-keybinding-row").Count.ShouldBe(2);
+        cut.Markup.ShouldContain("Find next");
+    }
+
     [Fact(DisplayName = "Shows Not set for an action that ships unbound")]
     public void Shows_not_set_for_unbound()
     {

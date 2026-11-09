@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.23.0] - 2026-11-09
+
+### Added
+
+- Key bindings have a scope. `KeyBindingScope.Global` is the default and behaves as before. `KeyBindingScope.Editor` lists an action and lets the user rebind it, but `MtKeyBindings` never registers a hotkey for it, so an editor can handle its own shortcuts (find next, go to line)
+  - `KeyBindingBuilder.Add` takes an optional `scope`, `KeyBindingDefinition` an optional trailing `Scope`, and `ResolvedKeyBinding` exposes `Scope`
+  - This is binary-breaking even though the new parameters are optional: code built against 0.22.x, including plugins, must be recompiled. The `KeyBindingDefinition` constructor and `Deconstruct`, and `KeyBindingBuilder.Add`, changed signature, and anything that implements `IKeyBindingService` must add the new `GetAll(KeyBindingScope)` member
+  - `IKeyBindingService.GetAll(KeyBindingScope)` returns the actions in one scope
+  - `TryFindConflict` and `ReassignAsync` only consider actions in the same scope, so an editor action can share a key with a global one
+
 ## [0.22.2] - 2026-11-03
 
 ### Changed

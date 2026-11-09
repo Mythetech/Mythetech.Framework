@@ -11,7 +11,7 @@
 
 @foreach (var action in Bindings.GetAll())
 {
-    if (action.CurrentBinding is not { } binding)
+    if (action.Scope != KeyBindingScope.Global || action.CurrentBinding is not { } binding)
     {
         continue;
     }

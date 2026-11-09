@@ -20,6 +20,9 @@ public sealed record ResolvedKeyBinding(
     /// <summary>The action's optional secondary text.</summary>
     public string? Description => Definition.Description;
 
+    /// <summary>The scope the action is active in.</summary>
+    public KeyBindingScope Scope => Definition.Scope;
+
     /// <summary>The action's category.</summary>
     public string Category => Definition.Category;
 }

@@ -36,8 +36,11 @@ public class MtKeyBindingsTests : BunitContext
         Services.AddSingleton<IPlatformDetector>(new DefaultPlatformDetector());
     }
 
-    private static ResolvedKeyBinding Resolved(string id, KeyBinding? binding)
-        => new(new KeyBindingDefinition(id, id, null, "General", binding, (_, _) => Task.CompletedTask),
+    private static ResolvedKeyBinding Resolved(
+        string id,
+        KeyBinding? binding,
+        KeyBindingScope scope = KeyBindingScope.Global)
+        => new(new KeyBindingDefinition(id, id, null, "General", binding, (_, _) => Task.CompletedTask, scope),
             binding,
             IsCustomized: false);
 
@@ -53,6 +56,19 @@ public class MtKeyBindingsTests : BunitContext
         var cut = Render<MtKeyBindings>();
 
         cut.FindComponents<MudHotkey>().Count.ShouldBe(2);
+    }
+
+    [Fact(DisplayName = "MtKeyBindings registers no hotkey for editor-scoped actions")]
+    public void Renders_nothing_for_editor_scoped_action()
+    {
+        _service.GetAll().Returns(new[]
+        {
+            Resolved("find-next", KeyBinding.CtrlOrCmd(JsKey.KeyG), KeyBindingScope.Editor),
+        });
+
+        var cut = Render<MtKeyBindings>();
+
+        cut.FindComponents<MudHotkey>().ShouldBeEmpty();
     }
 
     [Fact(DisplayName = "Renders no MudHotkey for an unbound action")]
