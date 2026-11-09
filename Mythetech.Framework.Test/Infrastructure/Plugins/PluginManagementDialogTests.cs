@@ -47,7 +47,6 @@ public class PluginManagementDialogTests : BunitContext
         Services.AddSingleton(_registryService);
         Services.AddSingleton(_installer);
         Services.AddSingleton(_localPlugins);
-        Services.AddSingleton(_fileOpenService);
     }
 
     [Fact(DisplayName = "Installing a registry plugin shows the installer's message")]
@@ -84,6 +83,7 @@ public class PluginManagementDialogTests : BunitContext
     [Fact(DisplayName = "With local plugins enabled, the Installed tab offers Add local plugin")]
     public async Task PluginManagementDialog_LocalEnabled_ShowsAddLocalPlugin()
     {
+        Services.AddSingleton(_fileOpenService);
         EnableLocalPlugins();
         RegistryReturns();
 
@@ -92,9 +92,10 @@ public class PluginManagementDialogTests : BunitContext
         host.WaitForAssertion(() => host.FindAll($"button:contains('{AddLocalPluginText}')").ShouldHaveSingleItem());
     }
 
-    [Fact(DisplayName = "Without local plugin support, the Installed tab hides Add local plugin")]
+    [Fact(DisplayName = "Without local plugin support or a file picker, the dialog renders and hides Add local plugin")]
     public async Task PluginManagementDialog_LocalUnavailable_HidesAddLocalPlugin()
     {
+        // No IFileOpenService is registered, as in a Blazor Server host.
         _localPlugins.IsAvailable.Returns(false);
         _localPlugins.IsEnabled.Returns(true);
         RegistryReturns();
@@ -121,6 +122,7 @@ public class PluginManagementDialogTests : BunitContext
     [Fact(DisplayName = "Add local plugin adds the chosen DLL and shows the result")]
     public async Task AddLocalPlugin_AddsChosenDllAndShowsMessage()
     {
+        Services.AddSingleton(_fileOpenService);
         EnableLocalPlugins();
         RegistryReturns();
         _fileOpenService.OpenFileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<FileFilter[]?>())
@@ -146,6 +148,7 @@ public class PluginManagementDialogTests : BunitContext
     [Fact(DisplayName = "A local plugin's row shows a Local badge with its path, and its menu offers Remove instead of Delete")]
     public async Task LocalPlugin_ShowsLocalBadgeAndRemove()
     {
+        Services.AddSingleton(_fileOpenService);
         EnableLocalPlugins();
         RegistryReturns();
         await _state.RegisterPluginAsync(Plugin(EntryId, "1.0.0", isLocal: true));

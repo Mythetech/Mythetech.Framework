@@ -4,7 +4,6 @@
 @using Mythetech.Framework.Components.Buttons
 @using Mythetech.Framework.Components.Switch
 @using Mythetech.Framework.Infrastructure.Environment
-@using Mythetech.Framework.Infrastructure.Files
 @using Mythetech.Framework
 @using Microsoft.Extensions.Logging
 @using Mythetech.Framework.Infrastructure.Plugins.Installation
@@ -13,7 +12,6 @@
 @inject PluginState PluginState
 @inject IPluginInstaller Installer
 @inject ILocalPluginService LocalPlugins
-@inject IFileOpenService FileOpenService
 @inject ILogger<PluginManagementDialog> Logger
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -40,13 +38,7 @@
                     @if (LocalPlugins.IsAvailable && LocalPlugins.IsEnabled)
                     {
                         <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
-                            <MtButton Size="Size.Small"
-                                      Variant="Variant.Text"
-                                      Color="Color.Primary"
-                                      StartIcon="@MythetechFrameworkIcons.Add"
-                                      OnClick="HandleAddLocalPlugin"
-                                      Disabled="@_isAddingLocal"
-                                      Text="Add local plugin…" />
+                            <AddLocalPluginButton PluginAdded="HandleLocalPluginAdded" />
                         </MudStack>
                     }
                     <MudTable Items="@PluginState.Plugins" Hover="true" Dense="true">
@@ -211,7 +203,6 @@
     private List<RegistryPluginEntry>? _availablePlugins;
     private bool _isLoadingRegistry = true;
     private bool _isInstalling;
-    private bool _isAddingLocal;
     private string? _errorMessage;
     private string _installedTabName = "Installed (0)";
     private string _availableTabName = "Available (0)";
@@ -339,27 +330,10 @@
         }
     }
     
-    private async Task HandleAddLocalPlugin()
+    private void HandleLocalPluginAdded()
     {
-        if (_isAddingLocal) return;
-
-        _isAddingLocal = true;
-        try
-        {
-            var files = await FileOpenService.OpenFileAsync(
-                title: "Select Plugin DLL",
-                filters: [new FileFilter("Plugin DLLs", ["*.dll"])]);
-            if (files.Length == 0) return;
-
-            var result = await LocalPlugins.AddAsync(files[0]);
-            Snackbar.Add(result.Message, result.Succeeded ? Severity.Success : Severity.Error);
-            UpdateAvailablePlugins();
-            UpdateTabNames();
-        }
-        finally
-        {
-            _isAddingLocal = false;
-        }
+        UpdateAvailablePlugins();
+        UpdateTabNames();
     }
 
     private async Task HandleRemoveLocalPlugin(PluginInfo plugin)

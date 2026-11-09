@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -23,13 +25,14 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
     private const string NuGetPackagesVariable = "NUGET_PACKAGES";
     private const string UnavailableMessage = "Local plugins aren't available in this app.";
     private const string NoPluginMessage = "No plugin was found in that file.";
+    private const int AppKeyLength = 12;
 
     // A build writes many files, so a reload waits until the watched folders have been quiet this long.
     private static readonly TimeSpan QuietPeriod = TimeSpan.FromMilliseconds(400);
 
     private readonly IMessageBus _messageBus;
     private readonly ILogger<LocalPluginService> _logger;
-    private readonly string _copiesRoot;
+    private readonly string _copiesBase;
     private readonly PluginLoader? _loader;
     private readonly PluginState? _state;
     private readonly Channel<string> _changes = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
@@ -63,14 +66,14 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
     internal LocalPluginService(
         IMessageBus messageBus,
         ILogger<LocalPluginService> logger,
-        string copiesRoot,
+        string copiesBase,
         PluginLoader? loader,
         PluginState? state,
         ISettingsProvider? settingsProvider)
     {
         _messageBus = messageBus;
         _logger = logger;
-        _copiesRoot = copiesRoot;
+        _copiesBase = copiesBase;
         _loader = loader;
         _state = state;
         _disposalToken = _disposal.Token;
@@ -357,7 +360,7 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
 
     private string CreateCopyFolder(string copyKey)
     {
-        var keyFolder = Path.Combine(_copiesRoot, PluginInstallLayout.SanitizeFolderName(copyKey));
+        var keyFolder = Path.Combine(AppCopiesFolder(), PluginInstallLayout.SanitizeFolderName(copyKey));
         var ticks = DateTime.UtcNow.Ticks;
         string folder;
         while (Directory.Exists(folder = Path.Combine(keyFolder, ticks.ToString(CultureInfo.InvariantCulture))))
@@ -575,21 +578,32 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
     private static bool PathEquals(string left, string right) =>
         string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
+    private string AppCopiesFolder() => AppCopiesFolder(_copiesBase, _state!.ResolvePluginDirectory());
+
+    // Keyed by the app's plugin directory, so one app's startup never deletes copies another running app loaded.
+    internal static string AppCopiesFolder(string copiesBase, string pluginDirectory)
+    {
+        var normalized = Path.TrimEndingDirectorySeparator(Path.GetFullPath(pluginDirectory));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
+        return Path.Combine(copiesBase, Convert.ToHexStringLower(hash)[..AppKeyLength]);
+    }
+
     private void DeleteAllCopies()
     {
+        var appFolder = AppCopiesFolder();
         try
         {
-            if (!Directory.Exists(_copiesRoot))
+            if (!Directory.Exists(appFolder))
                 return;
 
-            foreach (var keyFolder in Directory.GetDirectories(_copiesRoot))
+            foreach (var keyFolder in Directory.GetDirectories(appFolder))
             {
                 TryDeleteFolder(keyFolder);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _logger.LogDebug(ex, "Couldn't delete the local plugin copies in {Folder}", _copiesRoot);
+            _logger.LogDebug(ex, "Couldn't delete the local plugin copies in {Folder}", appFolder);
         }
     }
 

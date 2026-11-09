@@ -34,6 +34,7 @@ public class LocalPluginServiceTests : IAsyncDisposable
     private readonly ConcurrentQueue<AddNotification> _notifications = new();
     private readonly RecordingLogger<LocalPluginService> _logger = new();
     private readonly List<LocalPluginService> _services = [];
+    private readonly List<PluginState> _otherStates = [];
 
     public LocalPluginServiceTests()
     {
@@ -64,7 +65,7 @@ public class LocalPluginServiceTests : IAsyncDisposable
         var plugin = _state.GetPlugin(id).ShouldNotBeNull();
         plugin.IsLocal.ShouldBeTrue();
         result.Plugins.ShouldBe([plugin]);
-        PluginInstallLayout.IsInside(plugin.SourcePath.ShouldNotBeNull(), _copiesRoot).ShouldBeTrue();
+        PluginInstallLayout.IsInside(plugin.SourcePath.ShouldNotBeNull(), AppCopiesFolder(_pluginsDirectory)).ShouldBeTrue();
         service.Entries.ShouldBe([new LocalPluginEntry(id, dllPath)]);
         ReadSavedPaths().ShouldBe([dllPath]);
     }
@@ -274,7 +275,7 @@ public class LocalPluginServiceTests : IAsyncDisposable
         const string id = "mythetech.test.local-saved";
         var dllPath = TestPluginBuilder.Build(_binFolder, UniqueName("Saved"), id, new Version(1, 0, 0));
         await WriteSavedPathsAsync(dllPath);
-        var staleCopy = Path.Combine(_copiesRoot, "Stale", "1");
+        var staleCopy = Path.Combine(AppCopiesFolder(_pluginsDirectory), "Stale", "1");
         Directory.CreateDirectory(staleCopy);
         var service = CreateService(enabled: true);
 
@@ -286,13 +287,39 @@ public class LocalPluginServiceTests : IAsyncDisposable
         ReadSavedPaths().ShouldBe([dllPath]);
     }
 
+    [Fact(DisplayName = "LoadSavedAsync deletes only this app's temp copies, not another app's")]
+    public async Task LoadSavedAsync_DoesNotTouchAnotherAppsTempCopies()
+    {
+        var thisDll = TestPluginBuilder.Build(_binFolder, UniqueName("ThisApp"), "mythetech.test.local-this-app", new Version(1, 0, 0));
+        var thisService = CreateService();
+        await thisService.AddAsync(thisDll);
+        var staleCopy = Path.Combine(AppCopiesFolder(_pluginsDirectory), "Stale", "1");
+        Directory.CreateDirectory(staleCopy);
+
+        var otherPluginsDirectory = Path.Combine(_root, "other-app", "plugins");
+        var otherState = new PluginState();
+        _otherStates.Add(otherState);
+        otherState.SetPluginDirectory(otherPluginsDirectory);
+        var otherDll = TestPluginBuilder.Build(Path.Combine(_root, "other-src", "bin"), UniqueName("OtherApp"), "mythetech.test.local-other-app", new Version(1, 0, 0));
+        var otherService = CreateService(state: otherState);
+        await otherService.AddAsync(otherDll);
+        var otherCopy = Path.GetDirectoryName(otherState.GetPlugin("mythetech.test.local-other-app").ShouldNotBeNull().SourcePath).ShouldNotBeNull();
+        AppCopiesFolder(otherPluginsDirectory).ShouldNotBe(AppCopiesFolder(_pluginsDirectory));
+
+        await thisService.LoadSavedAsync();
+
+        Directory.Exists(staleCopy).ShouldBeFalse();
+        Directory.Exists(otherCopy).ShouldBeTrue();
+        PluginInstallLayout.IsInside(otherCopy, AppCopiesFolder(otherPluginsDirectory)).ShouldBeTrue();
+    }
+
     [Fact(DisplayName = "LoadSavedAsync does nothing when local plugins are disabled")]
     public async Task LoadSavedAsync_DoesNothingWhenDisabled()
     {
         const string id = "mythetech.test.local-disabled";
         var dllPath = TestPluginBuilder.Build(_binFolder, UniqueName("Disabled"), id, new Version(1, 0, 0));
         await WriteSavedPathsAsync(dllPath);
-        var staleCopy = Path.Combine(_copiesRoot, "Stale", "1");
+        var staleCopy = Path.Combine(AppCopiesFolder(_pluginsDirectory), "Stale", "1");
         Directory.CreateDirectory(staleCopy);
         var service = CreateService(enabled: false);
 
@@ -403,11 +430,11 @@ public class LocalPluginServiceTests : IAsyncDisposable
         (await service.RemoveAsync("any")).ShouldBeFalse();
     }
 
-    private LocalPluginService CreateService(bool enabled = true)
+    private LocalPluginService CreateService(bool enabled = true, PluginState? state = null)
     {
         var settings = Substitute.For<ISettingsProvider>();
         settings.GetSettings<PluginSettings>().Returns(new PluginSettings { LocalPluginsEnabled = enabled });
-        var service = new LocalPluginService(_bus, _logger, _copiesRoot, _loader, _state, settings);
+        var service = new LocalPluginService(_bus, _logger, _copiesRoot, _loader, state ?? _state, settings);
         _services.Add(service);
         return service;
     }
@@ -420,6 +447,8 @@ public class LocalPluginServiceTests : IAsyncDisposable
         await _state.RegisterPluginAsync(plugin);
         return plugin;
     }
+
+    private string AppCopiesFolder(string pluginsDirectory) => LocalPluginService.AppCopiesFolder(_copiesRoot, pluginsDirectory);
 
     private string SavedPathsFile => Path.Combine(_pluginsDirectory, "local-plugins.json");
 
@@ -456,6 +485,11 @@ public class LocalPluginServiceTests : IAsyncDisposable
         }
 
         _state.Dispose();
+        foreach (var state in _otherStates)
+        {
+            state.Dispose();
+        }
+
         try { Directory.Delete(_root, recursive: true); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         GC.SuppressFinalize(this);
