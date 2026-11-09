@@ -59,6 +59,11 @@ public class PluginInfo
     public string? SourcePath { get; init; }
 
     /// <summary>
+    /// Whether the plugin was loaded from a local build output folder rather than installed
+    /// </summary>
+    public bool IsLocal { get; init; }
+
+    /// <summary>
     /// The AssemblyLoadContext used to load this plugin.
     /// When set, allows the plugin's assembly to be unloaded when the plugin is removed.
     /// </summary>

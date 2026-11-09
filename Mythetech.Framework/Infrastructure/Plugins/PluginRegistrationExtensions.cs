@@ -6,6 +6,7 @@ using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Consumers;
 using Mythetech.Framework.Infrastructure.Plugins.Events;
 using Mythetech.Framework.Infrastructure.Plugins.Installation;
+using Mythetech.Framework.Infrastructure.Plugins.Local;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Settings.Events;
 
@@ -49,6 +50,8 @@ public static class PluginRegistrationExtensions
         services.TryAddScoped<IPluginRegistryService, PluginRegistryService>();
         // Scoped because WebAssembly hosts register HttpClient as scoped.
         services.TryAddScoped<IPluginInstaller, PluginInstaller>();
+        // Desktop hosts replace it with a service that loads plugins from local build folders.
+        services.TryAddSingleton<ILocalPluginService, UnavailableLocalPluginService>();
 
         services.AddScoped<PluginContext>(sp =>
         {
@@ -101,6 +104,7 @@ public static class PluginRegistrationExtensions
         pluginState.SetStorageFactory(services.GetService<IPluginStorageFactory>());
         pluginState.SetStateStore(services.GetRequiredService<PluginStateStore>());
         pluginState.SetOptions(options.Value);
+        pluginState.SetLocalPluginService(services.GetService<ILocalPluginService>());
 
         return services;
     }

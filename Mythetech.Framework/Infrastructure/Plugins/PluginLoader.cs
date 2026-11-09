@@ -65,6 +65,9 @@ public class PluginLoader
     /// <param name="loadContext">Optional load context for unloading support</param>
     /// <returns>PluginInfo if valid plugin, null otherwise</returns>
     public PluginInfo? LoadPlugin(Assembly assembly, string? sourcePath = null, AssemblyLoadContext? loadContext = null)
+        => LoadPlugin(assembly, sourcePath, loadContext, isLocal: false);
+
+    private PluginInfo? LoadPlugin(Assembly assembly, string? sourcePath, AssemblyLoadContext? loadContext, bool isLocal)
     {
         try
         {
@@ -97,6 +100,7 @@ public class PluginLoader
                 FrameworkVersion = frameworkVersion,
                 Assembly = assembly,
                 SourcePath = sourcePath,
+                IsLocal = isLocal,
                 LoadContext = loadContext,
                 MenuComponents = menuComponents,
                 ContextPanelComponents = contextPanelComponents,
@@ -214,7 +218,7 @@ public class PluginLoader
                 continue;
             }
 
-            var plugin = LoadPlugin(assembly, path, inContext ? loadContext : null);
+            var plugin = LoadPlugin(assembly, path, inContext ? loadContext : null, isLocal);
             if (plugin is not null)
             {
                 plugins.Add(plugin);

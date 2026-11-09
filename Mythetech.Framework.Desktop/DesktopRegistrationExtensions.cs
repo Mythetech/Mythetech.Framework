@@ -4,6 +4,7 @@ using Mythetech.Framework.Components.Kbd;
 using Mythetech.Framework.Desktop.Components;
 using Mythetech.Framework.Desktop.Environment;
 using Mythetech.Framework.Desktop.Hermes;
+using Mythetech.Framework.Desktop.Plugins;
 using Mythetech.Framework.Desktop.Services;
 using Mythetech.Framework.Desktop.Smoke;
 using Mythetech.Framework.Desktop.Storage.LiteDb;
@@ -11,6 +12,7 @@ using Mythetech.Framework.Infrastructure;
 using Mythetech.Framework.Infrastructure.Environment;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Plugins.Local;
 using Mythetech.Framework.Infrastructure.Shell;
 
 namespace Mythetech.Framework.Desktop;
@@ -32,6 +34,7 @@ public static class DesktopRegistrationExtensions
         services.AddCopyToClipboard();
         services.AddPluginStorage();
         services.AddDesktopAssetLoader();
+        services.AddLocalPluginService();
         services.AddShowFileService();
         services.AddShellExecutor();
         services.AddSingleton<IPlatformDetector, DesktopPlatformDetector>();
@@ -49,6 +52,14 @@ public static class DesktopRegistrationExtensions
         }
 
         services.AddScoped<IPluginAssetLoader, DesktopPluginAssetLoader>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddLocalPluginService(this IServiceCollection services)
+    {
+        services.AddSingleton<LocalPluginService>();
+        services.AddSingleton<ILocalPluginService>(sp => sp.GetRequiredService<LocalPluginService>());
 
         return services;
     }

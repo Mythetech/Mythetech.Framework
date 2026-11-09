@@ -4,12 +4,16 @@
 @using Mythetech.Framework.Components.Buttons
 @using Mythetech.Framework.Components.Switch
 @using Mythetech.Framework.Infrastructure.Environment
+@using Mythetech.Framework.Infrastructure.Files
 @using Mythetech.Framework
 @using Microsoft.Extensions.Logging
 @using Mythetech.Framework.Infrastructure.Plugins.Installation
+@using Mythetech.Framework.Infrastructure.Plugins.Local
 @inject IPluginRegistryService RegistryService
 @inject PluginState PluginState
 @inject IPluginInstaller Installer
+@inject ILocalPluginService LocalPlugins
+@inject IFileOpenService FileOpenService
 @inject ILogger<PluginManagementDialog> Logger
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -33,6 +37,18 @@
         {
             <SimpleTabs>
                 <Tab Name="@_installedTabName">
+                    @if (LocalPlugins.IsAvailable && LocalPlugins.IsEnabled)
+                    {
+                        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
+                            <MtButton Size="Size.Small"
+                                      Variant="Variant.Text"
+                                      Color="Color.Primary"
+                                      StartIcon="@MythetechFrameworkIcons.Add"
+                                      OnClick="HandleAddLocalPlugin"
+                                      Disabled="@_isAddingLocal"
+                                      Text="Add local plugin…" />
+                        </MudStack>
+                    }
                     <MudTable Items="@PluginState.Plugins" Hover="true" Dense="true">
                         <HeaderContent>
                             <MudTh>Name</MudTh>
@@ -66,6 +82,12 @@
                                 {
                                     <MtBadge Size="Size.Small" Color="Color.Warning">Deprecated</MtBadge>
                                 }
+                                @if (context.IsLocal)
+                                {
+                                    <MudTooltip Text="@GetLocalPath(context)">
+                                        <MtBadge Size="Size.Small" Color="Color.Info">Local</MtBadge>
+                                    </MudTooltip>
+                                }
                             </MudTd>
                             <MudTd DataLabel="Actions">
                                 <MudMenu @ref="_rowMenus[context.Manifest.Id]" Icon="@MythetechFrameworkIcons.MoreVert" Size="Size.Small" Variant="Variant.Text">
@@ -73,10 +95,20 @@
                                                  OnClick="@(() => HandleTogglePlugin(context))">
                                         @(context.IsEnabled ? "Disable" : "Enable")
                                     </MudMenuItem>
-                                    <MudMenuItem Icon="@MythetechFrameworkIcons.Delete"
-                                                 OnClick="@(() => HandleDeletePlugin(context))">
-                                        Delete
-                                    </MudMenuItem>
+                                    @if (context.IsLocal)
+                                    {
+                                        <MudMenuItem Icon="@MythetechFrameworkIcons.Close"
+                                                     OnClick="@(() => HandleRemoveLocalPlugin(context))">
+                                            Remove
+                                        </MudMenuItem>
+                                    }
+                                    else
+                                    {
+                                        <MudMenuItem Icon="@MythetechFrameworkIcons.Delete"
+                                                     OnClick="@(() => HandleDeletePlugin(context))">
+                                            Delete
+                                        </MudMenuItem>
+                                    }
                                 </MudMenu>
                             </MudTd>
                         </RowTemplate>
@@ -119,7 +151,11 @@
                                                         installedPlugin.IsSameVersion(registryVersion);
                                         var supportsPlatform = context.SupportsPlatform(RuntimeEnvironment.Platform);
                                     }
-                                    @if (isInstalled)
+                                    @if (installedPlugin?.IsLocal == true)
+                                    {
+                                        <MtBadge Size="Size.Small" Color="Color.Info">Local</MtBadge>
+                                    }
+                                    else if (isInstalled)
                                     {
                                         <MtBadge Size="Size.Small" Color="Color.Info">Installed</MtBadge>
                                     }
@@ -175,6 +211,7 @@
     private List<RegistryPluginEntry>? _availablePlugins;
     private bool _isLoadingRegistry = true;
     private bool _isInstalling;
+    private bool _isAddingLocal;
     private string? _errorMessage;
     private string _installedTabName = "Installed (0)";
     private string _availableTabName = "Available (0)";
@@ -255,10 +292,17 @@
         _availablePlugins = _registry.Plugins
             .Where(registryPlugin => RegistryPluginFilter.ShouldList(
                 registryPlugin,
-                PluginState.GetPlugin(registryPlugin.Id),
+                InstalledForListing(registryPlugin.Id),
                 RuntimeEnvironment.IsProduction(),
                 _showPreviewPlugins))
             .ToList();
+    }
+
+    // A local plugin's entry is listed whatever its version, so it can show the Local badge.
+    private PluginInfo? InstalledForListing(string pluginId)
+    {
+        var installed = PluginState.GetPlugin(pluginId);
+        return installed is { IsLocal: true } ? null : installed;
     }
     
     
@@ -295,6 +339,39 @@
         }
     }
     
+    private async Task HandleAddLocalPlugin()
+    {
+        if (_isAddingLocal) return;
+
+        _isAddingLocal = true;
+        try
+        {
+            var files = await FileOpenService.OpenFileAsync(
+                title: "Select Plugin DLL",
+                filters: [new FileFilter("Plugin DLLs", ["*.dll"])]);
+            if (files.Length == 0) return;
+
+            var result = await LocalPlugins.AddAsync(files[0]);
+            Snackbar.Add(result.Message, result.Succeeded ? Severity.Success : Severity.Error);
+            UpdateAvailablePlugins();
+            UpdateTabNames();
+        }
+        finally
+        {
+            _isAddingLocal = false;
+        }
+    }
+
+    private async Task HandleRemoveLocalPlugin(PluginInfo plugin)
+    {
+        await LocalPlugins.RemoveAsync(plugin.Manifest.Id);
+        UpdateAvailablePlugins();
+        UpdateTabNames();
+    }
+
+    private string GetLocalPath(PluginInfo plugin) =>
+        LocalPlugins.Entries.FirstOrDefault(entry => entry.PluginId == plugin.Manifest.Id)?.DllPath ?? string.Empty;
+
     private async Task HandleInstallPlugin(RegistryPluginEntry registryPlugin)
     {
         if (_isInstalling) return;

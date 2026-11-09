@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Events;
 using Mythetech.Framework.Infrastructure.Plugins.Installation;
+using Mythetech.Framework.Infrastructure.Plugins.Local;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -24,6 +25,7 @@ public class PluginState : IDisposable
     private ILogger<PluginState>? _logger;
     private PluginLoader? _pluginLoader;
     private PluginRegistryOptions? _options;
+    private ILocalPluginService? _localPluginService;
     private bool _disposed;
     private bool _pluginsActive = true;
     private bool _pluginsLoaded;
@@ -550,6 +552,15 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Sets the service that loads local plugins once installed plugins are registered.
+    /// </summary>
+    /// <param name="service">The local plugin service to use.</param>
+    public void SetLocalPluginService(ILocalPluginService? service)
+    {
+        _localPluginService = service;
+    }
+
+    /// <summary>
     /// Loads persisted plugin states from the state provider.
     /// Should be called after plugins are loaded.
     /// </summary>
@@ -618,7 +629,13 @@ public class PluginState : IDisposable
             await RegisterOrUpgradePluginAsync(plugin);
         }
 
+        // Set before local plugins load, so turning them on meanwhile still loads them.
         PluginsLoaded = true;
+
+        if (_localPluginService is not null)
+        {
+            await _localPluginService.LoadSavedAsync();
+        }
 
         if (_messageBus != null)
         {
