@@ -114,9 +114,8 @@ For toolbar/menu integration:
             Text = "Show Info",
             OnClick = async context =>
             {
-                // Access services via context
-                var dialogService = context.Services.GetRequiredService<IDialogService>();
-                await dialogService.ShowMessageBox("Info", "Hello from plugin!");
+                // Use the services PluginContext exposes
+                await context.PublishAsync(new MyPluginMessage("Info requested"));
             }
         }
     ];

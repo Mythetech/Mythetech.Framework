@@ -58,7 +58,6 @@ public static class PluginRegistrationExtensions
             return new PluginContext
             {
                 MessageBus = messageBus,
-                Services = sp,
                 StateStore = stateStore,
                 StorageFactory = storageFactory,
                 AssetLoader = assetLoader,

@@ -18,6 +18,9 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     [Inject]
     protected PluginContext Context { get; set; } = default!;
     
+    [Inject]
+    private PluginState PluginState { get; set; } = default!;
+    
     /// <summary>
     /// Shortcut to the message bus for publishing messages
     /// </summary>
@@ -138,8 +141,7 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
         var plugin = Context.StateStore.GetForPlugin<object>(GetType(), "__lookup__");
         
         // Look up plugin by assembly
-        var pluginState = Context.Services.GetService(typeof(PluginState)) as PluginState;
-        var pluginInfo = pluginState?.Plugins.FirstOrDefault(p => p.Assembly == assembly);
+        var pluginInfo = PluginState.Plugins.FirstOrDefault(p => p.Assembly == assembly);
         
         _pluginId = pluginInfo?.Manifest.Id;
         return _pluginId;
@@ -173,9 +175,8 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     {
         if (AssetLoader == null) return;
         
-        var pluginState = Context.Services.GetService(typeof(PluginState)) as PluginState;
         var assembly = GetType().Assembly;
-        var pluginInfo = pluginState?.Plugins.FirstOrDefault(p => p.Assembly == assembly);
+        var pluginInfo = PluginState.Plugins.FirstOrDefault(p => p.Assembly == assembly);
         
         if (pluginInfo != null)
         {

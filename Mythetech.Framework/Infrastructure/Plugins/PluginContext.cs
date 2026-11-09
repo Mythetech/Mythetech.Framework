@@ -15,11 +15,6 @@ public class PluginContext
     public required IMessageBus MessageBus { get; init; }
     
     /// <summary>
-    /// Service provider for resolving additional services
-    /// </summary>
-    public required IServiceProvider Services { get; init; }
-    
-    /// <summary>
     /// Shared state storage for plugins (in-memory, not persistent)
     /// </summary>
     public required PluginStateStore StateStore { get; init; }
