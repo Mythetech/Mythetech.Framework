@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mythetech.Framework.Infrastructure.Plugins;
@@ -109,6 +110,59 @@ public class PluginLoadContextTests : IDisposable
         var plugin = _loader.LoadPluginsFromFolder(folder).ShouldHaveSingleItem();
 
         plugin.Manifest.Description.ShouldBe("dep");
+    }
+
+    [Fact(DisplayName = "LoadPluginsFromFolder resolves a dependency that the plugin's deps.json places under a runtime folder")]
+    public void LoadPluginsFromFolder_DependencyUnderRuntimesFolder_ResolvesThroughDepsJson()
+    {
+        var folder = NewFolder();
+        var rid = RuntimeInformation.RuntimeIdentifier;
+        var depName = UniqueName("RidDep");
+        var depRelativePath = $"runtimes/{rid}/lib/net11.0/{depName}.dll";
+        var depPath = TestPluginBuilder.BuildLibrary(
+            Path.GetDirectoryName(Path.Combine(folder, depRelativePath))!, depName, """
+                public static class RidDep
+                {
+                    public static string Value => "rid";
+                }
+                """);
+        var pluginName = UniqueName("UsesRidDep");
+        TestPluginBuilder.Build(folder, pluginName, "mythetech.test.uses-rid-dep", new Version(1, 0, 0),
+            extraSource: $$"""
+                namespace {{TestPluginBuilder.ManifestNamespace}};
+
+                public partial class Manifest
+                {
+                    static partial void OverrideDescription(ref string description) => description = RidDep.Value;
+                }
+                """,
+            extraReferences: [depPath]);
+        File.WriteAllText(Path.Combine(folder, $"{pluginName}.deps.json"), $$"""
+            {
+              "runtimeTarget": { "name": ".NETCoreApp,Version=v11.0" },
+              "targets": {
+                ".NETCoreApp,Version=v11.0": {
+                  "{{pluginName}}/1.0.0": {
+                    "dependencies": { "{{depName}}": "1.0.0" },
+                    "runtime": { "{{pluginName}}.dll": {} }
+                  },
+                  "{{depName}}/1.0.0": {
+                    "runtimeTargets": {
+                      "{{depRelativePath}}": { "rid": "{{rid}}", "assetType": "runtime" }
+                    }
+                  }
+                }
+              },
+              "libraries": {
+                "{{pluginName}}/1.0.0": { "type": "project", "serviceable": false, "sha512": "" },
+                "{{depName}}/1.0.0": { "type": "package", "serviceable": false, "sha512": "", "path": "{{depName.ToLowerInvariant()}}/1.0.0" }
+              }
+            }
+            """);
+
+        var plugin = _loader.LoadPluginsFromFolder(folder).ShouldHaveSingleItem();
+
+        plugin.Manifest.Description.ShouldBe("rid");
     }
 
     [Fact(DisplayName = "LoadPluginsFromFolder skips a plugin whose dependency is missing and other plugins still load")]

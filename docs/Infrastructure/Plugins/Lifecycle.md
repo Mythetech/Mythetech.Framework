@@ -13,7 +13,7 @@ await app.Services.UsePluginsAsync("plugins");
 
 **Discovery Process:**
 1. Scans the directory and each subdirectory for DLLs
-2. Creates a new `PluginLoadContext` for each folder
+2. Creates a new `PluginLoadContext` for each folder, resolving through the plugin's `.deps.json` when the folder has one beside its DLL
 3. Loads the folder's DLLs into that context, except assemblies the host provides, which come from the host
 4. Identifies assemblies that reference `Mythetech.Framework` and implement `IPluginManifest`
 5. Loads manifest and discovers component types

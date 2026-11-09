@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
@@ -10,6 +12,9 @@ namespace Mythetech.Framework.Infrastructure.Plugins;
 /// </summary>
 public class PluginLoader
 {
+    private const string DepsJsonSuffix = ".deps.json";
+    private static readonly string FrameworkAssemblyName = typeof(IPluginManifest).Assembly.GetName().Name!;
+
     private readonly ILogger<PluginLoader> _logger;
     private readonly PluginState _pluginState;
 
@@ -159,7 +164,8 @@ public class PluginLoader
         _logger.LogDebug("Found {Count} DLLs in {Directory}", dllPaths.Length, folder);
 
         // Load every DLL before scanning any, so a plugin's dependencies are already in its context.
-        var loadContext = new PluginLoadContext(Path.GetFullPath(folder));
+        var fullFolder = Path.GetFullPath(folder);
+        var loadContext = new PluginLoadContext(fullFolder, FindMainAssemblyPath(fullFolder));
         var folderAssemblies = new List<(string Path, Assembly Assembly, bool InContext)>();
         foreach (var dllPath in dllPaths)
         {
@@ -213,9 +219,40 @@ public class PluginLoader
 
     private static bool ReferencesFramework(Assembly assembly)
     {
-        var frameworkName = typeof(IPluginManifest).Assembly.GetName().Name;
         return assembly.GetReferencedAssemblies()
-            .Any(reference => string.Equals(reference.Name, frameworkName, StringComparison.OrdinalIgnoreCase));
+            .Any(reference => string.Equals(reference.Name, FrameworkAssemblyName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // The plugin's deps.json locates assets outside the folder root, such as runtimes/{rid}/ and resource assemblies.
+    private static string? FindMainAssemblyPath(string folder)
+    {
+        var candidates = Directory.GetFiles(folder, $"*{DepsJsonSuffix}")
+            .Select(depsPath => Path.Combine(folder, $"{Path.GetFileName(depsPath)[..^DepsJsonSuffix.Length]}.dll"))
+            .Where(File.Exists)
+            .OrderBy(Path.GetFileName, StringComparer.Ordinal)
+            .ToList();
+
+        return candidates.FirstOrDefault(FileReferencesFramework) ?? candidates.FirstOrDefault();
+    }
+
+    private static bool FileReferencesFramework(string dllPath)
+    {
+        try
+        {
+            using var peReader = new PEReader(File.OpenRead(dllPath));
+            if (!peReader.HasMetadata)
+            {
+                return false;
+            }
+
+            var metadata = peReader.GetMetadataReader();
+            return metadata.AssemblyReferences.Any(handle =>
+                metadata.StringComparer.Equals(metadata.GetAssemblyReference(handle).Name, FrameworkAssemblyName, ignoreCase: true));
+        }
+        catch (Exception ex) when (ex is BadImageFormatException or IOException)
+        {
+            return false;
+        }
     }
 
     private IPluginManifest? DiscoverManifest(Type[] types)
