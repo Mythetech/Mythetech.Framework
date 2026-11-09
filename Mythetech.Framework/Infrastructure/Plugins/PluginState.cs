@@ -189,6 +189,74 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Registers a plugin whatever its version, replacing any registration with the same ID.
+    /// The replacement inherits the replaced plugin's enabled state.
+    /// </summary>
+    /// <returns>The replaced registration, or null when none existed</returns>
+    public async Task<PluginInfo?> ReplacePluginAsync(PluginInfo plugin)
+    {
+        ArgumentNullException.ThrowIfNull(plugin);
+
+        PluginInfo? existing;
+        lock (_pluginsLock)
+        {
+            existing = GetPluginUnsafe(plugin.Manifest.Id);
+            if (existing is not null)
+            {
+                _plugins.Remove(existing);
+                plugin.IsEnabled = existing.IsEnabled;
+            }
+
+            _plugins.Add(plugin);
+            RefreshPluginSnapshot();
+        }
+
+        NotifyStateChanged();
+        await PublishPluginLoadedAsync(plugin);
+        return existing;
+    }
+
+    /// <summary>
+    /// Removes a plugin's registration only. Persistent storage, files and the persisted enabled state are untouched.
+    /// </summary>
+    /// <returns>The removed registration, or null when none existed</returns>
+    public Task<PluginInfo?> UnregisterPluginAsync(string pluginId)
+    {
+        PluginInfo? existing;
+        lock (_pluginsLock)
+        {
+            existing = GetPluginUnsafe(pluginId);
+            if (existing is not null)
+            {
+                _plugins.Remove(existing);
+                RefreshPluginSnapshot();
+            }
+        }
+
+        if (existing is not null)
+            NotifyStateChanged();
+
+        return Task.FromResult(existing);
+    }
+
+    /// <summary>
+    /// Finds the registered plugin that declares the given menu or context panel component type.
+    /// </summary>
+    public PluginInfo? GetPluginForComponent(Type componentType)
+    {
+        ArgumentNullException.ThrowIfNull(componentType);
+
+        return _pluginSnapshot.FirstOrDefault(p =>
+            p.MenuComponents.Contains(componentType) || p.ContextPanelComponents.Contains(componentType));
+    }
+
+    /// <summary>
+    /// The plugin directory in use: the one plugins were loaded from, or the default for this app.
+    /// </summary>
+    public string ResolvePluginDirectory()
+        => PluginDirectory ?? Path.GetFullPath(GetDefaultPluginDirectory());
+
+    /// <summary>
     /// Enable a plugin by its ID.
     /// </summary>
     /// <returns>True if the plugin was enabled, false if cancelled or not found</returns>
