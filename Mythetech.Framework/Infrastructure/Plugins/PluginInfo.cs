@@ -49,6 +49,11 @@ public class PluginInfo
     public IReadOnlyList<PluginComponentMetadata> ContextPanelComponentsMetadata { get; init; } = [];
     
     /// <summary>
+    /// The Mythetech.Framework version the plugin assembly references, when known
+    /// </summary>
+    public Version? FrameworkVersion { get; init; }
+
+    /// <summary>
     /// Path to the plugin DLL if loaded from disk
     /// </summary>
     public string? SourcePath { get; init; }

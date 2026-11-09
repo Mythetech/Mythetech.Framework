@@ -43,8 +43,9 @@ public interface IPluginManifest
     string? ProjectUrl => null;
     
     /// <summary>
-    /// Optional minimum framework version required
+    /// Ignored; the host reads the Mythetech.Framework version the plugin references
     /// </summary>
+    [Obsolete("Ignored. The host reads the Mythetech.Framework version the plugin references.")]
     Version? MinimumFrameworkVersion => null;
     
     /// <summary>

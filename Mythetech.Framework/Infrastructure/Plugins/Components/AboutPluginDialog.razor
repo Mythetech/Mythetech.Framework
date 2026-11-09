@@ -52,11 +52,11 @@
                     </MudStack>
                 }
                 
-                @if (Plugin.Manifest.MinimumFrameworkVersion is not null)
+                @if (Plugin.FrameworkVersion is not null)
                 {
                     <MudStack Spacing="2">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Minimum Framework Version</MudText>
-                        <MudText Typo="Typo.body1">@Plugin.Manifest.MinimumFrameworkVersion</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Built against Mythetech.Framework</MudText>
+                        <MudText Typo="Typo.body1">@Plugin.FrameworkVersion</MudText>
                     </MudStack>
                 }
                 

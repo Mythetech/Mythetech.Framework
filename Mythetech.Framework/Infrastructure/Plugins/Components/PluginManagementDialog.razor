@@ -45,7 +45,18 @@
                         <RowTemplate>
                             <MudTd DataLabel="Name">@context.Manifest.Name</MudTd>
                             <MudTd DataLabel="Developer">@context.Manifest.Developer</MudTd>
-                            <MudTd DataLabel="Version">@context.Manifest.Version</MudTd>
+                            <MudTd DataLabel="Version">
+                                @if (context.FrameworkVersion is not null)
+                                {
+                                    <MudTooltip Text="@($"Built against Mythetech.Framework {context.FrameworkVersion}")">
+                                        <span>@context.Manifest.Version</span>
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    @context.Manifest.Version
+                                }
+                            </MudTd>
                             <MudTd DataLabel="Status">
                                 <MtBadge Size="Size.Small"
                                        Color="@(context.IsEnabled ? Color.Success : Color.Error)"

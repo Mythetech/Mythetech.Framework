@@ -81,9 +81,19 @@ public class PluginLoader
             var menuMetadata = ExtractMenuMetadata(menuComponents);
             var panelMetadata = ExtractContextPanelMetadata(contextPanelComponents);
 
+            var frameworkVersion = GetReferencedFrameworkVersion(assembly);
+            var hostFrameworkVersion = typeof(IPluginManifest).Assembly.GetName().Version;
+            if (hostFrameworkVersion is not null && IsBuiltAgainstNewerFramework(frameworkVersion, hostFrameworkVersion))
+            {
+                _logger.LogWarning(
+                    "Plugin {PluginId} was built against Mythetech.Framework {PluginFrameworkVersion}, newer than this app's {HostFrameworkVersion}; loading it anyway",
+                    manifest.Id, frameworkVersion, hostFrameworkVersion);
+            }
+
             var pluginInfo = new PluginInfo
             {
                 Manifest = manifest,
+                FrameworkVersion = frameworkVersion,
                 Assembly = assembly,
                 SourcePath = sourcePath,
                 LoadContext = loadContext,
@@ -107,6 +117,15 @@ public class PluginLoader
         }
     }
     
+    internal static bool IsBuiltAgainstNewerFramework(Version? pluginFrameworkVersion, Version hostFrameworkVersion) =>
+        pluginFrameworkVersion is not null && pluginFrameworkVersion > hostFrameworkVersion;
+
+    private static Version? GetReferencedFrameworkVersion(Assembly assembly)
+    {
+        var frameworkName = typeof(IPluginManifest).Assembly.GetName().Name;
+        return assembly.GetReferencedAssemblies().FirstOrDefault(reference => reference.Name == frameworkName)?.Version;
+    }
+
     /// <summary>
     /// Load all plugins from a directory.
     /// Scans both the root directory and each subdirectory, loading every folder into its own context.

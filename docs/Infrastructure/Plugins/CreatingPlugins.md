@@ -46,7 +46,6 @@ public class MyPluginManifest : IPluginManifest
     // Optional properties
     public string? Icon => Icons.Material.Filled.Extension;
     public string? ProjectUrl => "https://github.com/example/myplugin";
-    public Version? MinimumFrameworkVersion => new(1, 0, 0);
     public bool IsPreview => false;
     public bool IsDevPlugin => false;
 
@@ -73,7 +72,7 @@ public class MyPluginManifest : IPluginManifest
 | `Description` | Yes | Brief description |
 | `Icon` | No | MudBlazor icon path |
 | `ProjectUrl` | No | Link to project/documentation |
-| `MinimumFrameworkVersion` | No | Minimum compatible framework version |
+| `MinimumFrameworkVersion` | No | Ignored. The host reads the Mythetech.Framework version the plugin references |
 | `SupportedPlatforms` | No | Array of supported platforms (null = all) |
 | `Assets` | No | CSS/JS assets to load |
 | `IsDevPlugin` | No | Only show in dev mode |

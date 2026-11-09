@@ -86,6 +86,28 @@ public class PluginLoadContextTests : IDisposable
             .Assembly.ShouldBeSameAs(typeof(IPluginManifest).Assembly);
     }
 
+    [Fact(DisplayName = "LoadPluginsFromFolder records the Mythetech.Framework version the plugin references")]
+    public void LoadPluginsFromFolder_RecordsReferencedFrameworkVersion()
+    {
+        var folder = NewFolder();
+        TestPluginBuilder.Build(folder, UniqueName("RecordsVersion"), "mythetech.test.records-version", new Version(1, 0, 0));
+
+        var plugin = _loader.LoadPluginsFromFolder(folder).ShouldHaveSingleItem();
+
+        plugin.FrameworkVersion.ShouldBe(typeof(IPluginManifest).Assembly.GetName().Version);
+    }
+
+    [Theory(DisplayName = "IsBuiltAgainstNewerFramework compares the plugin's version with the host's")]
+    [InlineData("0.23.0.0", "0.22.1.0", true)]
+    [InlineData("0.22.1.0", "0.22.1.0", false)]
+    [InlineData("0.22.0.0", "0.22.1.0", false)]
+    [InlineData(null, "0.22.1.0", false)]
+    public void IsBuiltAgainstNewerFramework_Cases(string? plugin, string host, bool expected)
+    {
+        PluginLoader.IsBuiltAgainstNewerFramework(plugin is null ? null : Version.Parse(plugin), Version.Parse(host))
+            .ShouldBe(expected);
+    }
+
     [Fact(DisplayName = "LoadPluginsFromFolder resolves a plugin's dependency from its folder")]
     public void LoadPluginsFromFolder_DependencyInFolder_Resolves()
     {
