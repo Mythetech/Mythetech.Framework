@@ -26,9 +26,10 @@ public sealed class KeyBindingBuilder
         string displayName,
         KeyBinding? defaultBinding,
         Func<IMessageBus, CancellationToken, Task> handler,
-        string? description = null)
+        string? description = null,
+        KeyBindingScope scope = KeyBindingScope.Global)
     {
-        _definitions.Add(new KeyBindingDefinition(id, displayName, description, _category, defaultBinding, handler));
+        _definitions.Add(new KeyBindingDefinition(id, displayName, description, _category, defaultBinding, handler, scope));
         return this;
     }
 

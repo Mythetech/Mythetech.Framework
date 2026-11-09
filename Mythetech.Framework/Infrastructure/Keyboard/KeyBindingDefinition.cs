@@ -11,10 +11,12 @@ namespace Mythetech.Framework.Infrastructure.Keyboard;
 /// <param name="Category">Group heading in the settings section.</param>
 /// <param name="DefaultBinding">The shortcut this action ships with, or null to ship unbound.</param>
 /// <param name="Handler">Invoked when the shortcut fires.</param>
+/// <param name="Scope">Where the shortcut is active; only <see cref="KeyBindingScope.Global"/> actions are registered as hotkeys.</param>
 public sealed record KeyBindingDefinition(
     string Id,
     string DisplayName,
     string? Description,
     string Category,
     KeyBinding? DefaultBinding,
-    Func<IMessageBus, CancellationToken, Task> Handler);
+    Func<IMessageBus, CancellationToken, Task> Handler,
+    KeyBindingScope Scope = KeyBindingScope.Global);

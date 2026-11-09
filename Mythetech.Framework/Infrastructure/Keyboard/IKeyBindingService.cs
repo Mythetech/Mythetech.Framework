@@ -9,6 +9,9 @@ public interface IKeyBindingService
     /// <summary>Returns every action with the binding currently in effect.</summary>
     IReadOnlyList<ResolvedKeyBinding> GetAll();
 
+    /// <summary>Returns the actions declared in one scope with the binding currently in effect.</summary>
+    IReadOnlyList<ResolvedKeyBinding> GetAll(KeyBindingScope scope);
+
     /// <summary>Returns every action grouped by category, for display.</summary>
     IEnumerable<IGrouping<string, ResolvedKeyBinding>> GetByCategory();
 
@@ -31,7 +34,7 @@ public interface IKeyBindingService
     Task ResetAllAsync();
 
     /// <summary>
-    /// Reports whether another action already holds the proposed binding.
+    /// Reports whether another action in the same scope already holds the proposed binding.
     /// </summary>
     /// <param name="id">The action being assigned, excluded from the search.</param>
     /// <param name="proposed">The binding the user wants to assign.</param>
