@@ -33,10 +33,11 @@ public class PluginLoadContext : AssemblyLoadContext
     /// <inheritdoc />
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        // A second copy of a host assembly would give the plugin different types than the host's.
+        // Bind to the host's copy whatever version the plugin referenced, so its types match the host's.
         if (SharedAssemblies.IsShared(assemblyName))
         {
-            return null;
+            return SharedAssemblies.FindInDefault(assemblyName)
+                ?? AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(assemblyName.Name!));
         }
 
         var path = ResolveAssemblyPath(assemblyName);

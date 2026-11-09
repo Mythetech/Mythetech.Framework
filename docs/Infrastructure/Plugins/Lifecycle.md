@@ -70,7 +70,7 @@ public class PluginLoadContext : AssemblyLoadContext
 ```
 
 **Resolution Order:**
-1. Assemblies the host provides (its trusted platform assemblies, or anything already loaded in the default context, such as `Mythetech.Framework` and `MudBlazor`) always resolve to the host's copy, even when the plugin folder carries its own
+1. Assemblies the host provides (its trusted platform assemblies, or anything already loaded in the default context, such as `Mythetech.Framework` and `MudBlazor`) always resolve to the host's copy, even when the plugin folder carries its own or the plugin was built against a newer version
 2. The plugin's `.deps.json`, when `mainAssemblyPath` has one
 3. `{pluginDirectory}/{name}.dll`
 

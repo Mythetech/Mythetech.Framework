@@ -14,15 +14,16 @@ public static class TestPluginBuilder
     /// </summary>
     public const string ManifestNamespace = "TestPlugin";
 
-    private static readonly IReadOnlyList<MetadataReference> PlatformReferences =
+    private static readonly IReadOnlyList<PortableExecutableReference> PlatformReferences =
         ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
+            .Select(path => MetadataReference.CreateFromFile(path))
             .ToList();
 
     /// <summary>
     /// Compiles a plugin whose manifest returns <paramref name="pluginId"/> and <paramref name="version"/>,
     /// writes <c>{outputFolder}/{assemblyName}.dll</c> and returns its path.
+    /// An extra reference replaces the platform assembly with the same name.
     /// </summary>
     public static string Build(
         string outputFolder,
@@ -81,8 +82,16 @@ public static class TestPluginBuilder
         IEnumerable<string> sources,
         IEnumerable<string>? extraReferences)
     {
+        var extraPaths = (extraReferences ?? []).ToList();
+
+        // An extra reference, or the assembly being built, takes the place of a platform assembly with its name.
+        var replacedNames = extraPaths
+            .Select(Path.GetFileNameWithoutExtension)
+            .Append(assemblyName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var references = PlatformReferences
-            .Concat((extraReferences ?? []).Select(path => MetadataReference.CreateFromFile(path)));
+            .Where(reference => !replacedNames.Contains(Path.GetFileNameWithoutExtension(reference.FilePath)))
+            .Concat(extraPaths.Select(path => MetadataReference.CreateFromFile(path)));
 
         var compilation = CSharpCompilation.Create(
             assemblyName,

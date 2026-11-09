@@ -55,6 +55,36 @@ public class PluginLoadContextTests : IDisposable
             .ShouldNotContain(assembly => assembly.GetName().Name == typeof(IPluginManifest).Assembly.GetName().Name);
     }
 
+    [Fact(DisplayName = "LoadPluginsFromFolder loads a plugin built against a newer Mythetech.Framework against the host's copy")]
+    public void LoadPluginsFromFolder_PluginReferencesNewerFrameworkVersion_LoadsAgainstHostCopy()
+    {
+        var frameworkName = typeof(IPluginManifest).Assembly.GetName().Name!;
+        var newerFrameworkPath = TestPluginBuilder.BuildLibrary(NewFolder(), frameworkName, """
+            [assembly: System.Reflection.AssemblyVersion("99.0.0.0")]
+
+            namespace Mythetech.Framework.Infrastructure.Plugins;
+
+            public interface IPluginManifest
+            {
+                string Id { get; }
+                string Name { get; }
+                System.Version Version { get; }
+                string Developer { get; }
+                string Description { get; }
+            }
+            """);
+        var folder = NewFolder();
+        TestPluginBuilder.Build(folder, UniqueName("NewerFramework"), "mythetech.test.newer-framework", new Version(1, 0, 0),
+            extraReferences: [newerFrameworkPath]);
+
+        var plugin = _loader.LoadPluginsFromFolder(folder).ShouldHaveSingleItem();
+
+        plugin.Assembly.GetReferencedAssemblies().Single(reference => reference.Name == frameworkName)
+            .Version.ShouldBe(new Version(99, 0, 0, 0));
+        plugin.Manifest.GetType().GetInterface(nameof(IPluginManifest)).ShouldNotBeNull()
+            .Assembly.ShouldBeSameAs(typeof(IPluginManifest).Assembly);
+    }
+
     [Fact(DisplayName = "LoadPluginsFromFolder resolves a plugin's dependency from its folder")]
     public void LoadPluginsFromFolder_DependencyInFolder_Resolves()
     {
