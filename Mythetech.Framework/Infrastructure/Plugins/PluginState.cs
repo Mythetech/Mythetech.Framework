@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Events;
+using Mythetech.Framework.Infrastructure.Plugins.Installation;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -395,7 +396,8 @@ public class PluginState : IDisposable
 
     /// <summary>
     /// Remove a plugin by its ID.
-    /// Cleans up persistent storage data, unloads the assembly, and deletes plugin files from disk.
+    /// Cleans up persistent storage data, unloads the assembly, and marks the plugin's folder under the plugins
+    /// directory for deletion at the next startup.
     /// </summary>
     /// <returns>True if the plugin was removed, false if not found</returns>
     public async Task<bool> RemovePluginAsync(string pluginId)
@@ -446,45 +448,33 @@ public class PluginState : IDisposable
             }
         }
 
-        DeletePluginFiles(plugin);
+        MarkPluginFolderForRemoval(plugin);
         NotifyStateChanged();
 
         return true;
     }
 
-    private void DeletePluginFiles(PluginInfo plugin)
+    // A loaded DLL can't be deleted on Windows, so the folder is deleted at the next startup instead.
+    private void MarkPluginFolderForRemoval(PluginInfo plugin)
     {
         if (string.IsNullOrEmpty(plugin.SourcePath))
             return;
 
         try
         {
-            var pluginDir = Path.GetDirectoryName(plugin.SourcePath);
+            var pluginDir = Path.GetDirectoryName(Path.GetFullPath(plugin.SourcePath));
             if (string.IsNullOrEmpty(pluginDir))
                 return;
 
-            var pluginsRoot = PluginDirectory;
-            if (string.IsNullOrEmpty(pluginsRoot))
+            if (!PluginInstallLayout.IsInside(pluginDir, ResolvePluginDirectory()))
                 return;
 
-            var normalizedPluginDir = Path.GetFullPath(pluginDir);
-            var normalizedRoot = Path.GetFullPath(pluginsRoot);
-
-            if (string.Equals(normalizedPluginDir, normalizedRoot, StringComparison.OrdinalIgnoreCase))
-                return;
-
-            if (!normalizedPluginDir.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                return;
-
-            if (Directory.Exists(normalizedPluginDir))
-            {
-                Directory.Delete(normalizedPluginDir, recursive: true);
-                _logger?.LogDebug("Deleted plugin directory {PluginDir}", normalizedPluginDir);
-            }
+            PluginInstallLayout.MarkForRemoval(pluginDir);
+            _logger?.LogDebug("Marked plugin directory {PluginDir} for removal at the next startup", pluginDir);
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "Failed to delete plugin files for {PluginId}", plugin.Manifest.Id);
+            _logger?.LogWarning(ex, "Failed to mark the folder of plugin {PluginId} for removal", plugin.Manifest.Id);
         }
     }
 

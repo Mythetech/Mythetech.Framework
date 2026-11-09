@@ -5,6 +5,7 @@ using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Consumers;
 using Mythetech.Framework.Infrastructure.Plugins.Events;
+using Mythetech.Framework.Infrastructure.Plugins.Installation;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Settings.Events;
 
@@ -45,7 +46,9 @@ public static class PluginRegistrationExtensions
         
         services.TryAddScoped<IPluginAssetLoader, JsPluginAssetLoader>();
         services.TryAddScoped<IPluginRegistryService, PluginRegistryService>();
-        
+        // Scoped because WebAssembly hosts register HttpClient as scoped.
+        services.TryAddScoped<IPluginInstaller, PluginInstaller>();
+
         services.AddScoped<PluginContext>(sp =>
         {
             var messageBus = sp.GetRequiredService<IMessageBus>();

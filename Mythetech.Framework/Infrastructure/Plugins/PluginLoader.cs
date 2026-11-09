@@ -4,6 +4,7 @@ using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
+using Mythetech.Framework.Infrastructure.Plugins.Installation;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -128,24 +129,23 @@ public class PluginLoader
 
     /// <summary>
     /// Load all plugins from a directory.
-    /// Scans both the root directory and each subdirectory, loading every folder into its own context.
+    /// First deletes retired install folders (see <see cref="PluginInstallLayout.PrepareForLoad"/>), then loads
+    /// the newest install of each plugin, each legacy plugin folder and any loose DLLs, each folder into its own context.
     /// </summary>
     /// <param name="pluginDirectory">Directory containing plugin DLLs or plugin subdirectories</param>
     /// <returns>List of successfully loaded plugins</returns>
     public IReadOnlyList<PluginInfo> LoadPluginsFromDirectory(string pluginDirectory)
     {
         var plugins = new List<PluginInfo>();
-        
+
         if (!Directory.Exists(pluginDirectory))
         {
             _logger.LogDebug("Plugin directory does not exist: {Path}", pluginDirectory);
             return plugins;
         }
 
-        // The root holds loose DLLs; each subdirectory holds one plugin.
-        var directoriesToScan = new List<string> { pluginDirectory };
-        directoriesToScan.AddRange(Directory.GetDirectories(pluginDirectory));
-        
+        var directoriesToScan = PluginInstallLayout.PrepareForLoad(pluginDirectory, _logger);
+
         _logger.LogDebug("Scanning {Count} directories for plugins", directoriesToScan.Count);
 
         foreach (var directory in directoriesToScan)

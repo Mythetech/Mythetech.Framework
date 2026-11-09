@@ -12,23 +12,41 @@ await app.Services.UsePluginsAsync("plugins");
 ```
 
 **Discovery Process:**
-1. Scans the directory and each subdirectory for DLLs
-2. Creates a new `PluginLoadContext` for each folder, resolving through the plugin's `.deps.json` when the folder has one beside its DLL
-3. Loads the folder's DLLs into that context, except assemblies the host provides, which come from the host
-4. Identifies assemblies that reference `Mythetech.Framework` and implement `IPluginManifest`
-5. Loads manifest and discovers component types
-6. Registers with `PluginState`
+1. Deletes every folder marked for removal, and every install folder older than its plugin's newest (`PluginInstallLayout.PrepareForLoad`)
+2. Picks the folders to load: the newest `install-*` folder of each plugin, each plugin folder that holds DLLs directly, and the directory itself when it holds loose DLLs
+3. Creates a new `PluginLoadContext` for each folder, resolving through the plugin's `.deps.json` when the folder has one beside its DLL
+4. Loads the folder's DLLs into that context, except assemblies the host provides, which come from the host
+5. Identifies assemblies that reference `Mythetech.Framework` and implement `IPluginManifest`
+6. Loads manifest and discovers component types
+7. Registers with `PluginState`
 
 **Directory Structure:**
 ```
 plugins/
 ├── PluginA/
-│   ├── PluginA.dll
-│   └── PluginA.deps.json
-└── PluginB/
+│   ├── install-202611091200000000000/   ← retired, deleted at the next startup
+│   │   ├── .removed
+│   │   └── PluginA.dll
+│   └── install-202611100900000000000/   ← loaded
+│       ├── PluginA.dll
+│       └── PluginA.deps.json
+└── PluginB/                             ← a plugin copied in by hand
     ├── PluginB.dll
     └── SomeDependency.dll
 ```
+
+### Installing and Upgrading
+
+`IPluginInstaller` installs a plugin package (a zip or a bare DLL) from a URL or a stream without a restart:
+
+```csharp
+var result = await installer.InstallFromUrlAsync(registryEntry.Uri, registryEntry.Name);
+// result.Succeeded, result.Plugins, and result.Message to show the user
+```
+
+Each install goes into a new `{key}/install-{timestamp}` folder under the plugins directory, loads into a fresh `PluginLoadContext`, and replaces any registered plugin with the same ID. The replaced plugin's folder gets a `.removed` marker and is deleted at the next startup, before anything loads, so a loaded DLL is never deleted. If nothing in the package loads, the previous version stays registered.
+
+`ImportFromFileAsync(dllPath)` loads a DLL where it is and registers it for this session only.
 
 ### From Assembly (WebAssembly)
 
@@ -218,8 +236,9 @@ await pluginState.RemovePluginAsync("com.example.myplugin");
 **Flow:**
 1. Disables plugin if enabled
 2. Removes from plugin list
-3. `StateChanged` event fires
-4. Optionally prompts for data deletion (if `IPersistentPlugin`)
+3. Marks the plugin's folder under the plugins directory for deletion at the next startup, since a loaded DLL can't be deleted on Windows
+4. `StateChanged` event fires
+5. Optionally prompts for data deletion (if `IPersistentPlugin`)
 
 ### Persistent Data Cleanup
 
