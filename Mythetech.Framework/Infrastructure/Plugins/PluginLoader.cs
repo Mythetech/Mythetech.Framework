@@ -23,9 +23,8 @@ public class PluginLoader
     }
     
     /// <summary>
-    /// Load a plugin from a DLL file path.
-    /// Uses a custom AssemblyLoadContext to resolve dependencies from the plugin's directory.
-    /// The load context is stored in the PluginInfo to enable unloading when the plugin is removed.
+    /// Load a plugin from a DLL file path into a new <see cref="PluginLoadContext"/>.
+    /// The plugin's dependencies resolve through its .deps.json or its directory, and host assemblies come from the host.
     /// </summary>
     /// <param name="dllPath">Full path to the plugin DLL</param>
     /// <returns>PluginInfo if loaded successfully, null otherwise</returns>
@@ -40,11 +39,7 @@ public class PluginLoader
         try
         {
             var fullPath = Path.GetFullPath(dllPath);
-            var pluginDirectory = Path.GetDirectoryName(fullPath)!;
-
-            PreloadDependencies(pluginDirectory, Path.GetFileName(fullPath));
-
-            var loadContext = new PluginLoadContext(fullPath);
+            var loadContext = new PluginLoadContext(Path.GetDirectoryName(fullPath)!, fullPath);
             var assembly = loadContext.LoadFromAssemblyPath(fullPath);
 
             return LoadPlugin(assembly, dllPath, loadContext);
@@ -53,44 +48,6 @@ public class PluginLoader
         {
             _logger.LogError(ex, "Failed to load plugin assembly from {Path}", dllPath);
             return null;
-        }
-    }
-    
-    private void PreloadDependencies(string directory, string mainDllName)
-    {
-        var loadedAssemblies = GetLoadedAssembliesByName();
-        foreach (var dllPath in Directory.GetFiles(directory, "*.dll"))
-        {
-            var fileName = Path.GetFileName(dllPath);
-            
-            // Skip the main plugin DLL and any already-loaded assemblies
-            if (fileName.Equals(mainDllName, StringComparison.OrdinalIgnoreCase))
-                continue;
-            
-            try
-            {
-                // Check if already loaded in default context
-                var assemblyName = AssemblyName.GetAssemblyName(dllPath);
-                if (assemblyName.Name is not null && loadedAssemblies.ContainsKey(assemblyName.Name))
-                {
-                    _logger.LogDebug("Dependency {Name} already loaded, skipping", assemblyName.Name);
-                    continue;
-                }
-                
-                // Load into default context so it's available to all plugins
-                var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dllPath);
-                if (assemblyName.Name is not null)
-                    loadedAssemblies.TryAdd(assemblyName.Name, assembly);
-                _logger.LogDebug("Pre-loaded dependency: {Name}", assemblyName.Name);
-            }
-            catch (BadImageFormatException)
-            {
-                // Not a .NET assembly, skip
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Could not pre-load dependency: {Path}", dllPath);
-            }
         }
     }
     
@@ -147,8 +104,7 @@ public class PluginLoader
     
     /// <summary>
     /// Load all plugins from a directory.
-    /// Scans both the root directory and subdirectories (each plugin can have its own folder).
-    /// First pre-loads all DLLs as dependencies, then discovers which are actual plugins.
+    /// Scans both the root directory and each subdirectory, loading every folder into its own context.
     /// </summary>
     /// <param name="pluginDirectory">Directory containing plugin DLLs or plugin subdirectories</param>
     /// <returns>List of successfully loaded plugins</returns>
@@ -162,59 +118,59 @@ public class PluginLoader
             return plugins;
         }
 
-        // Collect all plugin directories to scan:
-        // 1. The root plugins directory (for loose DLLs)
-        // 2. Each subdirectory (for plugins with their own folder)
+        // The root holds loose DLLs; each subdirectory holds one plugin.
         var directoriesToScan = new List<string> { pluginDirectory };
         directoriesToScan.AddRange(Directory.GetDirectories(pluginDirectory));
         
         _logger.LogDebug("Scanning {Count} directories for plugins", directoriesToScan.Count);
 
-        var loadedAssemblies = GetLoadedAssembliesByName();
         foreach (var directory in directoriesToScan)
         {
-            var loadedPlugins = LoadPluginsFromSingleDirectory(directory, loadedAssemblies);
-            plugins.AddRange(loadedPlugins);
+            plugins.AddRange(LoadPluginsFromFolder(directory));
         }
         
         _logger.LogInformation("Loaded {Count} plugins from {Path}", plugins.Count, pluginDirectory);
         return plugins;
     }
-    
-    private List<PluginInfo> LoadPluginsFromSingleDirectory(string directory, Dictionary<string, Assembly> loadedAssemblies)
+
+    /// <summary>
+    /// Load the plugins in one folder into a new <see cref="PluginLoadContext"/>.
+    /// DLLs the host provides, such as Mythetech.Framework or MudBlazor, resolve to the host's copies.
+    /// </summary>
+    /// <param name="folder">Folder containing a plugin DLL and its dependencies</param>
+    /// <param name="isLocal">True when the folder is a local plugin's build output</param>
+    /// <returns>The plugins found in the folder</returns>
+    public IReadOnlyList<PluginInfo> LoadPluginsFromFolder(string folder, bool isLocal = false)
     {
         var plugins = new List<PluginInfo>();
-        var allDlls = Directory.GetFiles(directory, "*.dll");
-        
-        if (allDlls.Length == 0)
+
+        if (!Directory.Exists(folder))
+        {
+            _logger.LogDebug("Plugin folder does not exist: {Path}", folder);
+            return plugins;
+        }
+
+        var dllPaths = Directory.GetFiles(folder, "*.dll");
+        if (dllPaths.Length == 0)
         {
             return plugins;
         }
-        
-        _logger.LogDebug("Found {Count} DLLs in {Directory}", allDlls.Length, directory);
-        
-        // Step 1: Pre-load ALL DLLs as dependencies into the default context
-        var directoryAssemblies = new List<(string Path, Assembly Assembly)>();
-        foreach (var dllPath in allDlls)
+
+        _logger.LogDebug("Found {Count} DLLs in {Directory}", dllPaths.Length, folder);
+
+        // Load every DLL before scanning any, so a plugin's dependencies are already in its context.
+        var loadContext = new PluginLoadContext(Path.GetFullPath(folder));
+        var folderAssemblies = new List<(string Path, Assembly Assembly, bool InContext)>();
+        foreach (var dllPath in dllPaths)
         {
+            var fullPath = Path.GetFullPath(dllPath);
             try
             {
-                var fullPath = Path.GetFullPath(dllPath);
                 var assemblyName = AssemblyName.GetAssemblyName(fullPath);
-                
-                if (assemblyName.Name is not null && loadedAssemblies.TryGetValue(assemblyName.Name, out var existing))
-                {
-                    directoryAssemblies.Add((fullPath, existing));
-                    _logger.LogDebug("Assembly {Name} already loaded", assemblyName.Name);
-                }
-                else
-                {
-                    var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPath);
-                    if (assemblyName.Name is not null)
-                        loadedAssemblies.TryAdd(assemblyName.Name, assembly);
-                    directoryAssemblies.Add((fullPath, assembly));
-                    _logger.LogDebug("Loaded assembly: {Name}", assemblyName.Name);
-                }
+                var hostAssembly = LoadFromHost(assemblyName);
+                folderAssemblies.Add(hostAssembly is null
+                    ? (fullPath, loadContext.LoadFromAssemblyPath(fullPath), true)
+                    : (fullPath, hostAssembly, false));
             }
             catch (BadImageFormatException)
             {
@@ -222,34 +178,44 @@ public class PluginLoader
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Could not load assembly: {Path}", dllPath);
+                _logger.LogWarning(ex, "Could not load assembly {Path}; skipping it", fullPath);
             }
         }
-        
-        // Step 2: Find which assemblies are actual plugins (have IPluginManifest)
-        foreach (var (path, assembly) in directoryAssemblies)
+
+        foreach (var (path, assembly, inContext) in folderAssemblies)
         {
-            var plugin = LoadPlugin(assembly, path);
+            if (!ReferencesFramework(assembly))
+            {
+                continue;
+            }
+
+            var plugin = LoadPlugin(assembly, path, inContext ? loadContext : null);
             if (plugin is not null)
             {
                 plugins.Add(plugin);
             }
         }
-        
+
         return plugins;
     }
-    
-    // Built once per scan and updated as the scan loads DLLs, so checking each DLL is a dictionary lookup.
-    private static Dictionary<string, Assembly> GetLoadedAssembliesByName()
+
+    private static Assembly? LoadFromHost(AssemblyName assemblyName)
     {
-        var loaded = new Dictionary<string, Assembly>(StringComparer.Ordinal);
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        if (!SharedAssemblies.IsShared(assemblyName))
         {
-            var name = assembly.GetName().Name;
-            if (name is not null)
-                loaded.TryAdd(name, assembly);
+            return null;
         }
-        return loaded;
+
+        // By simple name, so a copy at a different version than the host's still binds to the host's.
+        return SharedAssemblies.FindInDefault(assemblyName)
+            ?? AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(assemblyName.Name!));
+    }
+
+    private static bool ReferencesFramework(Assembly assembly)
+    {
+        var frameworkName = typeof(IPluginManifest).Assembly.GetName().Name;
+        return assembly.GetReferencedAssemblies()
+            .Any(reference => string.Equals(reference.Name, frameworkName, StringComparison.OrdinalIgnoreCase));
     }
 
     private IPluginManifest? DiscoverManifest(Type[] types)

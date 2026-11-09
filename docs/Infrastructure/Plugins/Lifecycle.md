@@ -12,10 +12,10 @@ await app.Services.UsePluginsAsync("plugins");
 ```
 
 **Discovery Process:**
-1. Scans directory and subdirectories for DLLs
-2. Pre-loads all DLLs as dependencies
-3. Identifies assemblies with `IPluginManifest` implementations
-4. Creates `PluginLoadContext` for dependency isolation
+1. Scans the directory and each subdirectory for DLLs
+2. Creates a new `PluginLoadContext` for each folder
+3. Loads the folder's DLLs into that context, except assemblies the host provides, which come from the host
+4. Identifies assemblies that reference `Mythetech.Framework` and implement `IPluginManifest`
 5. Loads manifest and discovers component types
 6. Registers with `PluginState`
 
@@ -50,28 +50,31 @@ public class PluginLoader
     public PluginInfo? LoadPlugin(string dllPath);
     public PluginInfo? LoadPlugin(Assembly assembly, string? sourcePath = null);
 
-    // Load all from directory
-    public List<PluginInfo> LoadPluginsFromDirectory(string pluginDirectory);
+    // Load all from directory, one context per folder
+    public IReadOnlyList<PluginInfo> LoadPluginsFromDirectory(string pluginDirectory);
+
+    // Load one folder into a new context
+    public IReadOnlyList<PluginInfo> LoadPluginsFromFolder(string folder, bool isLocal = false);
 }
 ```
 
 ## Dependency Isolation
 
-Each plugin gets its own `PluginLoadContext`:
+Each plugin folder gets its own collectible `PluginLoadContext`, created fresh on every load:
 
 ```csharp
 public class PluginLoadContext : AssemblyLoadContext
 {
-    // Resolves dependencies from plugin directory first
-    // Falls back to default context for shared assemblies
+    public PluginLoadContext(string pluginDirectory, string? mainAssemblyPath = null);
 }
 ```
 
 **Resolution Order:**
-1. Plugin's directory
-2. Default context (shared framework assemblies)
+1. Assemblies the host provides (its trusted platform assemblies, or anything already loaded in the default context, such as `Mythetech.Framework` and `MudBlazor`) always resolve to the host's copy, even when the plugin folder carries its own
+2. The plugin's `.deps.json`, when `mainAssemblyPath` has one
+3. `{pluginDirectory}/{name}.dll`
 
-This prevents version conflicts when plugins use different versions of the same dependency.
+Sharing the host's copies keeps plugin types compatible with the host's. Two folders with the same assembly name, such as two versions of one plugin, load side by side. Earlier copies stay in memory until the app restarts.
 
 ## Plugin State
 
