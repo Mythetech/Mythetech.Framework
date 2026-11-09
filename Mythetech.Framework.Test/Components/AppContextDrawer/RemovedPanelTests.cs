@@ -124,6 +124,7 @@ public class RemovedPanelTests : BunitContext
             Manifest = manifest,
             Assembly = typeof(RemovedPanelTests).Assembly,
             IsEnabled = true,
+            ContextPanelComponents = [typeof(TPanel)],
             ContextPanelComponentsMetadata =
             [
                 new PluginComponentMetadata { ComponentType = typeof(TPanel), Title = id, Icon = "extension", Order = order },

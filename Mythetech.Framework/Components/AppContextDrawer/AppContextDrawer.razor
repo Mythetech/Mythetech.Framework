@@ -2,6 +2,7 @@
 @using Mythetech.Framework
 @using Microsoft.JSInterop
 @using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Infrastructure.Plugins.Components
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Components.AppContextDrawer.Commands
 @using Mythetech.Framework.Utilities
@@ -39,7 +40,12 @@
                                   Title="@panelMeta.Title"
                                   Order="@panelMeta.Order">
                     <PanelContent>
-                        <DynamicComponent Type="@panelMeta.ComponentType" />
+                        @if (PluginState.GetPluginForComponent(panelMeta.ComponentType) is { } owner)
+                        {
+                            <PluginGuard @key="pluginPanelId" PluginInfo="@owner" Metadata="@panelMeta">
+                                <DynamicComponent Type="@panelMeta.ComponentType" />
+                            </PluginGuard>
+                        }
                     </PanelContent>
                 </ContextPanelItem>
             }

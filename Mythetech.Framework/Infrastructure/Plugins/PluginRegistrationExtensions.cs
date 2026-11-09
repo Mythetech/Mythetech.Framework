@@ -43,6 +43,7 @@ public static class PluginRegistrationExtensions
         services.AddSingleton<PluginState>();
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<PluginStateStore>();
+        services.AddSingleton<PluginMenuItemInvoker>();
         
         services.TryAddScoped<IPluginAssetLoader, JsPluginAssetLoader>();
         services.TryAddScoped<IPluginRegistryService, PluginRegistryService>();
