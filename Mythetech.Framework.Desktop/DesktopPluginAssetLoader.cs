@@ -18,7 +18,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     private readonly PluginState? _pluginState;
     private readonly ILogger<DesktopPluginAssetLoader> _logger;
     private readonly ConcurrentDictionary<string, bool> _loadedAssets = new();
-    private readonly ConcurrentDictionary<string, PluginInfo> _loadedPlugins = new();
+    private readonly ConcurrentDictionary<string, LoadedPlugin> _loadedPlugins = new();
 
     public DesktopPluginAssetLoader(
         IJSRuntime jsRuntime, 
@@ -84,14 +84,20 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     public async Task LoadPluginAssetsAsync(PluginInfo pluginInfo)
     {
         var pluginId = pluginInfo.Manifest.Id;
-        if (_loadedPlugins.TryGetValue(pluginId, out var previous) && !ReferenceEquals(previous, pluginInfo))
+        if (_loadedPlugins.TryGetValue(pluginId, out var previous)
+            && !(previous.Instance.TryGetTarget(out var target) && ReferenceEquals(target, pluginInfo)))
         {
-            foreach (var asset in previous.Manifest.Assets.Where(a => a.Type == PluginAssetType.Css))
-                await UnloadStylesheetAsync(asset.Path);
-            foreach (var asset in previous.Manifest.Assets)
-                _loadedAssets.TryRemove(asset.Path, out _);
+            foreach (var path in previous.StylesheetPaths)
+                await UnloadStylesheetAsync(path);
+            foreach (var path in previous.AssetPaths)
+                _loadedAssets.TryRemove(path, out _);
         }
-        _loadedPlugins[pluginId] = pluginInfo;
+
+        var assets = pluginInfo.Manifest.Assets;
+        _loadedPlugins[pluginId] = new LoadedPlugin(
+            new WeakReference<PluginInfo>(pluginInfo),
+            assets.Where(a => a.Type == PluginAssetType.Css).Select(a => a.Path).ToArray(),
+            assets.Select(a => a.Path).ToArray());
 
         foreach (var asset in pluginInfo.Manifest.Assets)
         {
@@ -420,6 +426,9 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
         }
         return null;
     }
+
+    // Weak so a reloaded plugin's assembly isn't kept reachable by the loader.
+    private sealed record LoadedPlugin(WeakReference<PluginInfo> Instance, string[] StylesheetPaths, string[] AssetPaths);
 
     private static bool IsExternalUrl(string path) =>
         path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("//");

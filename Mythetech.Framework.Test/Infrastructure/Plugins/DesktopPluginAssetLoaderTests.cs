@@ -83,6 +83,31 @@ public class DesktopPluginAssetLoaderTests : IDisposable
         await _jsRuntime.Received(1).InvokeAsync<IJSVoidResult>("eval", Arg.Any<object?[]?>());
     }
 
+    [Fact(DisplayName = "LoadPluginAssetsAsync doesn't keep a loaded PluginInfo alive")]
+    public async Task LoadPluginAssetsAsync_RemembersPluginWeakly()
+    {
+        var stylesheet = Path.Combine(_pluginDirectory, "wwwroot", "_content", "WeakPlugin", "style.css");
+        Directory.CreateDirectory(Path.GetDirectoryName(stylesheet)!);
+        File.WriteAllText(stylesheet, "body { color: red; }");
+        var loader = new DesktopPluginAssetLoader(_jsRuntime, NullLogger<DesktopPluginAssetLoader>.Instance);
+
+        var weak = await LoadAndForgetAsync(loader);
+        await Task.Yield();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        weak.TryGetTarget(out _).ShouldBeFalse();
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private async Task<WeakReference<PluginInfo>> LoadAndForgetAsync(DesktopPluginAssetLoader loader)
+    {
+        var plugin = CreatePlugin("weak", "_content/WeakPlugin/style.css", "WeakPlugin.dll");
+        await loader.LoadPluginAssetsAsync(plugin);
+        return new WeakReference<PluginInfo>(plugin);
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_pluginDirectory, recursive: true); }
