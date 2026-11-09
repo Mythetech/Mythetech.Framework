@@ -56,7 +56,6 @@ public class PluginMenuHostTests : BunitContext
 
         var cut = Render<PluginMenuHost>(p => p.Add(x => x.MenuType, typeof(ThrowingRenderMenu)));
 
-        cut.Render();
         cut.WaitForAssertion(() => cut.FindComponent<PluginGuard>().Markup.ShouldContain("Plugin Error"));
     }
 

@@ -138,30 +138,15 @@
         PluginState.StateChanged += OnStateChanged;
     }
     
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender && _errorBoundary is not null)
-        {
-            _errorBoundary.Recover();
-        }
-    }
-    
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(() =>
-        {
-            StateHasChanged();
-            if (_errorBoundary is not null)
-            {
-                _errorBoundary.Recover();
-            }
-        }).ContinueWith(t =>
-        {
-            if (t.IsFaulted && t.Exception != null)
-            {
-                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
-            }
-        }, TaskScheduler.Default);
+        InvokeAsync(RefreshAfterStateChange);
+    }
+
+    private void RefreshAfterStateChange()
+    {
+        _errorBoundary?.Recover();
+        StateHasChanged();
     }
 
     private void RetryRendering()
