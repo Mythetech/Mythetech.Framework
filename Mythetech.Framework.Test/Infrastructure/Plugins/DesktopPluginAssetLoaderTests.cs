@@ -1,3 +1,4 @@
+using Shouldly;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
@@ -31,6 +32,54 @@ public class DesktopPluginAssetLoaderTests : IDisposable
         await loader.LoadPluginAssetsAsync(plugin);
         await loader.LoadPluginAssetsAsync(plugin);
 
+        await _jsRuntime.Received(1).InvokeAsync<IJSVoidResult>("eval", Arg.Any<object?[]?>());
+    }
+
+    private PluginInfo CreatePlugin(string id, string assetPath, string dllName)
+    {
+        var manifest = Substitute.For<IPluginManifest>();
+        manifest.Id.Returns(id);
+        manifest.Assets.Returns([new PluginAsset { Path = assetPath, Type = PluginAssetType.Css }]);
+        return new PluginInfo
+        {
+            Manifest = manifest,
+            Assembly = typeof(DesktopPluginAssetLoaderTests).Assembly,
+            SourcePath = Path.Combine(_pluginDirectory, dllName)
+        };
+    }
+
+    [Fact(DisplayName = "LoadPluginAssetsAsync re-injects a stylesheet for a new PluginInfo with the same ID")]
+    public async Task LoadPluginAssetsAsync_NewPluginInfoForSameId_ReinjectsStylesheet()
+    {
+        var stylesheet = Path.Combine(_pluginDirectory, "wwwroot", "_content", "ReloadPlugin", "style.css");
+        Directory.CreateDirectory(Path.GetDirectoryName(stylesheet)!);
+        File.WriteAllText(stylesheet, "body { color: red; }");
+        var loader = new DesktopPluginAssetLoader(_jsRuntime, NullLogger<DesktopPluginAssetLoader>.Instance);
+
+        await loader.LoadPluginAssetsAsync(CreatePlugin("reload", "_content/ReloadPlugin/style.css", "ReloadPlugin.dll"));
+        await loader.LoadPluginAssetsAsync(CreatePlugin("reload", "_content/ReloadPlugin/style.css", "ReloadPlugin.dll"));
+
+        // inject, unload, inject
+        await _jsRuntime.Received(3).InvokeAsync<IJSVoidResult>("eval", Arg.Any<object?[]?>());
+        loader.IsLoaded("_content/ReloadPlugin/style.css").ShouldBeTrue();
+    }
+
+    [Fact(DisplayName = "Asset resolution uses a local build's static web assets manifest content roots")]
+    public async Task ResolveAsset_LocalBuildManifest_UsesContentRoot()
+    {
+        var contentRoot = Path.Combine(_pluginDirectory, "project", "wwwroot") + Path.DirectorySeparatorChar;
+        Directory.CreateDirectory(contentRoot);
+        File.WriteAllText(Path.Combine(contentRoot, "local.css"), "body { color: blue; }");
+        var buildDir = Path.Combine(_pluginDirectory, "bin");
+        Directory.CreateDirectory(buildDir);
+        var manifestJson = """{"ContentRoots":["__ROOT__"],"Root":{"Children":{"local.css":{"Children":null,"Asset":{"ContentRootIndex":0,"SubPath":"local.css"},"Patterns":null}},"Asset":null,"Patterns":null}}""";
+        File.WriteAllText(Path.Combine(buildDir, "LocalPlugin.staticwebassets.runtime.json"), manifestJson.Replace("__ROOT__", contentRoot.Replace("\\", "\\\\")));
+        var plugin = CreatePlugin("local", "_content/LocalPlugin/local.css", Path.Combine("bin", "LocalPlugin.dll"));
+        var loader = new DesktopPluginAssetLoader(_jsRuntime, NullLogger<DesktopPluginAssetLoader>.Instance);
+
+        await loader.LoadPluginAssetsAsync(plugin);
+
+        loader.IsLoaded("_content/LocalPlugin/local.css").ShouldBeTrue();
         await _jsRuntime.Received(1).InvokeAsync<IJSVoidResult>("eval", Arg.Any<object?[]?>());
     }
 

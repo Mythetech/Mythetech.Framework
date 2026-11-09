@@ -18,6 +18,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     private readonly PluginState? _pluginState;
     private readonly ILogger<DesktopPluginAssetLoader> _logger;
     private readonly ConcurrentDictionary<string, bool> _loadedAssets = new();
+    private readonly ConcurrentDictionary<string, PluginInfo> _loadedPlugins = new();
 
     public DesktopPluginAssetLoader(
         IJSRuntime jsRuntime, 
@@ -82,6 +83,16 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     /// <inheritdoc />
     public async Task LoadPluginAssetsAsync(PluginInfo pluginInfo)
     {
+        var pluginId = pluginInfo.Manifest.Id;
+        if (_loadedPlugins.TryGetValue(pluginId, out var previous) && !ReferenceEquals(previous, pluginInfo))
+        {
+            foreach (var asset in previous.Manifest.Assets.Where(a => a.Type == PluginAssetType.Css))
+                await UnloadStylesheetAsync(asset.Path);
+            foreach (var asset in previous.Manifest.Assets)
+                _loadedAssets.TryRemove(asset.Path, out _);
+        }
+        _loadedPlugins[pluginId] = pluginInfo;
+
         foreach (var asset in pluginInfo.Manifest.Assets)
         {
             // Every plugin component loads its plugin's assets on first render, so most calls find them loaded.
@@ -332,6 +343,22 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
 
         var pluginDir = Path.GetDirectoryName(pluginInfo.SourcePath);
         if (pluginDir == null) return null;
+
+        var assemblyName = Path.GetFileNameWithoutExtension(pluginInfo.SourcePath);
+        var manifest = StaticWebAssetsManifest.TryLoad(Path.Combine(pluginDir, $"{assemblyName}.staticwebassets.runtime.json"));
+        if (manifest != null)
+        {
+            var trimmed = assetPath.TrimStart('/');
+            var fromManifest = manifest.Resolve(trimmed);
+            if (fromManifest == null && trimmed.StartsWith("_content/"))
+            {
+                var parts = trimmed.Split('/', 3);
+                if (parts.Length == 3)
+                    fromManifest = manifest.Resolve(parts[2]);
+            }
+            if (fromManifest != null)
+                return fromManifest;
+        }
 
         // Case 1: _content/{PackageName}/path - this is how RCL assets are referenced
         if (assetPath.StartsWith("/_content/") || assetPath.StartsWith("_content/"))
