@@ -1,5 +1,6 @@
 using Hermes.Contracts.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mythetech.Framework.Components.Kbd;
 using Mythetech.Framework.Desktop.Components;
 using Mythetech.Framework.Desktop.Environment;
@@ -34,6 +35,7 @@ public static class DesktopRegistrationExtensions
         services.AddCopyToClipboard();
         services.AddPluginStorage();
         services.AddDesktopAssetLoader();
+        services.AddDesktopModuleLoader();
         services.AddLocalPluginService();
         services.AddShowFileService();
         services.AddShellExecutor();
@@ -52,6 +54,20 @@ public static class DesktopRegistrationExtensions
         }
 
         services.AddScoped<IPluginAssetLoader, DesktopPluginAssetLoader>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddDesktopModuleLoader(this IServiceCollection services)
+    {
+        var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IPluginModuleLoader));
+        if (existing != null)
+        {
+            services.Remove(existing);
+        }
+
+        services.TryAddScoped<PluginModuleInterop>();
+        services.AddScoped<IPluginModuleLoader, DesktopPluginModuleLoader>();
 
         return services;
     }

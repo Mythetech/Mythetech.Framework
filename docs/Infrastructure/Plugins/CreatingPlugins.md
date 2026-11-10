@@ -225,6 +225,33 @@ await PublishAsync(new MyPluginMessage("Something happened"));
 1. Add project reference in host
 2. Load via `UsePlugin(typeof(MyPluginManifest).Assembly)`
 
+## JavaScript Modules
+
+To use a JavaScript file as an ES module, import it from a component. The path is relative to the plugin's `wwwroot`, or a `_content/{Package}/...` path. The module reference is yours to dispose.
+
+```razor
+@inherits PluginComponentBase
+@implements IAsyncDisposable
+
+@code {
+    private IJSObjectReference? _module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _module = await ImportModuleAsync("js/chart.js");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module != null)
+            await _module.DisposeAsync();
+    }
+}
+```
+
+Modules must be a single file. On desktop a module is imported from a Blob URL, which can't resolve relative `import` statements.
+
 ## Local Plugins
 
 On desktop, an app can load a plugin from its build output and reload it on every rebuild, for plugin development.

@@ -41,6 +41,11 @@ public class PluginContext
     public IPluginAssetLoader? AssetLoader { get; init; }
     
     /// <summary>
+    /// Module loader for importing plugin JavaScript files as ES modules
+    /// </summary>
+    public IPluginModuleLoader? ModuleLoader { get; init; }
+    
+    /// <summary>
     /// Information about the current plugin (set per-component)
     /// </summary>
     public PluginInfo? CurrentPlugin { get; set; }

@@ -47,6 +47,8 @@ public static class PluginRegistrationExtensions
         services.AddSingleton<PluginMenuItemInvoker>();
         
         services.TryAddScoped<IPluginAssetLoader, JsPluginAssetLoader>();
+        services.TryAddScoped<PluginModuleInterop>();
+        services.TryAddScoped<IPluginModuleLoader, WebPluginModuleLoader>();
         services.TryAddScoped<IPluginRegistryService, PluginRegistryService>();
         // Scoped because WebAssembly hosts register HttpClient as scoped.
         services.TryAddScoped<IPluginInstaller, PluginInstaller>();
@@ -59,6 +61,7 @@ public static class PluginRegistrationExtensions
             var stateStore = sp.GetRequiredService<PluginStateStore>();
             var storageFactory = sp.GetService<IPluginStorageFactory>();
             var assetLoader = sp.GetService<IPluginAssetLoader>();
+            var moduleLoader = sp.GetService<IPluginModuleLoader>();
             var linkOpenService = sp.GetService<ILinkOpenService>();
             var fileSaveService = sp.GetService<IFileSaveService>();
             
@@ -68,6 +71,7 @@ public static class PluginRegistrationExtensions
                 StateStore = stateStore,
                 StorageFactory = storageFactory,
                 AssetLoader = assetLoader,
+                ModuleLoader = moduleLoader,
                 LinkOpenService = linkOpenService,
                 FileSaveService = fileSaveService
             };

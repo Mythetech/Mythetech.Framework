@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure.MessageBus;
 
 namespace Mythetech.Framework.Infrastructure.Plugins.Components;
@@ -85,6 +86,25 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
         await AssetLoader.LoadScriptAsync(resolvedPath);
     }
     
+    /// <summary>
+    /// Imports a JavaScript file from this plugin as an ES module.
+    /// Single-file modules only: relative <c>import</c> statements inside the module are not resolved on desktop.
+    /// </summary>
+    /// <param name="modulePath">Path relative to the plugin's wwwroot, or <c>_content/{Package}/...</c></param>
+    /// <returns>The module reference. The caller owns it and must dispose it.</returns>
+    /// <exception cref="InvalidOperationException">The host has no module loader, or this plugin isn't registered.</exception>
+    protected async Task<IJSObjectReference> ImportModuleAsync(string modulePath)
+    {
+        if (Context.ModuleLoader == null)
+            throw new InvalidOperationException("The host does not support importing plugin modules.");
+
+        var assembly = GetType().Assembly;
+        var pluginInfo = PluginState.Plugins.FirstOrDefault(p => p.Assembly == assembly)
+            ?? throw new InvalidOperationException("This component's plugin is not registered.");
+
+        return await Context.ModuleLoader.ImportAsync(pluginInfo, modulePath);
+    }
+
     private string ResolvePath(string path)
     {
         // Absolute URLs - pass through
