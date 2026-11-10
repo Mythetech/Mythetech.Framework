@@ -23,7 +23,8 @@ public interface IKeyBindingService
 
     /// <summary>
     /// Assigns a binding to an action. Assigning the action's default removes
-    /// the override instead of storing one. Persists immediately.
+    /// the override instead of storing one. A binding reserved in the action's
+    /// scope is logged and ignored. Persists immediately.
     /// </summary>
     Task SetBindingAsync(string id, KeyBinding binding);
 
@@ -46,7 +47,8 @@ public interface IKeyBindingService
 
     /// <summary>
     /// Assigns a binding, unbinding whichever action already held it. Both
-    /// changes persist together. Persists immediately.
+    /// changes persist together. A binding reserved in the action's scope is
+    /// logged and ignored, and nothing is unbound. Persists immediately.
     /// </summary>
     Task ReassignAsync(string id, KeyBinding binding);
 

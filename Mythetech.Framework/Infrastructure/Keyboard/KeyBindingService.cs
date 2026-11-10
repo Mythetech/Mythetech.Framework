@@ -62,6 +62,11 @@ public sealed class KeyBindingService : IKeyBindingService
             return;
         }
 
+        if (RefuseIfReserved(definition, binding))
+        {
+            return;
+        }
+
         ApplyBinding(definition, binding);
         await PersistAsync();
     }
@@ -100,6 +105,19 @@ public sealed class KeyBindingService : IKeyBindingService
 
         _settings.Overrides.Clear();
         await PersistAsync();
+    }
+
+    private bool RefuseIfReserved(KeyBindingDefinition definition, KeyBinding binding)
+    {
+        if (!_registry.GetReserved(definition.Scope).Contains(binding))
+        {
+            return false;
+        }
+
+        _logger.LogWarning(
+            "Shortcut {Binding} is reserved in the {Scope} scope; ignoring its assignment to {Id}",
+            binding, definition.Scope, definition.Id);
+        return true;
     }
 
     private void ApplyBinding(KeyBindingDefinition definition, KeyBinding binding)
@@ -159,6 +177,11 @@ public sealed class KeyBindingService : IKeyBindingService
         if (_registry.Get(id) is not { } definition)
         {
             _logger.LogWarning("No key binding registered with id {Id}; ignoring reassignment", id);
+            return;
+        }
+
+        if (RefuseIfReserved(definition, binding))
+        {
             return;
         }
 

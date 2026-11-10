@@ -11,17 +11,21 @@ namespace Mythetech.Framework.Test.Infrastructure.Keyboard;
 
 public class KeyBindingScopeTests
 {
+    private readonly ISettingsProvider _settingsProvider = Substitute.For<ISettingsProvider>();
     private readonly KeyBindingSettings _settings = new(Options.Create(new KeyBindingSettingsOptions()));
 
-    private KeyBindingService CreateService(params KeyBindingDefinition[] definitions)
+    private KeyBindingService CreateService(params KeyBindingDefinition[] definitions) => CreateService([], definitions);
+
+    private KeyBindingService CreateService(IEnumerable<ReservedKeyBinding> reserved, params KeyBindingDefinition[] definitions)
     {
         var options = new KeyBindingRegistrationOptions();
         options.Definitions.AddRange(definitions);
+        options.Reserved.AddRange(reserved);
 
         return new KeyBindingService(
             new KeyBindingRegistry(Options.Create(options)),
             _settings,
-            Substitute.For<ISettingsProvider>(),
+            _settingsProvider,
             Substitute.For<IMessageBus>(),
             NullLogger<KeyBindingService>.Instance);
     }
@@ -74,5 +78,49 @@ public class KeyBindingScopeTests
         service.GetAll(KeyBindingScope.Editor).Select(b => b.Id).ShouldBe(["find-next"]);
         service.GetAll(KeyBindingScope.Global).Select(b => b.Id).ShouldBe(["save"]);
         service.GetAll(KeyBindingScope.Editor).Single().Scope.ShouldBe(KeyBindingScope.Editor);
+    }
+
+    [Fact(DisplayName = "Assigning a shortcut reserved in the action's scope changes nothing and does not persist")]
+    public async Task Assigning_a_reserved_shortcut_is_ignored()
+    {
+        var service = CreateService(
+            [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
+            Definition("find", KeyBinding.CtrlOrCmd(JsKey.KeyF), KeyBindingScope.Editor));
+
+        await service.SetBindingAsync("find", KeyBinding.CtrlOrCmd(JsKey.KeyK));
+
+        service.GetBinding("find").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyF));
+        _settings.Overrides.ShouldBeEmpty();
+        await _settingsProvider.DidNotReceive().NotifySettingsChangedAsync(Arg.Any<SettingsBase>());
+    }
+
+    [Fact(DisplayName = "Reassigning to a reserved shortcut leaves the action and the one holding the shortcut as they were")]
+    public async Task Reassigning_to_a_reserved_shortcut_is_ignored()
+    {
+        // An override saved before the shortcut was reserved still holds it.
+        var held = SerializedKeyBinding.FromBinding(KeyBinding.CtrlOrCmd(JsKey.KeyK));
+        _settings.Overrides["find-next"] = held;
+        var service = CreateService(
+            [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
+            Definition("find-next", KeyBinding.CtrlOrCmd(JsKey.KeyG), KeyBindingScope.Editor),
+            Definition("go-to-line", null, KeyBindingScope.Editor));
+
+        await service.ReassignAsync("go-to-line", KeyBinding.CtrlOrCmd(JsKey.KeyK));
+
+        service.GetBinding("go-to-line").ShouldBeNull();
+        _settings.Overrides["find-next"].ShouldBe(held);
+        await _settingsProvider.DidNotReceive().NotifySettingsChangedAsync(Arg.Any<SettingsBase>());
+    }
+
+    [Fact(DisplayName = "A shortcut reserved in one scope can still be assigned to an action in another")]
+    public async Task A_shortcut_reserved_in_another_scope_can_be_assigned()
+    {
+        var service = CreateService(
+            [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
+            Definition("palette", null, KeyBindingScope.Global));
+
+        await service.SetBindingAsync("palette", KeyBinding.CtrlOrCmd(JsKey.KeyK));
+
+        service.GetBinding("palette").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyK));
     }
 }
