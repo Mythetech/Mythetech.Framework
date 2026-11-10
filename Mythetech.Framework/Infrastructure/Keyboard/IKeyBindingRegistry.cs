@@ -10,4 +10,7 @@ public interface IKeyBindingRegistry
 
     /// <summary>Returns the definition with the given id, or null when none is declared.</summary>
     KeyBindingDefinition? Get(string id);
+
+    /// <summary>Returns the shortcuts reserved in a scope, which no action in it may be assigned.</summary>
+    IReadOnlyList<KeyBinding> GetReserved(KeyBindingScope scope);
 }

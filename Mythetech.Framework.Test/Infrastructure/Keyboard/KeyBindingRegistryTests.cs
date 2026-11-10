@@ -89,4 +89,20 @@ public class KeyBindingRegistryTests
 
         registry.GetAll().Count.ShouldBe(2);
     }
+
+    [Fact(DisplayName = "Reserved shortcuts accumulate across AddKeyBindings calls and stay in their scope")]
+    public void Reserved_shortcuts_stay_in_their_scope()
+    {
+        var services = new ServiceCollection();
+
+        services.AddKeyBindings(b => b.Reserve(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK), KeyBinding.Plain(JsKey.F1)));
+        services.AddKeyBindings(b => b.Reserve(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.Space)));
+
+        var registry = services.BuildServiceProvider().GetRequiredService<IKeyBindingRegistry>();
+
+        registry.GetReserved(KeyBindingScope.Editor).ShouldBe(
+            [KeyBinding.CtrlOrCmd(JsKey.KeyK), KeyBinding.Plain(JsKey.F1), KeyBinding.CtrlOrCmd(JsKey.Space)],
+            ignoreOrder: true);
+        registry.GetReserved(KeyBindingScope.Global).ShouldBeEmpty();
+    }
 }

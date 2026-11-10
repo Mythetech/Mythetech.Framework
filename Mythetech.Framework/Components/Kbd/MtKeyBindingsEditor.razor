@@ -23,7 +23,8 @@
                 <div class="mf-keybinding-controls">
                     @if (_recordingId == action.Id)
                     {
-                        <MtKeyBindingRecorder BindingRecorded="@(binding => OnBindingRecordedAsync(action.Id, binding))"
+                        <MtKeyBindingRecorder Reserved="@Bindings.GetReserved(action.Scope)"
+                                              BindingRecorded="@(binding => OnBindingRecordedAsync(action.Id, binding))"
                                               Cancelled="@StopRecording" />
                     }
                     else

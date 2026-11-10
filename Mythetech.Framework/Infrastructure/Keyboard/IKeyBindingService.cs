@@ -15,6 +15,9 @@ public interface IKeyBindingService
     /// <summary>Returns every action grouped by category, for display.</summary>
     IEnumerable<IGrouping<string, ResolvedKeyBinding>> GetByCategory();
 
+    /// <summary>Returns the shortcuts reserved in a scope, which no action in it may be assigned.</summary>
+    IReadOnlyList<KeyBinding> GetReserved(KeyBindingScope scope);
+
     /// <summary>Returns the binding in effect for an action, or null when unbound or unknown.</summary>
     KeyBinding? GetBinding(string id);
 

@@ -47,6 +47,9 @@ public sealed class KeyBindingService : IKeyBindingService
         => GetAll().GroupBy(binding => binding.Category);
 
     /// <inheritdoc />
+    public IReadOnlyList<KeyBinding> GetReserved(KeyBindingScope scope) => _registry.GetReserved(scope);
+
+    /// <inheritdoc />
     public KeyBinding? GetBinding(string id)
         => _registry.Get(id) is { } definition ? Resolve(definition).CurrentBinding : null;
 

@@ -21,9 +21,8 @@
         "MetaLeft", "MetaRight",
     };
 
-    // Only the function keys may be bound without a modifier. MudHotkey prevents
-    // the default action of a matched key, so binding a navigation or editing key
-    // such as Delete or ArrowDown would disable that key across the whole app.
+    // Only the function keys may be bound without Ctrl or Alt. MudHotkey prevents a matched key's default
+    // action, so a key with no modifier or Shift alone, such as Delete or Shift+A, would stop working app wide.
     private static readonly HashSet<JsKey> StandaloneKeys =
     [
         JsKey.F1, JsKey.F2, JsKey.F3, JsKey.F4, JsKey.F5, JsKey.F6,
@@ -32,6 +31,9 @@
 
     private ElementReference _recorder;
     private string? _message;
+
+    /// <summary>Shortcuts the recorder refuses, such as the ones reserved in the action's scope.</summary>
+    [Parameter] public IReadOnlyList<KeyBinding> Reserved { get; set; } = [];
 
     /// <summary>Raised when the user presses a valid shortcut.</summary>
     [Parameter] public EventCallback<KeyBinding> BindingRecorded { get; set; }
@@ -73,9 +75,15 @@
             Shift: args.ShiftKey,
             Alt: args.AltKey);
 
-        if (!binding.Ctrl && !binding.Shift && !binding.Alt && !StandaloneKeys.Contains(key))
+        if (!binding.Ctrl && !binding.Alt && !StandaloneKeys.Contains(key))
         {
-            _message = "Add Ctrl, Shift or Alt to use this key";
+            _message = "Add Ctrl or Alt to use this key";
+            return;
+        }
+
+        if (Reserved.Contains(binding))
+        {
+            _message = "This shortcut is reserved";
             return;
         }
 
