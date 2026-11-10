@@ -12,6 +12,10 @@ public partial class MtTextField<T>
     private ElementReference _elementRef;
     private string _text = "";
     private bool _focused;
+    private T? _parameterValue;
+    private bool _hasParameterValue;
+    private T? _sentValue;
+    private bool _hasSentValue;
 
     /// <summary>The current value of the text field.</summary>
     [Parameter] public T? Value { get; set; }
@@ -120,8 +124,18 @@ public partial class MtTextField<T>
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
-        _text = Value?.ToString() ?? "";
+        var parentChangedValue = !_hasParameterValue || !SameValue(Value, _parameterValue);
+        _parameterValue = Value;
+        _hasParameterValue = true;
+
+        // A render repeating the old value hasn't caught up with the typing, and an echo of the sent value would reformat it.
+        if (parentChangedValue && !(_hasSentValue && SameValue(Value, _sentValue)))
+        {
+            _text = Value?.ToString() ?? "";
+        }
     }
+
+    private static bool SameValue(T? left, T? right) => EqualityComparer<T?>.Default.Equals(left, right);
 
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -154,19 +168,28 @@ public partial class MtTextField<T>
     {
         if (typeof(T) == typeof(string))
         {
-            await ValueChanged.InvokeAsync((T)(object)_text);
+            await SendValueAsync((T)(object)_text);
+            return;
         }
-        else
+
+        T converted;
+        try
         {
-            try
-            {
-                var converted = (T)Convert.ChangeType(_text, typeof(T));
-                await ValueChanged.InvokeAsync(converted);
-            }
-            catch (FormatException)
-            {
-            }
+            converted = (T)Convert.ChangeType(_text, typeof(T));
         }
+        catch (FormatException)
+        {
+            return;
+        }
+
+        await SendValueAsync(converted);
+    }
+
+    private async Task SendValueAsync(T value)
+    {
+        _sentValue = value;
+        _hasSentValue = true;
+        await ValueChanged.InvokeAsync(value);
     }
 
     private void OnFocusInternal()
@@ -187,14 +210,7 @@ public partial class MtTextField<T>
     private async Task HandleClearAsync()
     {
         _text = "";
-        if (typeof(T) == typeof(string))
-        {
-            await ValueChanged.InvokeAsync((T)(object)"");
-        }
-        else
-        {
-            await ValueChanged.InvokeAsync(default);
-        }
+        await SendValueAsync(typeof(T) == typeof(string) ? (T)(object)"" : default!);
         await _elementRef.FocusAsync();
     }
 
@@ -204,6 +220,6 @@ public partial class MtTextField<T>
     /// <summary>Clears the field value and refocuses the input.</summary>
     public async Task ClearAsync() => await HandleClearAsync();
 
-    /// <summary>Selects the input element (focuses it).</summary>
-    public ValueTask SelectAsync() => _elementRef.FocusAsync();
+    /// <summary>Focuses the input element and selects its text.</summary>
+    public ValueTask SelectAsync() => _elementRef.MudSelectAsync();
 }
