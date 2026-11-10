@@ -20,6 +20,7 @@ MyPlugin/
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
 
   <ItemGroup>
@@ -238,19 +239,36 @@ To use a JavaScript file as an ES module, import it from a component. The path i
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // The base class loads the plugin's assets on the first render.
+        await base.OnAfterRenderAsync(firstRender);
+
         if (firstRender)
             _module = await ImportModuleAsync("js/chart.js");
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_module != null)
+        // Blazor calls only DisposeAsync on a component that has both, so run the base class's Dispose too.
+        Dispose();
+
+        if (_module is null)
+            return;
+
+        try
+        {
             await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The WebView is already gone, and the module with it.
+        }
     }
 }
 ```
 
 Modules must be a single file. On desktop a module is imported from a Blob URL, which can't resolve relative `import` statements.
+
+On desktop, each `ImportModuleAsync` call returns its own module instance, even for the same path. On web, the browser shares one instance per URL. Keep module state per component, and don't rely on another component's import having set it up.
 
 ## Local Plugins
 
