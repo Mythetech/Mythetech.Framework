@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.23.1] - 2026-11-10
+
+### Fixed
+
+- `IKeyBindingService.SetBindingAsync` and `ReassignAsync` refuse a shortcut reserved in the action's scope. They assigned it, so only the shortcuts editor kept reserved shortcuts off an action. A refused assignment changes nothing and logs a warning, as an unknown action ID already did
+- A saved shortcut that is reserved in its action's scope no longer applies, such as one saved before it was reserved or edited into the settings by hand. The action takes its default and isn't shown as customized, and the saved value stays until the action is assigned or reset
+- `MtTextField`, `MtNumericField` and `MtSelect` take their corner radius from the theme's `DefaultBorderRadius`, as MudBlazor's outlined inputs do, instead of a fixed 8px. With a radius of `0.5em` they look about the same as before; with `0.25em` or MudBlazor's default of 4px, their corners are smaller. `MtSelect`'s list items take half the theme's radius instead of a fixed 4px
+- `MtNavLink`, `MtKbd`, the command palette's rows, and the settings dialog's navigation items, controls, search matches and scrollbar also take their corner radius from the theme, instead of fixed values from 3px to 8px. In a theme with a radius of `0.5em` they look about the same as before
+
+### Notes
+
+- Only `Mythetech.Framework` moves to `0.23.1`. `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` stay at `0.23.0`, and `Mythetech.Framework.AI.Generator` stays at `0.22.0`
+
 ## [0.23.0] - 2026-11-09
 
 ### Added
