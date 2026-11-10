@@ -109,7 +109,7 @@ public sealed class KeyBindingService : IKeyBindingService
 
     private bool RefuseIfReserved(KeyBindingDefinition definition, KeyBinding binding)
     {
-        if (!_registry.GetReserved(definition.Scope).Contains(binding))
+        if (!IsReserved(definition, binding))
         {
             return false;
         }
@@ -119,6 +119,9 @@ public sealed class KeyBindingService : IKeyBindingService
             binding, definition.Scope, definition.Id);
         return true;
     }
+
+    private bool IsReserved(KeyBindingDefinition definition, KeyBinding? binding)
+        => binding is not null && _registry.GetReserved(definition.Scope).Contains(binding);
 
     private void ApplyBinding(KeyBindingDefinition definition, KeyBinding binding)
     {
@@ -215,8 +218,17 @@ public sealed class KeyBindingService : IKeyBindingService
         }
     }
 
+    // An override saved before its shortcut was reserved gives way to the default.
     private ResolvedKeyBinding Resolve(KeyBindingDefinition definition)
-        => _settings.Overrides.TryGetValue(definition.Id, out var serialized)
-            ? new ResolvedKeyBinding(definition, serialized?.ToBinding(), IsCustomized: true)
-            : new ResolvedKeyBinding(definition, definition.DefaultBinding, IsCustomized: false);
+    {
+        if (!_settings.Overrides.TryGetValue(definition.Id, out var serialized))
+        {
+            return new ResolvedKeyBinding(definition, definition.DefaultBinding, IsCustomized: false);
+        }
+
+        var binding = serialized?.ToBinding();
+        return IsReserved(definition, binding)
+            ? new ResolvedKeyBinding(definition, definition.DefaultBinding, IsCustomized: false)
+            : new ResolvedKeyBinding(definition, binding, IsCustomized: true);
+    }
 }

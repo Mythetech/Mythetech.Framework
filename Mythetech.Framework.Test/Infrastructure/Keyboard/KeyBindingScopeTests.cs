@@ -94,21 +94,17 @@ public class KeyBindingScopeTests
         await _settingsProvider.DidNotReceive().NotifySettingsChangedAsync(Arg.Any<SettingsBase>());
     }
 
-    [Fact(DisplayName = "Reassigning to a reserved shortcut leaves the action and the one holding the shortcut as they were")]
+    [Fact(DisplayName = "Reassigning to a reserved shortcut changes nothing and does not persist")]
     public async Task Reassigning_to_a_reserved_shortcut_is_ignored()
     {
-        // An override saved before the shortcut was reserved still holds it.
-        var held = SerializedKeyBinding.FromBinding(KeyBinding.CtrlOrCmd(JsKey.KeyK));
-        _settings.Overrides["find-next"] = held;
         var service = CreateService(
             [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
-            Definition("find-next", KeyBinding.CtrlOrCmd(JsKey.KeyG), KeyBindingScope.Editor),
-            Definition("go-to-line", null, KeyBindingScope.Editor));
+            Definition("go-to-line", KeyBinding.CtrlOrCmd(JsKey.KeyL), KeyBindingScope.Editor));
 
         await service.ReassignAsync("go-to-line", KeyBinding.CtrlOrCmd(JsKey.KeyK));
 
-        service.GetBinding("go-to-line").ShouldBeNull();
-        _settings.Overrides["find-next"].ShouldBe(held);
+        service.GetBinding("go-to-line").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyL));
+        _settings.Overrides.ShouldBeEmpty();
         await _settingsProvider.DidNotReceive().NotifySettingsChangedAsync(Arg.Any<SettingsBase>());
     }
 
@@ -120,6 +116,31 @@ public class KeyBindingScopeTests
             Definition("palette", null, KeyBindingScope.Global));
 
         await service.SetBindingAsync("palette", KeyBinding.CtrlOrCmd(JsKey.KeyK));
+
+        service.GetBinding("palette").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyK));
+    }
+
+    [Fact(DisplayName = "A saved shortcut reserved in its action's scope doesn't apply, and the action keeps its default")]
+    public void A_saved_reserved_shortcut_does_not_apply()
+    {
+        _settings.Overrides["find"] = SerializedKeyBinding.FromBinding(KeyBinding.CtrlOrCmd(JsKey.KeyK));
+        var service = CreateService(
+            [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
+            Definition("find", KeyBinding.CtrlOrCmd(JsKey.KeyF), KeyBindingScope.Editor));
+
+        var resolved = service.GetAll().Single();
+
+        resolved.CurrentBinding.ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyF));
+        resolved.IsCustomized.ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "A saved shortcut reserved only in another scope still applies")]
+    public void A_saved_shortcut_reserved_in_another_scope_applies()
+    {
+        _settings.Overrides["palette"] = SerializedKeyBinding.FromBinding(KeyBinding.CtrlOrCmd(JsKey.KeyK));
+        var service = CreateService(
+            [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
+            Definition("palette", null, KeyBindingScope.Global));
 
         service.GetBinding("palette").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyK));
     }
