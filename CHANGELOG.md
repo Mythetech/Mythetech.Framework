@@ -49,6 +49,7 @@
 - `AppContextDrawer` gives each panel its own components. Panels an app builds in a loop, such as Siren's plugin panels, shared one set, so a panel opened after a failed one showed the failed panel's error, and any state in a panel's components carried over to the next
 - `PluginGuard`'s **Reload** shows the error again when the panel still throws. It left the panel blank
 - A plugin menu item whose `OnClick` throws no longer escapes `PluginMenuHost` or `PluginMenuItemsRenderer`. They call `PluginMenuItemInvoker`
+- `UsePluginFramework` gives `PluginState` the app's logger. Nothing set one, so `PluginState`'s own warnings, such as a failed delete of a removed plugin's data, were dropped
 - `AddMessageBus` no longer registers the plugin framework's consumers. In an app that never called `AddPluginFramework`, it registered `PluginSettingsConsumer`, so building the service provider with `ValidateOnBuild` failed for want of `PluginState`
 
 ## [0.23.0] - 2026-11-09
