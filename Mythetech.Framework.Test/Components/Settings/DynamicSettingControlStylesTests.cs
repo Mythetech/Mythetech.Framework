@@ -14,7 +14,7 @@ public partial class DynamicSettingControlStylesTests
     [Fact]
     public void Rules_for_classes_an_editor_renders_reach_through_the_editor_component()
     {
-        var settingsDirectory = Path.Combine(FindRepoRoot(), "Mythetech.Framework", "Components", "Settings");
+        var settingsDirectory = Path.Combine(SourceTree.Root, "Mythetech.Framework", "Components", "Settings");
         var editorClasses = Directory.EnumerateFiles(Path.Combine(settingsDirectory, "Editors"), "*.razor")
             .SelectMany(file => EditorClass().Matches(File.ReadAllText(file)).Select(m => m.Groups[1].Value))
             .ToHashSet();
@@ -27,16 +27,5 @@ public partial class DynamicSettingControlStylesTests
 
         editorClasses.ShouldNotBeEmpty();
         unreachable.ShouldBeEmpty("scoped rules never match elements an editor component renders unless they go through ::deep");
-    }
-
-    private static string FindRepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Mythetech.Framework.sln")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root.");
     }
 }
