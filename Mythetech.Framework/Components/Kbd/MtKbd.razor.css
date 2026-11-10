@@ -2,7 +2,7 @@ kbd {
     display: inline-block;
     padding: 1px 5px;
     margin: 0 2px;
-    border-radius: 3px;
+    border-radius: calc(var(--mud-default-borderradius) / 2);
     border: 1px solid var(--mud-palette-divider);
     background-color: var(--mud-palette-action-default-hover);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

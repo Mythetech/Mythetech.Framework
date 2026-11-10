@@ -40,7 +40,7 @@
     border-left: 3px solid var(--mud-palette-primary);
     margin-left: -0.5rem;
     padding-left: calc(0.5rem - 3px);
-    border-radius: 4px;
+    border-radius: calc(var(--mud-default-borderradius) / 2);
 }
 
 .mf-setting-item.mf-setting-match:hover {

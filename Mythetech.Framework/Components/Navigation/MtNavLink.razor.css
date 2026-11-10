@@ -3,7 +3,7 @@
     align-items: center;
     gap: 12px;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--mud-default-borderradius);
     color: var(--mud-palette-text-secondary);
     text-decoration: none;
     font-size: 0.875rem;
