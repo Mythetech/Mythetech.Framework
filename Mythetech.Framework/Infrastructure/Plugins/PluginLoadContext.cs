@@ -34,10 +34,10 @@ public class PluginLoadContext : AssemblyLoadContext
     protected override Assembly? Load(AssemblyName assemblyName)
     {
         // Bind to the host's copy whatever version the plugin referenced, so its types match the host's.
-        if (SharedAssemblies.IsShared(assemblyName))
+        var hostCopy = SharedAssemblies.TryGetHostCopy(assemblyName);
+        if (hostCopy is not null)
         {
-            return SharedAssemblies.FindInDefault(assemblyName)
-                ?? AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(assemblyName.Name!));
+            return hostCopy;
         }
 
         var path = ResolveAssemblyPath(assemblyName);

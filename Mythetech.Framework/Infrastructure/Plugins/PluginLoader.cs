@@ -196,7 +196,7 @@ public class PluginLoader
             try
             {
                 var assemblyName = AssemblyName.GetAssemblyName(fullPath);
-                var hostAssembly = LoadFromHost(assemblyName);
+                var hostAssembly = SharedAssemblies.TryGetHostCopy(assemblyName);
                 folderAssemblies.Add(hostAssembly is null
                     ? (fullPath, loadContext.LoadFromAssemblyPath(fullPath), true)
                     : (fullPath, hostAssembly, false));
@@ -226,18 +226,6 @@ public class PluginLoader
         }
 
         return plugins;
-    }
-
-    private static Assembly? LoadFromHost(AssemblyName assemblyName)
-    {
-        if (!SharedAssemblies.IsShared(assemblyName))
-        {
-            return null;
-        }
-
-        // By simple name, so a copy at a different version than the host's still binds to the host's.
-        return SharedAssemblies.FindInDefault(assemblyName)
-            ?? AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(assemblyName.Name!));
     }
 
     private static bool ReferencesFramework(Assembly assembly)
