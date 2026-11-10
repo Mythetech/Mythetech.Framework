@@ -29,6 +29,10 @@ public class ShellProcessGroupTests
     private static ShellCommand SleepCommand =>
         new ShellCommand { Command = "/bin/sleep" }.WithArgumentList("30");
 
+    // A test host started as a background job hands its children an ignored SIGINT, so this sleep resets it first.
+    private static ShellCommand SleepThatEndsOnSigintCommand =>
+        new ShellCommand { Command = PerlPath }.WithArgumentList("-e", "$SIG{INT} = \"DEFAULT\"; exec \"/bin/sleep\", \"30\"");
+
     // The subshell exits once it has printed, which orphans the sleep: the leader's tree no longer reaches it, its group does.
     private static ShellCommand OrphanedChildCommand =>
         new ShellCommand { Command = "/bin/sh" }.WithArgumentList("-c", "(sleep 60 & echo $!); sleep 60").WithOwnProcessGroup();
@@ -219,9 +223,10 @@ public class ShellProcessGroupTests
     public async Task StopAsync_GroupThatEndsOnSigint_ReturnsBeforeTheGrace()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
 
         await using var process = await _executor.StartProcessAsync(
-            SleepCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
+            SleepThatEndsOnSigintCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
         try
         {
             (await CommandNameOnceSettledAsync(process.ProcessId, "sleep")).ShouldEndWith("sleep");
