@@ -8,13 +8,10 @@ namespace Mythetech.Framework.Desktop;
 /// </summary>
 internal static class PluginAssetPathResolver
 {
-    internal static bool IsExternalUrl(string path) =>
-        path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("//");
-
     internal static string? Resolve(PluginInfo pluginInfo, string assetPath, ILogger logger)
     {
         // External URLs can't be resolved to files
-        if (IsExternalUrl(assetPath))
+        if (PluginUrls.IsExternalUrl(assetPath))
             return null;
 
         var pluginDir = Path.GetDirectoryName(pluginInfo.SourcePath);

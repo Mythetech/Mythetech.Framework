@@ -25,7 +25,7 @@ public class DesktopPluginModuleLoader : IPluginModuleLoader
     /// <inheritdoc />
     public async Task<IJSObjectReference> ImportAsync(PluginInfo plugin, string modulePath)
     {
-        if (PluginAssetPathResolver.IsExternalUrl(modulePath))
+        if (PluginUrls.IsExternalUrl(modulePath))
             throw new ArgumentException("Plugin modules must be inside the plugin, not external URLs.", nameof(modulePath));
 
         var filePath = PluginAssetPathResolver.Resolve(plugin, modulePath, _logger);

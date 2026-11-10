@@ -37,7 +37,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             return;
 
         // For external URLs, use standard link tag
-        if (IsExternalUrl(href))
+        if (PluginUrls.IsExternalUrl(href))
         {
             await LoadStylesheetViaLinkAsync(href, integrity, crossOrigin);
             return;
@@ -62,7 +62,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             return;
 
         // For external URLs, use standard script tag
-        if (IsExternalUrl(src))
+        if (PluginUrls.IsExternalUrl(src))
         {
             await LoadScriptViaSrcAsync(src, integrity, crossOrigin);
             return;
@@ -118,7 +118,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                         var content = await File.ReadAllTextAsync(resolvedPath);
                         await InjectInlineStyleAsync(asset.Path, content);
                     }
-                    else if (IsExternalUrl(asset.Path))
+                    else if (PluginUrls.IsExternalUrl(asset.Path))
                     {
                         await LoadStylesheetViaLinkAsync(asset.Path, asset.Integrity, asset.CrossOrigin);
                     }
@@ -134,7 +134,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                         var content = await File.ReadAllTextAsync(resolvedPath);
                         await InjectInlineScriptAsync(asset.Path, content);
                     }
-                    else if (IsExternalUrl(asset.Path))
+                    else if (PluginUrls.IsExternalUrl(asset.Path))
                     {
                         await LoadScriptViaSrcAsync(asset.Path, asset.Integrity, asset.CrossOrigin);
                     }
@@ -357,8 +357,6 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
 
     // Weak so a reloaded plugin's assembly isn't kept reachable by the loader.
     private sealed record LoadedPlugin(WeakReference<PluginInfo> Instance, string[] StylesheetPaths, string[] AssetPaths);
-
-    private static bool IsExternalUrl(string path) => PluginAssetPathResolver.IsExternalUrl(path);
 
     private static string GetAssetId(string path) =>
         "plugin-asset-" + path.GetHashCode().ToString("x");

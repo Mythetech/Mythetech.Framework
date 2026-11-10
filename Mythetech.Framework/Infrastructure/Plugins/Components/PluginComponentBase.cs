@@ -108,7 +108,7 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     private string ResolvePath(string path)
     {
         // Absolute URLs - pass through
-        if (path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("//"))
+        if (PluginUrls.IsExternalUrl(path))
             return path;
         
         // Already a _content path (e.g., from a NuGet package) - pass through

@@ -23,7 +23,7 @@ public class WebPluginModuleLoader : IPluginModuleLoader
     /// <inheritdoc />
     public async Task<IJSObjectReference> ImportAsync(PluginInfo plugin, string modulePath)
     {
-        if (IsExternalUrl(modulePath))
+        if (PluginUrls.IsExternalUrl(modulePath))
             throw new ArgumentException("Plugin modules must be inside the plugin, not external URLs.", nameof(modulePath));
 
         var trimmed = modulePath.TrimStart('/');
@@ -33,7 +33,4 @@ public class WebPluginModuleLoader : IPluginModuleLoader
 
         return await _jsRuntime.InvokeAsync<IJSObjectReference>(ImportIdentifier, url);
     }
-
-    private static bool IsExternalUrl(string path) =>
-        path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("//");
 }
