@@ -80,6 +80,46 @@ public class PluginManagementDialogTests : BunitContext
         host.Markup.ShouldNotContain("secret-host.internal");
     }
 
+    [Fact(DisplayName = "A registry that loads as nothing shows the same copy as a registry load failure")]
+    public async Task RegistryLoadsAsNull_ShowsFixedMessage()
+    {
+        _registryService.FetchRegistryAsync(Arg.Any<CancellationToken>()).Returns((PluginRegistry?)null);
+
+        var host = await OpenDialogAsync();
+
+        host.WaitForAssertion(() => host.Markup.ShouldContain(RegistryLoadFailureMessage));
+    }
+
+    [Fact(DisplayName = "An installed plugin the registry marks deprecated shows a Deprecated badge")]
+    public async Task InstalledPluginDeprecatedInRegistry_ShowsDeprecatedBadge()
+    {
+        RegistryReturns(new RegistryPluginEntry { Id = EntryId, Name = "Notes", Version = "1.1.0", Uri = EntryUri, IsDeprecated = true });
+        await _state.RegisterPluginAsync(Plugin(EntryId, "1.0.0", isLocal: false));
+
+        var host = await OpenDialogAsync();
+
+        host.WaitForAssertion(() => host.FindAll(".mud-table-body .mythetech-badge")
+            .Select(b => b.TextContent.Trim()).ShouldContain("Deprecated"));
+    }
+
+    [Fact(DisplayName = "Add local plugin shows fixed copy when the file picker throws")]
+    public async Task AddLocalPlugin_FilePickerThrows_ShowsFixedMessage()
+    {
+        Services.AddSingleton(_fileOpenService);
+        EnableLocalPlugins();
+        RegistryReturns();
+        _fileOpenService.OpenFileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<FileFilter[]?>())
+            .Returns<string[]>(_ => throw new InvalidOperationException("secret-picker-failure"));
+
+        var host = await OpenDialogAsync();
+        await host.Find($"button:contains('{AddLocalPluginText}')").ClickAsync();
+
+        var snackbar = Services.GetRequiredService<ISnackbar>();
+        host.WaitForAssertion(() => snackbar.ShownSnackbars.Select(x => x.Message).ShouldContain("Couldn't open the file picker."));
+        snackbar.ShownSnackbars.Select(x => x.Message).ShouldNotContain(message => message.Contains("secret-picker-failure"));
+        await _localPlugins.DidNotReceive().AddAsync(Arg.Any<string>());
+    }
+
     [Fact(DisplayName = "With local plugins enabled, the Installed tab offers Add local plugin")]
     public async Task PluginManagementDialog_LocalEnabled_ShowsAddLocalPlugin()
     {

@@ -70,7 +70,7 @@
                                        Variant="Variant.Filled">
                                     @(context.IsEnabled ? "Enabled" : "Disabled")
                                 </MtBadge>
-                                @if (context.Manifest.IsDeprecated)
+                                @if (IsDeprecated(context))
                                 {
                                     <MtBadge Size="Size.Small" Color="Color.Warning">Deprecated</MtBadge>
                                 }
@@ -196,6 +196,8 @@
 </MudDialog>
 
 @code {
+    private const string RegistryLoadFailedMessage = "Couldn't load the plugin registry. Check your connection and try again.";
+
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
 
@@ -239,7 +241,7 @@
             _registry = await RegistryService.FetchRegistryAsync();
             if (_registry is null)
             {
-                _errorMessage = "Failed to load plugin registry. Please check your connection and try again.";
+                _errorMessage = RegistryLoadFailedMessage;
             }
             else
             {
@@ -250,7 +252,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load the plugin registry");
-            _errorMessage = "Couldn't load the plugin registry. Check your connection and try again.";
+            _errorMessage = RegistryLoadFailedMessage;
         }
         finally
         {
@@ -342,6 +344,11 @@
         UpdateAvailablePlugins();
         UpdateTabNames();
     }
+
+    // The registry can deprecate a plugin after the installed version shipped, so either source counts.
+    private bool IsDeprecated(PluginInfo plugin) =>
+        plugin.Manifest.IsDeprecated
+        || _registry?.Plugins.Any(entry => entry.Id == plugin.Manifest.Id && entry.IsDeprecated) == true;
 
     private string GetLocalPath(PluginInfo plugin) =>
         LocalPlugins.Entries.FirstOrDefault(entry => entry.PluginId == plugin.Manifest.Id)?.DllPath ?? string.Empty;
