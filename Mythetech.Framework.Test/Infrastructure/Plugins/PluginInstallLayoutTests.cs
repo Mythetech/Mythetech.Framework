@@ -113,6 +113,59 @@ public class PluginInstallLayoutTests : IDisposable
         Directory.Exists(install).ShouldBeFalse();
     }
 
+    [Fact(DisplayName = "PrepareForLoad deletes a newer unmarked install folder without a DLL and keeps the install before it")]
+    public void PrepareForLoad_NewerEmptyUnmarkedInstall_KeepsPreviousInstall()
+    {
+        var installA = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Notes");
+        CompleteInstall(installA);
+        var installB = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Notes");
+        File.Delete(Path.Combine(installB, PluginInstallLayout.RemovedMarkerFileName));
+
+        var folders = PluginInstallLayout.PrepareForLoad(_pluginsDirectory, NullLogger.Instance);
+
+        folders.ShouldBe([installA]);
+        Directory.Exists(installA).ShouldBeTrue();
+        Directory.Exists(installB).ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "PrepareForLoad returns nothing for a plugin whose only install folder has no DLL")]
+    public void PrepareForLoad_OnlyInstallHasNoDll_ReturnsNothing()
+    {
+        var install = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "Notes");
+        File.Delete(Path.Combine(install, PluginInstallLayout.RemovedMarkerFileName));
+
+        var folders = PluginInstallLayout.PrepareForLoad(_pluginsDirectory, NullLogger.Instance);
+
+        folders.ShouldBeEmpty();
+        Directory.Exists(install).ShouldBeFalse();
+    }
+
+    [Theory(DisplayName = "SanitizeFolderName falls back to 'plugin' for a name that is empty or only dots and whitespace")]
+    [InlineData("..")]
+    [InlineData(".")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(" . . ")]
+    public void SanitizeFolderName_NoUsableName_ReturnsFallback(string name)
+    {
+        PluginInstallLayout.SanitizeFolderName(name).ShouldBe("plugin");
+    }
+
+    [Fact(DisplayName = "SanitizeFolderName trims leading and trailing dots and whitespace")]
+    public void SanitizeFolderName_TrimsDotsAndWhitespace()
+    {
+        PluginInstallLayout.SanitizeFolderName(" .Notes. ").ShouldBe("Notes");
+    }
+
+    [Fact(DisplayName = "CreateInstallFolder with the key '..' creates a folder inside the plugins directory")]
+    public void CreateInstallFolder_ParentKey_StaysInsidePluginsDirectory()
+    {
+        var folder = PluginInstallLayout.CreateInstallFolder(_pluginsDirectory, "..");
+
+        PluginInstallLayout.IsInside(folder, _pluginsDirectory).ShouldBeTrue();
+        Path.GetDirectoryName(folder).ShouldBe(Path.Combine(_pluginsDirectory, "plugin"));
+    }
+
     private string CreateFolderWithDll(string name)
     {
         var folder = Path.Combine(_pluginsDirectory, name);

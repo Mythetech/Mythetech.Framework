@@ -21,6 +21,7 @@ public static class PluginInstallLayout
 
     private const string TimestampFormat = "yyyyMMddHHmmssfffffff";
     private const string DllPattern = "*.dll";
+    private const string FallbackFolderName = "plugin";
     private static readonly Lock CreateLock = new();
 
     /// <summary>
@@ -82,10 +83,20 @@ public static class PluginInstallLayout
             var installs = new List<string>();
             foreach (var install in SortedDirectories(pluginFolder).Where(IsInstallFolder))
             {
-                if (!IsMarked(install))
-                    installs.Add(install);
-                else
+                if (IsMarked(install))
+                {
                     TryDelete(install, logger);
+                }
+                else if (!HasDlls(install))
+                {
+                    // Left by an install interrupted before its marker was written, so it must not supersede a good one.
+                    logger.LogWarning("Deleting the incomplete plugin install folder {Folder}", install);
+                    TryDelete(install, logger);
+                }
+                else
+                {
+                    installs.Add(install);
+                }
             }
 
             foreach (var child in SortedDirectories(pluginFolder).Where(child => !IsInstallFolder(child) && IsMarked(child)))
@@ -124,12 +135,22 @@ public static class PluginInstallLayout
     }
 
     /// <summary>
-    /// Removes the characters a folder name can't contain.
+    /// Removes the characters a folder name can't contain and trims leading and trailing dots and whitespace.
+    /// Returns <c>plugin</c> when nothing is left.
     /// </summary>
     public static string SanitizeFolderName(string name)
     {
         var invalidChars = Path.GetInvalidFileNameChars();
-        return new string(name.Where(c => !invalidChars.Contains(c)).ToArray());
+        var sanitized = new string(name.Where(c => !invalidChars.Contains(c)).ToArray());
+
+        var start = 0;
+        var end = sanitized.Length;
+        while (start < end && IsTrimmedFromFolderName(sanitized[start]))
+            start++;
+        while (end > start && IsTrimmedFromFolderName(sanitized[end - 1]))
+            end--;
+
+        return start == end ? FallbackFolderName : sanitized[start..end];
     }
 
     /// <summary>
@@ -142,6 +163,8 @@ public static class PluginInstallLayout
 
         return normalizedFolder.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static bool IsTrimmedFromFolderName(char c) => c == '.' || char.IsWhiteSpace(c);
 
     private static bool IsInstallFolder(string folder) =>
         Path.GetFileName(folder).StartsWith(InstallFolderPrefix, StringComparison.Ordinal);
