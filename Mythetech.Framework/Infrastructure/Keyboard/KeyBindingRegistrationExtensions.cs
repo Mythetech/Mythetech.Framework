@@ -12,6 +12,9 @@ public sealed class KeyBindingRegistrationOptions
 {
     /// <summary>Every declared definition, in registration order.</summary>
     public List<KeyBindingDefinition> Definitions { get; } = new();
+
+    /// <summary>Every reserved shortcut, in registration order.</summary>
+    public List<ReservedKeyBinding> Reserved { get; } = new();
 }
 
 /// <summary>
@@ -34,8 +37,13 @@ public static class KeyBindingRegistrationExtensions
         var builder = new KeyBindingBuilder();
         configure(builder);
         var definitions = builder.Build();
+        var reserved = builder.BuildReserved();
 
-        services.Configure<KeyBindingRegistrationOptions>(options => options.Definitions.AddRange(definitions));
+        services.Configure<KeyBindingRegistrationOptions>(options =>
+        {
+            options.Definitions.AddRange(definitions);
+            options.Reserved.AddRange(reserved);
+        });
         AddKeyBindingServices(services);
 
         return services;

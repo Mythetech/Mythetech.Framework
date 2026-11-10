@@ -84,7 +84,7 @@ public class MtKeyBindingRecorderTests : BunitContext
         await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "KeyR" });
 
         recordedCount.ShouldBe(0);
-        cut.Markup.ShouldContain("Add Ctrl, Shift or Alt");
+        cut.Markup.ShouldContain("Add Ctrl or Alt");
     }
 
     [Fact(DisplayName = "Accepts a modifier-less function key")]
@@ -109,7 +109,7 @@ public class MtKeyBindingRecorderTests : BunitContext
         await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "Delete" });
 
         recordedCount.ShouldBe(0);
-        cut.Markup.ShouldContain("Add Ctrl, Shift or Alt");
+        cut.Markup.ShouldContain("Add Ctrl or Alt");
     }
 
     [Fact(DisplayName = "Rejects a modifier-less arrow key because binding it would break every list and dropdown")]
@@ -122,7 +122,7 @@ public class MtKeyBindingRecorderTests : BunitContext
         await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "ArrowDown" });
 
         recordedCount.ShouldBe(0);
-        cut.Markup.ShouldContain("Add Ctrl, Shift or Alt");
+        cut.Markup.ShouldContain("Add Ctrl or Alt");
     }
 
     [Fact(DisplayName = "Still accepts a navigation key when it carries a modifier")]
@@ -152,5 +152,56 @@ public class MtKeyBindingRecorderTests : BunitContext
 
         recordedCount.ShouldBe(0);
         cut.Markup.ShouldContain("Unsupported key");
+    }
+
+    [Fact(DisplayName = "Rejects Shift with a letter because the shortcut would stop that capital being typed")]
+    public async Task Rejects_shift_letter()
+    {
+        var recordedCount = 0;
+        var cut = Render<MtKeyBindingRecorder>(parameters => parameters
+            .Add(p => p.BindingRecorded, EventCallback.Factory.Create<KeyBinding>(this, _ => recordedCount++)));
+
+        await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "KeyA", ShiftKey = true });
+
+        recordedCount.ShouldBe(0);
+        cut.Markup.ShouldContain("Add Ctrl or Alt");
+    }
+
+    [Fact(DisplayName = "Rejects Shift with an arrow key because binding it would break extending a selection")]
+    public async Task Rejects_shift_arrow_key()
+    {
+        var recordedCount = 0;
+        var cut = Render<MtKeyBindingRecorder>(parameters => parameters
+            .Add(p => p.BindingRecorded, EventCallback.Factory.Create<KeyBinding>(this, _ => recordedCount++)));
+
+        await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "ArrowDown", ShiftKey = true });
+
+        recordedCount.ShouldBe(0);
+    }
+
+    [Fact(DisplayName = "Accepts Shift with a function key")]
+    public async Task Accepts_shift_function_key()
+    {
+        KeyBinding? recorded = null;
+        var cut = Render<MtKeyBindingRecorder>(parameters => parameters
+            .Add(p => p.BindingRecorded, EventCallback.Factory.Create<KeyBinding>(this, b => recorded = b)));
+
+        await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "F3", ShiftKey = true });
+
+        recorded.ShouldBe(new KeyBinding(JsKey.F3, Shift: true));
+    }
+
+    [Fact(DisplayName = "Rejects a reserved shortcut and keeps waiting")]
+    public async Task Rejects_reserved_shortcut()
+    {
+        var recordedCount = 0;
+        var cut = Render<MtKeyBindingRecorder>(parameters => parameters
+            .Add(p => p.Reserved, new[] { KeyBinding.CtrlOrCmd(JsKey.KeyK) })
+            .Add(p => p.BindingRecorded, EventCallback.Factory.Create<KeyBinding>(this, _ => recordedCount++)));
+
+        await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "KeyK", MetaKey = true });
+
+        recordedCount.ShouldBe(0);
+        cut.Markup.ShouldContain("reserved");
     }
 }

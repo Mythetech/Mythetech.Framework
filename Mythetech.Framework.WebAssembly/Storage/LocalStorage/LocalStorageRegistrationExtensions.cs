@@ -14,13 +14,13 @@ public static class LocalStorageRegistrationExtensions
 
     public static IServiceCollection AddLocalStorageSettingsStorage(this IServiceCollection services)
     {
-        services.AddScoped<ISettingsStorage, LocalStorageSettingsStorage>();
+        services.AddSingleton<ISettingsStorage, LocalStorageSettingsStorage>();
         return services;
     }
 
     public static IServiceCollection AddLocalStoragePluginStateProvider(this IServiceCollection services)
     {
-        services.AddScoped<IPluginStateProvider, LocalStoragePluginStateProvider>();
+        services.AddSingleton<IPluginStateProvider, LocalStoragePluginStateProvider>();
         return services;
     }
 }

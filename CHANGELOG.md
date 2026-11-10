@@ -61,6 +61,20 @@
   - This is binary-breaking even though the new parameters are optional: code built against 0.22.x, including plugins, must be recompiled. The `KeyBindingDefinition` constructor and `Deconstruct`, and `KeyBindingBuilder.Add`, changed signature, and anything that implements `IKeyBindingService` must add the new `GetAll(KeyBindingScope)` member
   - `IKeyBindingService.GetAll(KeyBindingScope)` returns the actions in one scope
   - `TryFindConflict` and `ReassignAsync` only consider actions in the same scope, so an editor action can share a key with a global one
+- Reserved shortcuts. `KeyBindingBuilder.Reserve(scope, bindings)` declares shortcuts the user can't assign to any action in that scope, such as the keys an editor handles itself. The shortcuts editor refuses a reserved shortcut and says it is reserved
+  - `IKeyBindingRegistry.GetReserved(KeyBindingScope)` and `IKeyBindingService.GetReserved(KeyBindingScope)` return them, `KeyBindingRegistrationOptions.Reserved` holds them, and `MtKeyBindingRecorder.Reserved` takes the list a recorder refuses
+  - Anything that implements `IKeyBindingRegistry` or `IKeyBindingService` must add `GetReserved`
+- `UserAgentPlatformDetector`, registered with `AddUserAgentPlatformDetector()`, is a platform detector for Blazor Server, so shortcut labels show Cmd on a Mac. Server hosts had none, so the labels always showed Ctrl
+  - It is scoped, so each circuit reports its own browser's platform
+  - A circuit can't read its HTTP request, so the host reads the `User-Agent` header in `App.razor` from the cascading `HttpContext`, passes it to its interactive root component as a parameter, and the root calls `SetUserAgent` in `OnInitialized`
+  - Desktop and WebAssembly hosts keep their own detectors and don't call it
+
+### Fixed
+
+- `MtTextField` no longer overwrites what the user is typing. It replaced its text with `Value` on every parameter set, so a parent render that hadn't caught up with the typing, which is common on Blazor Server, dropped keystrokes. It now takes `Value` only when the parent changes it, and not when the parent echoes the value the field just sent, so typing `1.` into a numeric field keeps the dot
+- `MtTextField.SelectAsync` selects the field's text. It only focused the field before
+- `MtKeyBindingRecorder` refuses Shift with any key but a function key, as it already refused a key with no modifier. A shortcut such as Shift+A or Shift+ArrowDown blocks that key's normal action across the app, so it would stop a capital being typed or a selection being extended. The recorder's message now reads "Add Ctrl or Alt to use this key"
+- Framework.WebAssembly's `AddWebAssemblySettingsStorage` and `AddPluginStateProvider`, and the `AddLocalStorageSettingsStorage` and `AddLocalStoragePluginStateProvider` methods they call, register their services as singletons. The Framework resolves both from the root provider, which scope validation rejects for a scoped service, so in Development every settings change failed to publish
 
 ## [0.22.2] - 2026-11-03
 

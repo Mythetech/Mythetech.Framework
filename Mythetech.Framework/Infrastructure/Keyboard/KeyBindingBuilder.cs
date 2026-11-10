@@ -8,6 +8,7 @@ namespace Mythetech.Framework.Infrastructure.Keyboard;
 public sealed class KeyBindingBuilder
 {
     private readonly List<KeyBindingDefinition> _definitions = new();
+    private readonly List<ReservedKeyBinding> _reserved = new();
     private string _category = "General";
 
     /// <summary>Sets the category applied to every subsequent <see cref="Add"/> call.</summary>
@@ -33,5 +34,21 @@ public sealed class KeyBindingBuilder
         return this;
     }
 
+    /// <summary>
+    /// Reserves shortcuts in a scope so the user can't assign them to an action there,
+    /// such as keys an editor handles itself.
+    /// </summary>
+    public KeyBindingBuilder Reserve(KeyBindingScope scope, params KeyBinding[] bindings)
+    {
+        foreach (var binding in bindings)
+        {
+            _reserved.Add(new ReservedKeyBinding(scope, binding));
+        }
+
+        return this;
+    }
+
     internal IReadOnlyList<KeyBindingDefinition> Build() => _definitions;
+
+    internal IReadOnlyList<ReservedKeyBinding> BuildReserved() => _reserved;
 }

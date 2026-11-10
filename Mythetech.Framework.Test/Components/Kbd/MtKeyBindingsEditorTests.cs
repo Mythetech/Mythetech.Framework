@@ -45,10 +45,13 @@ public class MtKeyBindingsEditorTests : BunitContext
         Render<MudPopoverProvider>();
     }
 
-    private void Configure(params KeyBindingDefinition[] definitions)
+    private void Configure(params KeyBindingDefinition[] definitions) => Configure([], definitions);
+
+    private void Configure(IEnumerable<ReservedKeyBinding> reserved, params KeyBindingDefinition[] definitions)
     {
         var options = new KeyBindingRegistrationOptions();
         options.Definitions.AddRange(definitions);
+        options.Reserved.AddRange(reserved);
 
         _service = new KeyBindingService(
             new KeyBindingRegistry(Options.Create(options)),
@@ -190,5 +193,35 @@ public class MtKeyBindingsEditorTests : BunitContext
         await cut.Find(".mf-keybinding-clear").ClickAsync(new MouseEventArgs());
 
         _service.GetBinding("save").ShouldBeNull();
+    }
+
+    [Fact(DisplayName = "Recording a key reserved in the action's scope leaves the action unchanged")]
+    public async Task Recording_reserved_key_in_scope_is_refused()
+    {
+        Configure(
+            [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
+            new KeyBindingDefinition(
+                "find-next", "Find next", null, "Editor", null, (_, _) => Task.CompletedTask, KeyBindingScope.Editor));
+
+        var cut = Render<MtKeyBindingsEditor>();
+        await cut.Find(".mf-keybinding-record").ClickAsync(new MouseEventArgs());
+        await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "KeyK", CtrlKey = true });
+
+        _service.GetBinding("find-next").ShouldBeNull();
+        cut.Markup.ShouldContain("reserved");
+    }
+
+    [Fact(DisplayName = "A key reserved only in the editor can still be assigned to a global action")]
+    public async Task Recording_key_reserved_in_another_scope_assigns()
+    {
+        Configure(
+            [new ReservedKeyBinding(KeyBindingScope.Editor, KeyBinding.CtrlOrCmd(JsKey.KeyK))],
+            Definition("palette", null));
+
+        var cut = Render<MtKeyBindingsEditor>();
+        await cut.Find(".mf-keybinding-record").ClickAsync(new MouseEventArgs());
+        await cut.Find(".mf-keybinding-recorder").KeyDownAsync(new KeyboardEventArgs { Code = "KeyK", CtrlKey = true });
+
+        _service.GetBinding("palette").ShouldBe(KeyBinding.CtrlOrCmd(JsKey.KeyK));
     }
 }
