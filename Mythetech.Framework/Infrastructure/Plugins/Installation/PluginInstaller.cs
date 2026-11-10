@@ -11,12 +11,12 @@ public sealed class PluginInstaller : IPluginInstaller
     private const string ZipExtension = ".zip";
     private const string DllExtension = ".dll";
 
-    private const string NoPluginInPackageMessage = "That package doesn't contain a plugin.";
+    private const string NoPluginInPackageMessage = "Couldn't load a plugin from that package.";
     private const string DownloadFailedMessage = "Couldn't download the plugin. Check your connection and try again.";
     private const string InvalidPackageMessage = "That download isn't a plugin package.";
     private const string DownloadsUnavailableMessage = "Plugin downloads aren't available in this app.";
     private const string InstallFailedMessage = "The plugin couldn't be installed.";
-    private const string NoPluginInFileMessage = "No plugin was found in that file.";
+    private const string NoPluginInFileMessage = "Couldn't load a plugin from that file.";
 
     private readonly PluginState _state;
     private readonly PluginLoader _loader;
@@ -83,7 +83,7 @@ public sealed class PluginInstaller : IPluginInstaller
 
             var plugins = _loader.LoadPluginsFromFolder(installFolder);
             if (plugins.Count == 0)
-                return Failed(NoPluginInPackageMessage);
+                return Failed(NothingLoadedMessage(pluginsDirectory, pluginKey));
 
             // The folder is created marked, so every failure before this point leaves it for the next startup to delete.
             File.Delete(Path.Combine(installFolder, PluginInstallLayout.RemovedMarkerFileName));
@@ -186,6 +186,18 @@ public sealed class PluginInstaller : IPluginInstaller
         {
             _logger.LogWarning(ex, "Could not mark plugin folder {Folder} for removal", folder);
         }
+    }
+
+    private string NothingLoadedMessage(string pluginsDirectory, string pluginKey)
+    {
+        var keyFolder = Path.Combine(Path.GetFullPath(pluginsDirectory), PluginInstallLayout.SanitizeFolderName(pluginKey));
+        var installed = _state.GetPlugin(pluginKey)
+            ?? _state.Plugins.FirstOrDefault(plugin =>
+                plugin.SourcePath is { Length: > 0 } sourcePath && PluginInstallLayout.IsInside(sourcePath, keyFolder));
+
+        return installed is null
+            ? NoPluginInPackageMessage
+            : $"Couldn't update {installed.Manifest.Name}. Version {installed.Manifest.Version} is still installed.";
     }
 
     private static string SuccessMessage(IReadOnlyList<PluginInfo> plugins, bool replacedAny)

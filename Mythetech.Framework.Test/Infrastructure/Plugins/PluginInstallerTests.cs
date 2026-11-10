@@ -3,6 +3,7 @@ using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mythetech.Framework.Infrastructure.Plugins;
 using Mythetech.Framework.Infrastructure.Plugins.Installation;
+using Mythetech.Framework.Infrastructure.Plugins.Local;
 using Mythetech.Framework.Test.Infrastructure.Plugins.TestPlugins;
 using NSubstitute;
 using Shouldly;
@@ -106,7 +107,7 @@ public class PluginInstallerTests : IDisposable
 
         result.Succeeded.ShouldBeFalse();
         result.Plugins.ShouldBeEmpty();
-        result.Message.ShouldBe("That package doesn't contain a plugin.");
+        result.Message.ShouldBe("Couldn't load a plugin from that package.");
         var installFolder = Directory.GetDirectories(Path.Combine(_pluginsDirectory, "Empty")).ShouldHaveSingleItem();
         IsMarked(installFolder).ShouldBeTrue();
     }
@@ -123,8 +124,25 @@ public class PluginInstallerTests : IDisposable
         var result = await _installer.InstallFromStreamAsync(broken, $"{name}.zip", "FailedUpgrade");
 
         result.Succeeded.ShouldBeFalse();
+        result.Message.ShouldBe($"Couldn't update {name}. Version 1.0.0 is still installed.");
         _state.GetPlugin("mythetech.test.failed-upgrade").ShouldBeSameAs(v1Plugin);
         IsMarked(PluginFolder(v1Plugin)).ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "InstallFromStreamAsync that fails an upgrade under the plugin's ID says which version is still installed")]
+    public async Task InstallFromStreamAsync_FailedUpgradeKeyedById_NamesInstalledVersion()
+    {
+        var name = UniqueName("FailedUpgradeById");
+        using var v1 = BuildPackage(name, "mythetech.test.failed-upgrade-by-id", new Version(1, 0, 0));
+        var first = await _installer.InstallFromStreamAsync(v1, $"{name}.zip", "mythetech.test.failed-upgrade-by-id");
+        var v1Plugin = first.Plugins.ShouldHaveSingleItem();
+        using var broken = ZipFiles(("readme.txt", "no plugin here"u8.ToArray()));
+
+        var result = await _installer.InstallFromStreamAsync(broken, $"{name}.zip", "mythetech.test.failed-upgrade-by-id");
+
+        result.Succeeded.ShouldBeFalse();
+        result.Message.ShouldBe($"Couldn't update {name}. Version 1.0.0 is still installed.");
+        _state.GetPlugin("mythetech.test.failed-upgrade-by-id").ShouldBeSameAs(v1Plugin);
     }
 
     [Fact(DisplayName = "InstallFromStreamAsync of something that isn't a zip reports an invalid package and marks the folder")]
@@ -211,6 +229,35 @@ public class PluginInstallerTests : IDisposable
         await storage.Received(1).DeletePluginDataAsync("mythetech.test.remove");
     }
 
+    [Fact(DisplayName = "RemovePluginAsync hands a local plugin to the local plugin service and keeps its data and folder")]
+    public async Task RemovePluginAsync_LocalPlugin_DelegatesToLocalPluginService()
+    {
+        var storage = Substitute.For<IPluginStorageFactory>();
+        _state.SetStorageFactory(storage);
+        var local = Substitute.For<ILocalPluginService>();
+        local.RemoveAsync("mythetech.test.local").Returns(true);
+        _state.SetLocalPluginService(local);
+        var folder = Path.Combine(_pluginsDirectory, "Local");
+        Directory.CreateDirectory(folder);
+        var manifest = Substitute.For<IPluginManifest>();
+        manifest.Id.Returns("mythetech.test.local");
+        manifest.Version.Returns(new Version(1, 0, 0));
+        await _state.RegisterPluginAsync(new PluginInfo
+        {
+            Manifest = manifest,
+            Assembly = typeof(PluginInstallerTests).Assembly,
+            SourcePath = Path.Combine(folder, "Local.dll"),
+            IsLocal = true
+        });
+
+        var removed = await _state.RemovePluginAsync("mythetech.test.local");
+
+        removed.ShouldBeTrue();
+        await local.Received(1).RemoveAsync("mythetech.test.local");
+        await storage.DidNotReceive().DeletePluginDataAsync(Arg.Any<string>());
+        IsMarked(folder).ShouldBeFalse();
+    }
+
     [Fact(DisplayName = "ImportFromFileAsync of the registered version replaces it without throwing")]
     public async Task ImportFromFileAsync_SameVersionAsRegistered_ReplacesWithoutThrowing()
     {
@@ -235,7 +282,7 @@ public class PluginInstallerTests : IDisposable
         var result = await _installer.ImportFromFileAsync(path);
 
         result.Succeeded.ShouldBeFalse();
-        result.Message.ShouldBe("No plugin was found in that file.");
+        result.Message.ShouldBe("Couldn't load a plugin from that file.");
     }
 
     [Fact(DisplayName = "InstallFromUrlAsync downloads the package and installs it")]

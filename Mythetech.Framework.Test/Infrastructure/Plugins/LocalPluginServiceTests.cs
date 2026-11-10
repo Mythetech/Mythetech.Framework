@@ -82,9 +82,21 @@ public class LocalPluginServiceTests : IAsyncDisposable
 
         result.Succeeded.ShouldBeFalse();
         result.Plugins.ShouldBeEmpty();
-        result.Message.ShouldBe("No plugin was found in that file.");
+        result.Message.ShouldBe("Couldn't load a plugin from that file.");
         service.Entries.ShouldBeEmpty();
         File.Exists(SavedPathsFile).ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "AddAsync after the service is disposed fails with fixed copy instead of throwing")]
+    public async Task AddAsync_AfterDispose_FailsWithoutThrowing()
+    {
+        var service = CreateService();
+        await service.DisposeAsync();
+
+        var result = await service.AddAsync(Path.Combine(_binFolder, "Any.dll"));
+
+        result.Succeeded.ShouldBeFalse();
+        result.Message.ShouldBe("Couldn't load a plugin from that file.");
     }
 
     [Fact(DisplayName = "AddAsync with the ID of an installed plugin registers the local build in its place, whatever its version")]

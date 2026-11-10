@@ -24,7 +24,7 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
     private const string CopiesFolderName = "mythetech-local-plugins";
     private const string NuGetPackagesVariable = "NUGET_PACKAGES";
     private const string UnavailableMessage = "Local plugins aren't available in this app.";
-    private const string NoPluginMessage = "No plugin was found in that file.";
+    private const string NoPluginMessage = "Couldn't load a plugin from that file.";
     private const int AppKeyLength = 12;
 
     // A build writes many files, so a reload waits until the watched folders have been quiet this long.
@@ -92,7 +92,8 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
     /// <inheritdoc />
     public async Task LoadSavedAsync()
     {
-        if (!IsAvailable || !_enabled)
+        // Enabled is checked inside the gate, so a concurrent SetEnabledAsync(true) isn't missed.
+        if (!IsAvailable)
             return;
 
         await _gate.WaitAsync(_disposalToken);
@@ -138,9 +139,13 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
         if (!IsAvailable)
             return Failed(UnavailableMessage);
 
-        await _gate.WaitAsync(_disposalToken);
+        var entered = false;
         try
         {
+            // Inside the try, so a wait cancelled by dispose reports a failure instead of throwing.
+            await _gate.WaitAsync(_disposalToken);
+            entered = true;
+
             var tracked = await LoadAndTrackAsync(Path.GetFullPath(dllPath));
             if (tracked is null)
                 return Failed(NoPluginMessage);
@@ -156,7 +161,8 @@ public sealed class LocalPluginService : ILocalPluginService, IDisposable, IAsyn
         }
         finally
         {
-            _gate.Release();
+            if (entered)
+                _gate.Release();
         }
     }
 

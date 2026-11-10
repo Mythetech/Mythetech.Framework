@@ -192,7 +192,7 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
-    /// Registers a plugin whatever its version, replacing any registration with the same ID.
+    /// Registers a plugin whatever its version, replacing any registration with the same ID at its place in the list.
     /// The replacement inherits the replaced plugin's enabled state.
     /// </summary>
     /// <returns>The replaced registration, or null when none existed</returns>
@@ -206,11 +206,14 @@ public class PluginState : IDisposable
             existing = GetPluginUnsafe(plugin.Manifest.Id);
             if (existing is not null)
             {
-                _plugins.Remove(existing);
                 plugin.IsEnabled = existing.IsEnabled;
+                _plugins[_plugins.IndexOf(existing)] = plugin;
+            }
+            else
+            {
+                _plugins.Add(plugin);
             }
 
-            _plugins.Add(plugin);
             RefreshPluginSnapshot();
         }
 
@@ -399,7 +402,8 @@ public class PluginState : IDisposable
     /// <summary>
     /// Remove a plugin by its ID.
     /// Cleans up persistent storage data, unloads the assembly, and marks the plugin's folder under the plugins
-    /// directory for deletion at the next startup.
+    /// directory for deletion at the next startup. A local plugin is instead handed to
+    /// <see cref="ILocalPluginService.RemoveAsync"/>, which stops tracking it and keeps its stored data.
     /// </summary>
     /// <returns>True if the plugin was removed, false if not found</returns>
     public async Task<bool> RemovePluginAsync(string pluginId)
@@ -409,6 +413,11 @@ public class PluginState : IDisposable
         {
             plugin = GetPluginUnsafe(pluginId);
             if (plugin is null) return false;
+        }
+
+        if (plugin.IsLocal && _localPluginService is not null)
+        {
+            return await _localPluginService.RemoveAsync(pluginId);
         }
 
         if (plugin.IsEnabled)

@@ -59,6 +59,20 @@ public class PluginStateRegistrationTests
         replaced.ShouldBeSameAs(first);
     }
 
+    [Fact(DisplayName = "ReplacePluginAsync keeps the replaced plugin's place in the list")]
+    public async Task ReplacePluginAsync_KeepsListOrder()
+    {
+        await _state.RegisterPluginAsync(CreatePlugin("a", new Version(1, 0, 0)));
+        await _state.RegisterPluginAsync(CreatePlugin("b", new Version(1, 0, 0)));
+        await _state.RegisterPluginAsync(CreatePlugin("c", new Version(1, 0, 0)));
+        var replacement = CreatePlugin("b", new Version(1, 1, 0));
+
+        await _state.ReplacePluginAsync(replacement);
+
+        _state.Plugins.Select(p => p.Manifest.Id).ShouldBe(["a", "b", "c"]);
+        _state.Plugins[1].ShouldBeSameAs(replacement);
+    }
+
     [Fact(DisplayName = "ReplacePluginAsync with no existing plugin registers and returns null")]
     public async Task ReplacePluginAsync_NoExisting_RegistersAndReturnsNull()
     {
