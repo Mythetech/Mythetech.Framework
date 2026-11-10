@@ -4,16 +4,18 @@
 
 ### Added
 
-- `IPluginInstaller`, which `AddPluginFramework` registers as scoped, installs and upgrades plugins. `InstallFromUrlAsync` downloads a package, `InstallFromStreamAsync` installs a zip or a bare DLL, and `ImportFromFileAsync` loads a DLL in place for the current session. Each returns a `PluginInstallResult` with `Succeeded`, the loaded `Plugins`, and a `Message` written for the user, such as `Updated {Name} to {Version}.` or `That download isn't a plugin package.`, never exception text
+- `IPluginInstaller`, which `AddPluginFramework` registers as scoped, installs and upgrades plugins. `InstallFromUrlAsync` downloads a package, `InstallFromStreamAsync` installs a zip or a bare DLL, and `ImportFromFileAsync` loads a DLL in place for the current session. Each returns a `PluginInstallResult` with `Succeeded`, the loaded `Plugins`, and a `Message` written for the user, such as `Updated {Name} to {Version}.`, `Couldn't update {Name}. Version {Version} is still installed.` when nothing in an upgrade loads, or `Couldn't load a plugin from that package.`, never exception text
   - `PluginManagementDialog`, `DefaultPluginUrlLoadDialog` and the import item in `StandardPluginMenu` install through it
 - Upgrading a plugin no longer needs a restart. Each install goes into a new `install-{timestamp}` folder under the plugin's folder, the new version replaces the loaded one in the running app, and the previous folder gets a `.removed` marker. At startup, marked folders and all but the newest `install-*` folder are deleted, and only the newest loads. `PluginInstallLayout` and `PluginPackageExtractor` hold the folder layout and the zip extraction, with its zip-slip guard
-  - A folder is marked while it's written and unmarked once its plugin loads, so an install interrupted by a crash or a bad package leaves the previous version in place
+  - A folder is marked while it's written and unmarked once its plugin loads, so an install interrupted by a crash or a bad package leaves the previous version in place. An unmarked install folder without a DLL is deleted, not loaded
   - Plugins installed before this layout, with their DLLs at the top of their folder, keep loading, and upgrading one marks the old folder for removal
-- `PluginState.ReplacePluginAsync` registers a plugin whatever its version, replacing any plugin with the same ID and keeping its enabled state. `UnregisterPluginAsync` removes a registration without touching its files or stored data. `GetPluginForComponent` finds the plugin that owns a menu or panel component type, and `ResolvePluginDirectory` returns the plugin directory or its default
+- `PluginState.ReplacePluginAsync` registers a plugin whatever its version, replacing any plugin with the same ID at its place in the list and keeping its enabled state. `UnregisterPluginAsync` removes a registration without touching its files or stored data. `GetPluginForComponent` finds the plugin that owns a menu or panel component type, and `ResolvePluginDirectory` returns the plugin directory or its default
 - Local plugins, for plugin development on desktop. With `PluginSettings.LocalPluginsEnabled` (**Enable Local Plugins**, in the Advanced group) on, the Installed tab of `PluginManagementDialog` offers **Add local plugin…**, which loads a plugin from its build output and reloads it in the running app on every rebuild
   - `ILocalPluginService` is the API. `AddDesktopServices` registers the desktop implementation through `AddLocalPluginService()`, and other hosts get one whose `IsAvailable` is `false`
   - The app loads a copy of the build output, kept per app under `mythetech-local-plugins` in the temp folder, so the build can still overwrite its files
   - A local plugin with the ID of an installed plugin runs in its place, and removing it loads the installed one back. Stored data is keyed by plugin ID, so it survives reloads
+  - Removing a local plugin through `PluginState.RemovePluginAsync`, as the Delete item in `StandardPluginMenu` does, stops tracking it and keeps its stored data, the same as `ILocalPluginService.RemoveAsync`
+  - A file that doesn't load shows `Couldn't load a plugin from that file.`
   - Paths are saved to `local-plugins.json` in the plugin directory and load again at startup while the setting is on
   - `AddLocalPluginButton` is the picker button on its own. It's the only part that needs `IFileOpenService`, so the dialog still renders in a host without one
   - `PluginInfo.IsLocal` is `true` for a plugin loaded this way, and the dialog shows a **Local** badge for it
@@ -22,14 +24,14 @@
   - On desktop, `DesktopPluginModuleLoader` reads the file and imports it from a Blob URL, so a module must be a single file: a module imported this way can't resolve relative `import` statements. Each call returns a new module instance, which is also how a reloaded local plugin gets its new code. `AddDesktopServices` registers it through `AddDesktopModuleLoader()`
   - Elsewhere, `WebPluginModuleLoader` imports `./_content/{assembly}/{path}`
   - The Framework's helper module, `js/plugin-modules.js`, is plain JavaScript rather than TypeScript, since the Framework has no TypeScript build
-- `IPluginManifest.IsDeprecated` and `RegistryPluginEntry.IsDeprecated` (`isDeprecated` in the registry JSON). A deprecated plugin is no longer listed in the Available tab, and an installed one shows a **Deprecated** badge. `RegistryPluginFilter.ShouldList` holds the rules for which registry entries are listed
+- `IPluginManifest.IsDeprecated` and `RegistryPluginEntry.IsDeprecated` (`isDeprecated` in the registry JSON). A deprecated plugin is no longer listed in the Available tab, and an installed plugin shows a **Deprecated** badge when its manifest or its registry entry is deprecated. `RegistryPluginFilter.ShouldList` holds the rules for which registry entries are listed
 - `PluginInfo.FrameworkVersion` is the `Mythetech.Framework` version a plugin was built against, read from its references. The plugin list shows it in a tooltip on the version, and `AboutPluginDialog` shows it in place of the minimum Framework version. A plugin built against a newer Framework than the app's still loads, with a warning in the log
 - `PluginMenuItemInvoker` runs a plugin menu item's `OnClick` and contains a failure: it logs the exception, shows `{Name} couldn't complete that action.`, and returns `false`. `AddPluginFramework` registers it, and a host that renders plugin menu items itself, such as in a native menu, can call it
 
 ### Changed
 
 - **Breaking:** `PluginContext.Services` is removed, so plugins no longer get the host's `IServiceProvider`. Use the services `PluginContext` exposes, or `[Inject]` in a plugin component
-- **Breaking:** each plugin folder loads into its own collectible `PluginLoadContext`, and a plugin uses the host's copy of every assembly the host has (the shared framework, `Mythetech.Framework`, MudBlazor and the app's own dependencies), whatever version the plugin references. Only the plugin's own dependencies load from its folder, so two plugins can carry different versions of one
+- **Breaking:** each plugin folder loads into its own collectible `PluginLoadContext`, and a plugin uses the host's copy of every assembly the host has (the shared framework, `Mythetech.Framework`, MudBlazor and the app's own dependencies), whatever version the plugin references. This includes single-file apps, whose bundled assemblies aren't listed as trusted platform assemblies. Only the plugin's own dependencies load from its folder, so two plugins can carry different versions of one
   - A folder with a `{name}.deps.json` resolves its dependencies through it, including native libraries under `runtimes/<rid>/`
   - Two plugins with the same assembly name in different folders both load, which is what lets an upgrade load beside the version it replaces
   - `PluginLoadContext`'s constructor takes the plugin's folder and an optional main assembly path, instead of the plugin DLL's path. `PluginLoader.LoadPluginsFromFolder` loads one folder
@@ -45,7 +47,6 @@
 - Plugin panels in `AppContextDrawer` render inside `PluginGuard`, so a panel that throws shows `Plugin Error` and the drawer's other panels keep rendering. `PluginGuard` also shows its error view on the first render that fails, which before needed another render of the host
 - A plugin menu item whose `OnClick` throws no longer escapes `PluginMenuHost` or `PluginMenuItemsRenderer`. They call `PluginMenuItemInvoker`
 - `AddMessageBus` no longer registers the plugin framework's consumers. In an app that never called `AddPluginFramework`, it registered `PluginSettingsConsumer`, so building the service provider with `ValidateOnBuild` failed for want of `PluginState`
-- `DesktopPluginAssetLoader` no longer keeps a reloaded plugin's assembly reachable, so its load context can unload
 
 ## [0.23.0] - 2026-11-09
 
