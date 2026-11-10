@@ -14,9 +14,14 @@
 }
 
 @* Hidden render of the actual PluginMenu component to get proper Blazor lifecycle *@
-<div style="display: none;">
-    <DynamicComponent Type="@MenuType" @ref="_dynamicComponent"/>
-</div>
+@if (_owner is not null)
+{
+    <PluginGuard PluginInfo="@_owner" Metadata="@_metadata">
+        <div style="display: none;">
+            <DynamicComponent Type="@MenuType" @ref="_dynamicComponent"/>
+        </div>
+    </PluginGuard>
+}
 
 @code {
     [Parameter, EditorRequired] public Type MenuType { get; set; } = default!;
@@ -25,9 +30,22 @@
     
     [Parameter, EditorRequired] public PluginContext PluginContext { get; set; } = default!;
 
+    [Inject] private PluginState PluginState { get; set; } = default!;
+
+    [Inject] private PluginMenuItemInvoker Invoker { get; set; } = default!;
+
     private DynamicComponent? _dynamicComponent;
+    private PluginInfo? _owner;
+    private PluginComponentMetadata _metadata = default!;
     private PluginMenu? _menu;
     private bool _initialized;
+
+    protected override void OnParametersSet()
+    {
+        _owner = PluginState.GetPluginForComponent(MenuType);
+        _metadata = _owner?.MenuComponentsMetadata.FirstOrDefault(m => m.ComponentType == MenuType)
+                    ?? new PluginComponentMetadata { ComponentType = MenuType, Title = MenuType.Name, Icon = MythetechFrameworkIcons.Extension };
+    }
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -41,7 +59,7 @@
 
     private async Task HandleItemClick(PluginMenuItem item)
     {
-        await item.OnClick(PluginContext);
+        await Invoker.InvokeAsync(item.OnClick, PluginContext, _owner?.Manifest.Name);
 
         if (_dynamicComponent?.Instance is PluginMenu menu)
         {

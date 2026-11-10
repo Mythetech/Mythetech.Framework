@@ -1,0 +1,64 @@
+@using Microsoft.Extensions.Logging
+@using MudBlazor
+@using Mythetech.Framework
+@using Mythetech.Framework.Components.Buttons
+@using Mythetech.Framework.Infrastructure.Files
+@using Mythetech.Framework.Infrastructure.Plugins.Local
+@inject ILocalPluginService LocalPlugins
+@inject IFileOpenService FileOpenService
+@inject ISnackbar Snackbar
+@inject ILogger<AddLocalPluginButton> Logger
+
+<MtButton Size="Size.Small"
+          Variant="Variant.Text"
+          Color="Color.Primary"
+          StartIcon="@MythetechFrameworkIcons.Add"
+          OnClick="HandleAddLocalPlugin"
+          Disabled="@_isAdding"
+          Text="Add local plugin…" />
+
+@code {
+    private const string FilePickerFailedMessage = "Couldn't open the file picker.";
+
+    /// <summary>
+    /// Raised after a local plugin is added.
+    /// </summary>
+    [Parameter]
+    public EventCallback PluginAdded { get; set; }
+
+    private bool _isAdding;
+
+    private async Task HandleAddLocalPlugin()
+    {
+        if (_isAdding) return;
+
+        _isAdding = true;
+        try
+        {
+            string[] files;
+            try
+            {
+                files = await FileOpenService.OpenFileAsync(
+                    title: "Select Plugin DLL",
+                    filters: [new FileFilter("Plugin DLLs", ["*.dll"])]);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Couldn't open the file picker for a local plugin");
+                Snackbar.Add(FilePickerFailedMessage, Severity.Error);
+                return;
+            }
+
+            if (files.Length == 0) return;
+
+            var result = await LocalPlugins.AddAsync(files[0]);
+            Snackbar.Add(result.Message, result.Succeeded ? Severity.Success : Severity.Error);
+            if (result.Succeeded)
+                await PluginAdded.InvokeAsync();
+        }
+        finally
+        {
+            _isAdding = false;
+        }
+    }
+}

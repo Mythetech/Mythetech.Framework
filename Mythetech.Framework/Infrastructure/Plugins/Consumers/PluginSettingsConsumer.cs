@@ -1,15 +1,17 @@
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
+using Mythetech.Framework.Infrastructure.Plugins.Local;
 using Mythetech.Framework.Infrastructure.Settings.Events;
 
 namespace Mythetech.Framework.Infrastructure.Plugins.Consumers;
 
 /// <summary>
-/// Handles plugin settings changes and applies them to PluginState.
+/// Handles plugin settings changes and applies them to PluginState and the local plugin service.
 /// </summary>
 public class PluginSettingsConsumer : IConsumer<SettingsModelChanged<PluginSettings>>
 {
     private readonly PluginState _pluginState;
+    private readonly ILocalPluginService _localPlugins;
     private readonly ILogger<PluginSettingsConsumer> _logger;
 
     /// <summary>
@@ -17,14 +19,16 @@ public class PluginSettingsConsumer : IConsumer<SettingsModelChanged<PluginSetti
     /// </summary>
     public PluginSettingsConsumer(
         PluginState pluginState,
+        ILocalPluginService localPlugins,
         ILogger<PluginSettingsConsumer> logger)
     {
         _pluginState = pluginState;
+        _localPlugins = localPlugins;
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public Task Consume(SettingsModelChanged<PluginSettings> message)
+    public async Task Consume(SettingsModelChanged<PluginSettings> message)
     {
         var settings = message.Settings;
 
@@ -36,6 +40,6 @@ public class PluginSettingsConsumer : IConsumer<SettingsModelChanged<PluginSetti
                 settings.PluginsActive ? "activated" : "deactivated");
         }
 
-        return Task.CompletedTask;
+        await _localPlugins.SetEnabledAsync(settings.LocalPluginsEnabled);
     }
 }

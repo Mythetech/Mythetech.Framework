@@ -1,10 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mythetech.Framework.Infrastructure.Files;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Consumers;
 using Mythetech.Framework.Infrastructure.Plugins.Events;
+using Mythetech.Framework.Infrastructure.Plugins.Installation;
+using Mythetech.Framework.Infrastructure.Plugins.Local;
 using Mythetech.Framework.Infrastructure.Settings;
 using Mythetech.Framework.Infrastructure.Settings.Events;
 
@@ -42,26 +45,34 @@ public static class PluginRegistrationExtensions
         services.AddSingleton<PluginState>();
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<PluginStateStore>();
+        services.AddSingleton<PluginMenuItemInvoker>();
         
         services.TryAddScoped<IPluginAssetLoader, JsPluginAssetLoader>();
+        services.TryAddScoped<PluginModuleInterop>();
+        services.TryAddScoped<IPluginModuleLoader, WebPluginModuleLoader>();
         services.TryAddScoped<IPluginRegistryService, PluginRegistryService>();
-        
+        // Scoped because WebAssembly hosts register HttpClient as scoped.
+        services.TryAddScoped<IPluginInstaller, PluginInstaller>();
+        // Desktop hosts replace it with a service that loads plugins from local build folders.
+        services.TryAddSingleton<ILocalPluginService, UnavailableLocalPluginService>();
+
         services.AddScoped<PluginContext>(sp =>
         {
             var messageBus = sp.GetRequiredService<IMessageBus>();
             var stateStore = sp.GetRequiredService<PluginStateStore>();
             var storageFactory = sp.GetService<IPluginStorageFactory>();
             var assetLoader = sp.GetService<IPluginAssetLoader>();
+            var moduleLoader = sp.GetService<IPluginModuleLoader>();
             var linkOpenService = sp.GetService<ILinkOpenService>();
             var fileSaveService = sp.GetService<IFileSaveService>();
             
             return new PluginContext
             {
                 MessageBus = messageBus,
-                Services = sp,
                 StateStore = stateStore,
                 StorageFactory = storageFactory,
                 AssetLoader = assetLoader,
+                ModuleLoader = moduleLoader,
                 LinkOpenService = linkOpenService,
                 FileSaveService = fileSaveService
             };
@@ -93,11 +104,13 @@ public static class PluginRegistrationExtensions
         var options = services.GetRequiredService<IOptions<PluginRegistryOptions>>();
 
         pluginState.SetStateProvider(stateProvider);
+        pluginState.SetLogger(services.GetService<ILogger<PluginState>>());
         pluginState.SetMessageBus(messageBus);
         pluginState.SetPluginLoader(pluginLoader);
         pluginState.SetStorageFactory(services.GetService<IPluginStorageFactory>());
         pluginState.SetStateStore(services.GetRequiredService<PluginStateStore>());
         pluginState.SetOptions(options.Value);
+        pluginState.SetLocalPluginService(services.GetService<ILocalPluginService>());
 
         return services;
     }

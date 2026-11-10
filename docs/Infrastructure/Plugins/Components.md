@@ -13,7 +13,7 @@ public abstract class PluginComponentBase : ComponentBase
 ```
 
 **Injected Services:**
-- `PluginContext` - Access to MessageBus, Services, StateStore
+- `PluginContext` - Access to MessageBus, StateStore, StorageFactory, LinkOpenService, FileSaveService, AssetLoader
 
 **Helper Methods:**
 
@@ -276,10 +276,7 @@ Implement `IConsumer<TMessage>`:
 ## Accessing Services
 
 ```csharp
-// From context
-var dialogService = Context.Services.GetRequiredService<IDialogService>();
-var httpClient = Context.Services.GetService<HttpClient>();
-
+// Plugins do not receive the host's service provider; use what PluginContext exposes.
 // Link opening (if available)
 Context.LinkOpenService?.OpenUrl("https://example.com");
 

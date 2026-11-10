@@ -1,5 +1,7 @@
 using System.Reflection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Mythetech.Framework.Infrastructure.Plugins;
+using Mythetech.Framework.Infrastructure.Plugins.Installation;
 using NSubstitute;
 using Shouldly;
 
@@ -171,8 +173,8 @@ public class PluginBoundaryTests
         await storageFactory.Received(1).DeletePluginDataAsync("plugin.remove");
     }
 
-    [Fact(DisplayName = "RemovePluginAsync deletes plugin directory from disk")]
-    public async Task RemovePlugin_DeletesPluginDirectory()
+    [Fact(DisplayName = "RemovePluginAsync marks the plugin directory, and the next startup deletes it")]
+    public async Task RemovePlugin_MarksPluginDirectoryForDeletionAtStartup()
     {
         var pluginsRoot = Path.Combine(Path.GetTempPath(), $"plugins_test_{Guid.NewGuid()}");
         var pluginDir = Path.Combine(pluginsRoot, "TestPlugin");
@@ -186,6 +188,8 @@ public class PluginBoundaryTests
 
         await _pluginState.RemovePluginAsync("plugin.remove");
 
+        File.Exists(Path.Combine(pluginDir, PluginInstallLayout.RemovedMarkerFileName)).ShouldBeTrue();
+        PluginInstallLayout.PrepareForLoad(pluginsRoot, NullLogger.Instance).ShouldBeEmpty();
         Directory.Exists(pluginDir).ShouldBeFalse();
 
         if (Directory.Exists(pluginsRoot))
@@ -207,6 +211,7 @@ public class PluginBoundaryTests
         await _pluginState.RemovePluginAsync("plugin.root");
 
         Directory.Exists(pluginsRoot).ShouldBeTrue();
+        File.Exists(Path.Combine(pluginsRoot, PluginInstallLayout.RemovedMarkerFileName)).ShouldBeFalse();
 
         Directory.Delete(pluginsRoot, true);
     }
@@ -228,6 +233,7 @@ public class PluginBoundaryTests
         await _pluginState.RemovePluginAsync("plugin.outside");
 
         Directory.Exists(outsideDir).ShouldBeTrue();
+        File.Exists(Path.Combine(outsideDir, PluginInstallLayout.RemovedMarkerFileName)).ShouldBeFalse();
 
         Directory.Delete(pluginsRoot, true);
         Directory.Delete(outsideDir, true);

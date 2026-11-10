@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Mythetech.Framework.Infrastructure.MessageBus;
 
 namespace Mythetech.Framework.Infrastructure.Plugins.Components;
@@ -17,6 +18,9 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     /// </summary>
     [Inject]
     protected PluginContext Context { get; set; } = default!;
+    
+    [Inject]
+    private PluginState PluginState { get; set; } = default!;
     
     /// <summary>
     /// Shortcut to the message bus for publishing messages
@@ -82,10 +86,29 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
         await AssetLoader.LoadScriptAsync(resolvedPath);
     }
     
+    /// <summary>
+    /// Imports a JavaScript file from this plugin as an ES module.
+    /// Single-file modules only: relative <c>import</c> statements inside the module are not resolved on desktop.
+    /// </summary>
+    /// <param name="modulePath">Path relative to the plugin's wwwroot, or <c>_content/{Package}/...</c></param>
+    /// <returns>The module reference. The caller owns it and must dispose it.</returns>
+    /// <exception cref="InvalidOperationException">The host has no module loader, or this plugin isn't registered.</exception>
+    protected async Task<IJSObjectReference> ImportModuleAsync(string modulePath)
+    {
+        if (Context.ModuleLoader == null)
+            throw new InvalidOperationException("The host does not support importing plugin modules.");
+
+        var assembly = GetType().Assembly;
+        var pluginInfo = PluginState.Plugins.FirstOrDefault(p => p.Assembly == assembly)
+            ?? throw new InvalidOperationException("This component's plugin is not registered.");
+
+        return await Context.ModuleLoader.ImportAsync(pluginInfo, modulePath);
+    }
+
     private string ResolvePath(string path)
     {
         // Absolute URLs - pass through
-        if (path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("//"))
+        if (PluginUrls.IsExternalUrl(path))
             return path;
         
         // Already a _content path (e.g., from a NuGet package) - pass through
@@ -138,8 +161,7 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
         var plugin = Context.StateStore.GetForPlugin<object>(GetType(), "__lookup__");
         
         // Look up plugin by assembly
-        var pluginState = Context.Services.GetService(typeof(PluginState)) as PluginState;
-        var pluginInfo = pluginState?.Plugins.FirstOrDefault(p => p.Assembly == assembly);
+        var pluginInfo = PluginState.Plugins.FirstOrDefault(p => p.Assembly == assembly);
         
         _pluginId = pluginInfo?.Manifest.Id;
         return _pluginId;
@@ -173,9 +195,8 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     {
         if (AssetLoader == null) return;
         
-        var pluginState = Context.Services.GetService(typeof(PluginState)) as PluginState;
         var assembly = GetType().Assembly;
-        var pluginInfo = pluginState?.Plugins.FirstOrDefault(p => p.Assembly == assembly);
+        var pluginInfo = PluginState.Plugins.FirstOrDefault(p => p.Assembly == assembly);
         
         if (pluginInfo != null)
         {

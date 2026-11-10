@@ -5,14 +5,15 @@
 @using Mythetech.Framework.Components.Switch
 @using Mythetech.Framework.Infrastructure.Environment
 @using Mythetech.Framework
-@using System.IO.Compression
-@using System.Net.Http
-@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@using Mythetech.Framework.Infrastructure.Plugins.Installation
+@using Mythetech.Framework.Infrastructure.Plugins.Local
 @inject IPluginRegistryService RegistryService
 @inject PluginState PluginState
-@inject PluginLoader PluginLoader
+@inject IPluginInstaller Installer
+@inject ILocalPluginService LocalPlugins
+@inject ILogger<PluginManagementDialog> Logger
 @inject ISnackbar Snackbar
-@inject IServiceProvider ServiceProvider
 @inject IDialogService DialogService
 @inject IRuntimeEnvironment RuntimeEnvironment
 @implements IDisposable
@@ -34,6 +35,12 @@
         {
             <SimpleTabs>
                 <Tab Name="@_installedTabName">
+                    @if (LocalPlugins.IsAvailable && LocalPlugins.IsEnabled)
+                    {
+                        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
+                            <AddLocalPluginButton PluginAdded="HandleLocalPluginAdded" />
+                        </MudStack>
+                    }
                     <MudTable Items="@PluginState.Plugins" Hover="true" Dense="true">
                         <HeaderContent>
                             <MudTh>Name</MudTh>
@@ -45,13 +52,34 @@
                         <RowTemplate>
                             <MudTd DataLabel="Name">@context.Manifest.Name</MudTd>
                             <MudTd DataLabel="Developer">@context.Manifest.Developer</MudTd>
-                            <MudTd DataLabel="Version">@context.Manifest.Version</MudTd>
+                            <MudTd DataLabel="Version">
+                                @if (context.FrameworkVersion is not null)
+                                {
+                                    <MudTooltip Text="@($"Built against Mythetech.Framework {context.FrameworkVersion}")">
+                                        <span>@context.Manifest.Version</span>
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    @context.Manifest.Version
+                                }
+                            </MudTd>
                             <MudTd DataLabel="Status">
                                 <MtBadge Size="Size.Small"
                                        Color="@(context.IsEnabled ? Color.Success : Color.Error)"
                                        Variant="Variant.Filled">
                                     @(context.IsEnabled ? "Enabled" : "Disabled")
                                 </MtBadge>
+                                @if (IsDeprecated(context))
+                                {
+                                    <MtBadge Size="Size.Small" Color="Color.Warning">Deprecated</MtBadge>
+                                }
+                                @if (context.IsLocal)
+                                {
+                                    <MudTooltip Text="@GetLocalPath(context)">
+                                        <MtBadge Size="Size.Small" Color="Color.Info">Local</MtBadge>
+                                    </MudTooltip>
+                                }
                             </MudTd>
                             <MudTd DataLabel="Actions">
                                 <MudMenu @ref="_rowMenus[context.Manifest.Id]" Icon="@MythetechFrameworkIcons.MoreVert" Size="Size.Small" Variant="Variant.Text">
@@ -59,10 +87,20 @@
                                                  OnClick="@(() => HandleTogglePlugin(context))">
                                         @(context.IsEnabled ? "Disable" : "Enable")
                                     </MudMenuItem>
-                                    <MudMenuItem Icon="@MythetechFrameworkIcons.Delete"
-                                                 OnClick="@(() => HandleDeletePlugin(context))">
-                                        Delete
-                                    </MudMenuItem>
+                                    @if (context.IsLocal)
+                                    {
+                                        <MudMenuItem Icon="@MythetechFrameworkIcons.Close"
+                                                     OnClick="@(() => HandleRemoveLocalPlugin(context))">
+                                            Remove
+                                        </MudMenuItem>
+                                    }
+                                    else
+                                    {
+                                        <MudMenuItem Icon="@MythetechFrameworkIcons.Delete"
+                                                     OnClick="@(() => HandleDeletePlugin(context))">
+                                            Delete
+                                        </MudMenuItem>
+                                    }
                                 </MudMenu>
                             </MudTd>
                         </RowTemplate>
@@ -105,7 +143,11 @@
                                                         installedPlugin.IsSameVersion(registryVersion);
                                         var supportsPlatform = context.SupportsPlatform(RuntimeEnvironment.Platform);
                                     }
-                                    @if (isInstalled)
+                                    @if (installedPlugin?.IsLocal == true)
+                                    {
+                                        <MtBadge Size="Size.Small" Color="Color.Info">Local</MtBadge>
+                                    }
+                                    else if (isInstalled)
                                     {
                                         <MtBadge Size="Size.Small" Color="Color.Info">Installed</MtBadge>
                                     }
@@ -154,6 +196,8 @@
 </MudDialog>
 
 @code {
+    private const string RegistryLoadFailedMessage = "Couldn't load the plugin registry. Check your connection and try again.";
+
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
 
@@ -176,20 +220,16 @@
     
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(() =>
-        {
-            UpdateAvailablePlugins();
-            UpdateTabNames();
-            StateHasChanged();
-        }).ContinueWith(t =>
-        {
-            if (t.IsFaulted && t.Exception != null)
-            {
-                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
-            }
-        }, TaskScheduler.Default);
+        InvokeAsync(RefreshFromState);
     }
-    
+
+    private void RefreshFromState()
+    {
+        UpdateAvailablePlugins();
+        UpdateTabNames();
+        StateHasChanged();
+    }
+
     private async Task LoadRegistryAsync()
     {
         _isLoadingRegistry = true;
@@ -201,7 +241,7 @@
             _registry = await RegistryService.FetchRegistryAsync();
             if (_registry is null)
             {
-                _errorMessage = "Failed to load plugin registry. Please check your connection and try again.";
+                _errorMessage = RegistryLoadFailedMessage;
             }
             else
             {
@@ -211,7 +251,8 @@
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Error loading registry: {ex.Message}";
+            Logger.LogError(ex, "Failed to load the plugin registry");
+            _errorMessage = RegistryLoadFailedMessage;
         }
         finally
         {
@@ -242,28 +283,19 @@
         }
 
         _availablePlugins = _registry.Plugins
-            .Where(registryPlugin =>
-            {
-                // Hide dev plugins in production
-                if (registryPlugin.IsDevPlugin && RuntimeEnvironment.IsProduction())
-                    return false;
-
-                // Hide preview plugins unless checkbox is checked
-                if (registryPlugin.IsPreview && !_showPreviewPlugins)
-                    return false;
-
-                var installedPlugin = PluginState.GetPlugin(registryPlugin.Id);
-                var registryVersion = PluginInfo.ParseVersion(registryPlugin.Version);
-
-                if (installedPlugin is null)
-                    return true;
-
-                if (registryVersion is null)
-                    return false;
-
-                return installedPlugin.IsOlderThan(registryVersion);
-            })
+            .Where(registryPlugin => RegistryPluginFilter.ShouldList(
+                registryPlugin,
+                InstalledForListing(registryPlugin.Id),
+                RuntimeEnvironment.IsProduction(),
+                _showPreviewPlugins))
             .ToList();
+    }
+
+    // A local plugin's entry is listed whatever its version, so it can show the Local badge.
+    private PluginInfo? InstalledForListing(string pluginId)
+    {
+        var installed = PluginState.GetPlugin(pluginId);
+        return installed is { IsLocal: true } ? null : installed;
     }
     
     
@@ -300,98 +332,40 @@
         }
     }
     
+    private void HandleLocalPluginAdded()
+    {
+        UpdateAvailablePlugins();
+        UpdateTabNames();
+    }
+
+    private async Task HandleRemoveLocalPlugin(PluginInfo plugin)
+    {
+        await LocalPlugins.RemoveAsync(plugin.Manifest.Id);
+        UpdateAvailablePlugins();
+        UpdateTabNames();
+    }
+
+    // The registry can deprecate a plugin after the installed version shipped, so either source counts.
+    private bool IsDeprecated(PluginInfo plugin) =>
+        plugin.Manifest.IsDeprecated
+        || _registry?.Plugins.Any(entry => entry.Id == plugin.Manifest.Id && entry.IsDeprecated) == true;
+
+    private string GetLocalPath(PluginInfo plugin) =>
+        LocalPlugins.Entries.FirstOrDefault(entry => entry.PluginId == plugin.Manifest.Id)?.DllPath ?? string.Empty;
+
     private async Task HandleInstallPlugin(RegistryPluginEntry registryPlugin)
     {
         if (_isInstalling) return;
-        
+
         _isInstalling = true;
         StateHasChanged();
-        
+
         try
         {
-            var pluginDir = GetPluginsDirectory();
-            var targetDir = Path.Combine(pluginDir, SanitizeFolderName(registryPlugin.Name));
-            
-            if (Directory.Exists(targetDir))
-            {
-                Directory.Delete(targetDir, recursive: true);
-            }
-            
-            Directory.CreateDirectory(targetDir);
-            
-            var httpClient = GetHttpClient();
-            if (httpClient is null)
-            {
-                Snackbar.Add("HttpClient not configured. Register IHttpClientFactory or HttpClient in DI.", Severity.Error);
-                Directory.Delete(targetDir, recursive: true);
-                return;
-            }
-            
-            var response = await httpClient.GetAsync(registryPlugin.Uri);
-            response.EnsureSuccessStatusCode();
-            
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
-            var fileName = GetFileNameFromUrl(registryPlugin.Uri);
-            var isZip = fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                        contentType.Contains("zip", StringComparison.OrdinalIgnoreCase) ||
-                        contentType.Contains("octet-stream", StringComparison.OrdinalIgnoreCase);
-            
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            
-            if (isZip || await IsZipStreamAsync(stream))
-            {
-                stream.Position = 0;
-                using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
-                ExtractZipFlattened(archive, targetDir);
-            }
-            else
-            {
-                stream.Position = 0;
-                var dllFileName = fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) 
-                    ? fileName 
-                    : $"{registryPlugin.Name}.dll";
-                    
-                var dllPath = Path.Combine(targetDir, dllFileName);
-                await using var fileStream = File.Create(dllPath);
-                await stream.CopyToAsync(fileStream);
-            }
-            
-            var loadedPlugins = PluginLoader.LoadPluginsFromDirectory(targetDir);
-            
-            if (loadedPlugins.Count == 0)
-            {
-                Directory.Delete(targetDir, recursive: true);
-                Snackbar.Add("No valid plugins found in the downloaded content.", Severity.Error);
-                return;
-            }
-            
-            foreach (var plugin in loadedPlugins)
-            {
-                try
-                {
-                    await PluginState.RegisterPluginAsync(plugin);
-                }
-                catch (InvalidOperationException)
-                {
-                    await PluginState.RegisterOrUpgradePluginAsync(plugin);
-                }
-            }
-            
-            Snackbar.Add($"Successfully installed {loadedPlugins.Count} plugin(s)", Severity.Success);
+            var result = await Installer.InstallFromUrlAsync(registryPlugin.Uri, registryPlugin.Id);
+            Snackbar.Add(result.Message, result.Succeeded ? Severity.Success : Severity.Error);
             UpdateAvailablePlugins();
             UpdateTabNames();
-        }
-        catch (HttpRequestException ex)
-        {
-            Snackbar.Add($"Failed to download: {ex.Message}", Severity.Error);
-        }
-        catch (InvalidDataException)
-        {
-            Snackbar.Add("The downloaded file is not a valid ZIP archive or DLL.", Severity.Error);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -399,122 +373,7 @@
             StateHasChanged();
         }
     }
-    
-    private string GetPluginsDirectory()
-    {
-        if (!string.IsNullOrEmpty(PluginState.PluginDirectory))
-            return PluginState.PluginDirectory;
-            
-        return Path.Combine(AppContext.BaseDirectory, PluginRegistrationExtensions.DefaultPluginDirectory);
-    }
-    
-    private HttpClient? GetHttpClient()
-    {
-        var factory = ServiceProvider.GetService<IHttpClientFactory>();
-        if (factory is not null)
-            return factory.CreateClient();
-            
-        return ServiceProvider.GetService<HttpClient>();
-    }
-    
-    private static string SanitizeFolderName(string name)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        return new string(name.Where(c => !invalidChars.Contains(c)).ToArray());
-    }
-    
-    private static string GetFileNameFromUrl(string url)
-    {
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            return Path.GetFileName(uri.LocalPath);
-        }
-        return string.Empty;
-    }
-    
-    private static async Task<bool> IsZipStreamAsync(Stream stream)
-    {
-        if (!stream.CanSeek) return false;
-        
-        var buffer = new byte[4];
-        var originalPosition = stream.Position;
-        
-        var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, 4));
-        stream.Position = originalPosition;
-        
-        if (bytesRead < 4) return false;
-        
-        return buffer[0] == 0x50 && buffer[1] == 0x4B && buffer[2] == 0x03 && buffer[3] == 0x04;
-    }
-    
-    private static void ExtractZipFlattened(ZipArchive archive, string targetDir)
-    {
-        var singleRootFolder = GetSingleRootFolder(archive);
-        var prefixToStrip = singleRootFolder is not null ? singleRootFolder + "/" : string.Empty;
-        
-        foreach (var entry in archive.Entries)
-        {
-            if (string.IsNullOrEmpty(entry.Name))
-                continue;
-            
-            var relativePath = entry.FullName;
-            
-            if (!string.IsNullOrEmpty(prefixToStrip) && relativePath.StartsWith(prefixToStrip, StringComparison.OrdinalIgnoreCase))
-            {
-                relativePath = relativePath[prefixToStrip.Length..];
-            }
-            
-            if (string.IsNullOrEmpty(relativePath))
-                continue;
-            
-            var destinationPath = Path.GetFullPath(Path.Combine(targetDir, relativePath));
 
-            if (!destinationPath.StartsWith(Path.GetFullPath(targetDir) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
-                throw new InvalidOperationException($"Zip entry '{entry.FullName}' would extract outside the target directory.");
-
-            var destinationDir = Path.GetDirectoryName(destinationPath);
-
-            if (!string.IsNullOrEmpty(destinationDir))
-            {
-                Directory.CreateDirectory(destinationDir);
-            }
-
-            entry.ExtractToFile(destinationPath, overwrite: true);
-        }
-    }
-    
-    private static string? GetSingleRootFolder(ZipArchive archive)
-    {
-        string? rootFolder = null;
-        
-        foreach (var entry in archive.Entries)
-        {
-            var parts = entry.FullName.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 0)
-                continue;
-                
-            var topLevel = parts[0];
-            
-            if (rootFolder is null)
-            {
-                rootFolder = topLevel;
-            }
-            else if (!rootFolder.Equals(topLevel, StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-        }
-        
-        if (rootFolder is null)
-            return null;
-        
-        var hasFilesAtRoot = archive.Entries.Any(e => 
-            !string.IsNullOrEmpty(e.Name) && 
-            !e.FullName.Contains('/'));
-        
-        return hasFilesAtRoot ? null : rootFolder;
-    }
-    
     private string GetPlatformNotSupportedMessage(RegistryPluginEntry plugin)
     {
         var supported = plugin.ParsedPlatforms;

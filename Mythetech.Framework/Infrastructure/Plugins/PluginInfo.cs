@@ -49,9 +49,19 @@ public class PluginInfo
     public IReadOnlyList<PluginComponentMetadata> ContextPanelComponentsMetadata { get; init; } = [];
     
     /// <summary>
+    /// The Mythetech.Framework version the plugin assembly references, when known
+    /// </summary>
+    public Version? FrameworkVersion { get; init; }
+
+    /// <summary>
     /// Path to the plugin DLL if loaded from disk
     /// </summary>
     public string? SourcePath { get; init; }
+
+    /// <summary>
+    /// Whether the plugin was loaded from a local build output folder rather than installed
+    /// </summary>
+    public bool IsLocal { get; init; }
 
     /// <summary>
     /// The AssemblyLoadContext used to load this plugin.

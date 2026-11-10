@@ -63,6 +63,12 @@ public class RegistryPluginEntry
     public bool IsPreview { get; set; }
 
     /// <summary>
+    /// If true, this plugin is deprecated and is not offered for install.
+    /// </summary>
+    [JsonPropertyName("isDeprecated")]
+    public bool IsDeprecated { get; set; }
+
+    /// <summary>
     /// Gets the parsed Platform values from SupportedPlatforms.
     /// Returns null if all platforms are supported.
     /// </summary>

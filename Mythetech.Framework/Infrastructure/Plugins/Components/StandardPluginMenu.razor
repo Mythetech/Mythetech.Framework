@@ -4,8 +4,12 @@
 @using Mythetech.Framework.Infrastructure.Guards
 @using Mythetech.Framework.Components.Buttons
 @using Mythetech.Framework
+@using Mythetech.Framework.Infrastructure.Commands
+@using Mythetech.Framework.Infrastructure.MessageBus
+@using Mythetech.Framework.Infrastructure.Plugins.Installation
 @inject PluginState PluginState
-@inject PluginLoader PluginLoader
+@inject IPluginInstaller Installer
+@inject IMessageBus MessageBus
 @inject IFileOpenService FileOpenService
 @inject IDialogService DialogService
 @inject PluginContext PluginContext
@@ -183,10 +187,10 @@
 
         foreach (var dllPath in files)
         {
-            var pluginInfo = PluginLoader.LoadPlugin(dllPath);
-            if (pluginInfo is not null)
+            var result = await Installer.ImportFromFileAsync(dllPath);
+            if (!result.Succeeded)
             {
-                await PluginState.RegisterPluginAsync(pluginInfo);
+                await MessageBus.PublishAsync(new AddNotification(result.Message, Severity.Error));
             }
         }
     }

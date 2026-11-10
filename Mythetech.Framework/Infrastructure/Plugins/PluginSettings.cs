@@ -51,4 +51,14 @@ public class PluginSettings : SettingsBase
         Group = "Advanced",
         Order = 100)]
     public string CustomPluginDirectory { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether plugins can be loaded from local build output folders and reloaded when a rebuild changes them.
+    /// </summary>
+    [Setting(
+        Label = "Enable Local Plugins",
+        Description = "Load plugins from local build folders and reload them when they change. For plugin development.",
+        Group = "Advanced",
+        Order = 110)]
+    public bool LocalPluginsEnabled { get; set; }
 }

@@ -6,7 +6,7 @@
 @inject PluginState PluginState
 @implements IDisposable
 
-<ErrorBoundary @ref="_errorBoundary">
+<ErrorBoundary @key="_boundaryGeneration" @ref="_errorBoundary">
     <ChildContent>
         @if (IsPluginDeleted)
         {
@@ -89,6 +89,7 @@
 
 @code {
     private ErrorBoundary? _errorBoundary;
+    private int _boundaryGeneration;
     
     /// <summary>
     /// The plugin information for the plugin being guarded
@@ -138,35 +139,21 @@
         PluginState.StateChanged += OnStateChanged;
     }
     
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender && _errorBoundary is not null)
-        {
-            _errorBoundary.Recover();
-        }
-    }
-    
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InvokeAsync(() =>
-        {
-            StateHasChanged();
-            if (_errorBoundary is not null)
-            {
-                _errorBoundary.Recover();
-            }
-        }).ContinueWith(t =>
-        {
-            if (t.IsFaulted && t.Exception != null)
-            {
-                Console.Error.WriteLine($"Error in OnStateChanged: {t.Exception}");
-            }
-        }, TaskScheduler.Default);
+        InvokeAsync(RefreshAfterStateChange);
     }
 
-    private void RetryRendering()
+    private void RefreshAfterStateChange()
     {
         _errorBoundary?.Recover();
+        StateHasChanged();
+    }
+
+    // A new boundary instead of Recover, since the click also re-renders this guard in the same batch.
+    private void RetryRendering()
+    {
+        _boundaryGeneration++;
     }
 
     public void Dispose()

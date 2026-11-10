@@ -154,6 +154,20 @@ public class PluginGuardTests : BunitContext
         cut.Markup.ShouldContain("Test Component");
     }
 
+    [Fact(DisplayName = "Shows the error UI on the first render when the child throws, without another render")]
+    public async Task PluginGuard_ChildThrowsOnFirstRender_ShowsErrorWithoutExtraRender()
+    {
+        var pluginInfo = CreatePluginInfo(enabled: true);
+        await _pluginState.RegisterPluginAsync(pluginInfo);
+
+        var cut = Render<PluginGuard>(parameters => parameters
+            .Add(p => p.PluginInfo, pluginInfo)
+            .Add(p => p.Metadata, CreateMetadata())
+            .AddChildContent<ThrowingComponent>());
+
+        cut.FindAll("h6").Any(h => h.TextContent.Contains("Plugin Error")).ShouldBeTrue();
+    }
+
     [Fact(DisplayName = "Shows error details when ShowErrorDetails is true")]
     public async Task Shows_ErrorDetails_When_ShowErrorDetails_True()
     {

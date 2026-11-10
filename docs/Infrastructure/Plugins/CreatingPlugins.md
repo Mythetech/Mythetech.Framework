@@ -20,6 +20,7 @@ MyPlugin/
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
 
   <ItemGroup>
@@ -46,7 +47,6 @@ public class MyPluginManifest : IPluginManifest
     // Optional properties
     public string? Icon => Icons.Material.Filled.Extension;
     public string? ProjectUrl => "https://github.com/example/myplugin";
-    public Version? MinimumFrameworkVersion => new(1, 0, 0);
     public bool IsPreview => false;
     public bool IsDevPlugin => false;
 
@@ -73,11 +73,12 @@ public class MyPluginManifest : IPluginManifest
 | `Description` | Yes | Brief description |
 | `Icon` | No | MudBlazor icon path |
 | `ProjectUrl` | No | Link to project/documentation |
-| `MinimumFrameworkVersion` | No | Minimum compatible framework version |
+| `MinimumFrameworkVersion` | No | Ignored. The host reads the Mythetech.Framework version the plugin references |
 | `SupportedPlatforms` | No | Array of supported platforms (null = all) |
 | `Assets` | No | CSS/JS assets to load |
 | `IsDevPlugin` | No | Only show in dev mode |
 | `IsPreview` | No | Mark as preview/beta |
+| `IsDeprecated` | No | Hide from the registry list |
 
 ## Step 3: Add UI Components
 
@@ -114,9 +115,8 @@ For toolbar/menu integration:
             Text = "Show Info",
             OnClick = async context =>
             {
-                // Access services via context
-                var dialogService = context.Services.GetRequiredService<IDialogService>();
-                await dialogService.ShowMessageBox("Info", "Hello from plugin!");
+                // Use the services PluginContext exposes
+                await context.PublishAsync(new MyPluginMessage("Info requested"));
             }
         }
     ];
@@ -225,6 +225,66 @@ await PublishAsync(new MyPluginMessage("Something happened"));
 
 1. Add project reference in host
 2. Load via `UsePlugin(typeof(MyPluginManifest).Assembly)`
+
+## JavaScript Modules
+
+To use a JavaScript file as an ES module, import it from a component. The path is relative to the plugin's `wwwroot`, or a `_content/{Package}/...` path. The module reference is yours to dispose.
+
+```razor
+@inherits PluginComponentBase
+@implements IAsyncDisposable
+
+@code {
+    private IJSObjectReference? _module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The base class loads the plugin's assets on the first render.
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+            _module = await ImportModuleAsync("js/chart.js");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Blazor calls only DisposeAsync on a component that has both, so run the base class's Dispose too.
+        Dispose();
+
+        if (_module is null)
+            return;
+
+        try
+        {
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The WebView is already gone, and the module with it.
+        }
+    }
+}
+```
+
+Modules must be a single file. On desktop a module is imported from a Blob URL, which can't resolve relative `import` statements.
+
+On desktop, each `ImportModuleAsync` call returns its own module instance, even for the same path. On web, the browser shares one instance per URL. Keep module state per component, and don't rely on another component's import having set it up.
+
+## Local Plugins
+
+On desktop, an app can load a plugin from its build output and reload it on every rebuild, for plugin development.
+
+1. In the app's settings, under **Plugins**, turn on **Enable Local Plugins** (in the Advanced group).
+2. Open the plugin management dialog. The **Installed** tab now offers **Add local plugin…**.
+3. Pick the plugin DLL in its build output, for example `bin/Debug/net11.0/MyPlugin.dll`.
+
+The plugin is listed as **Local**, with its path in a tooltip. Each rebuild reloads it in the running app, and it keeps its stored data, which is keyed by plugin ID. Edits in the content roots of the build's `MyPlugin.staticwebassets.runtime.json`, such as the project's `wwwroot`, reload it too.
+
+- The app loads a copy of the build output, so the build can still overwrite its files.
+- A local plugin with the ID of an installed plugin runs in its place.
+- **Remove** stops tracking the plugin and unregisters it, loading back any installed plugin it replaced. The build output and the plugin's data are kept.
+- The path is saved, so the plugin loads again at the next startup while the setting is on.
+- Turning the setting off stops reloading. Loaded local plugins stay until the app restarts.
 
 ## Complete Example
 

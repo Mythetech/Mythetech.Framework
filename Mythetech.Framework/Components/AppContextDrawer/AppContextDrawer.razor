@@ -2,6 +2,7 @@
 @using Mythetech.Framework
 @using Microsoft.JSInterop
 @using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Infrastructure.Plugins.Components
 @using Mythetech.Framework.Infrastructure.MessageBus
 @using Mythetech.Framework.Components.AppContextDrawer.Commands
 @using Mythetech.Framework.Utilities
@@ -39,7 +40,12 @@
                                   Title="@panelMeta.Title"
                                   Order="@panelMeta.Order">
                     <PanelContent>
-                        <DynamicComponent Type="@panelMeta.ComponentType" />
+                        @if (PluginState.GetPluginForComponent(panelMeta.ComponentType) is { } owner)
+                        {
+                            <PluginGuard @key="pluginPanelId" PluginInfo="@owner" Metadata="@panelMeta">
+                                <DynamicComponent Type="@panelMeta.ComponentType" />
+                            </PluginGuard>
+                        }
                     </PanelContent>
                 </ContextPanelItem>
             }
@@ -72,7 +78,7 @@
                                            OnClick="ClosePanel" />
                         </MudTooltip>
                     </MudStack>
-                    @_activeItem.PanelContent
+                    @RenderActivePanelContent(_activeItem)
                 }
                 else if (EmptyContent != null)
                 {
@@ -358,6 +364,14 @@
             // JS interop may fail during prerendering
         }
     }
+
+    private static RenderFragment RenderActivePanelContent(ContextPanelItem item) => builder =>
+    {
+        builder.OpenComponent<ActivePanelContent>(0);
+        builder.SetKey(item.Id);
+        builder.AddComponentParameter(1, nameof(ActivePanelContent.ChildContent), item.PanelContent);
+        builder.CloseComponent();
+    };
 
     /// <summary>
     /// Finds the panel that has this id now. The id an item registered with is no guide: a loop

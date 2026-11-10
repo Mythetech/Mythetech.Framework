@@ -15,14 +15,15 @@ namespace Mythetech.Framework.Desktop;
 public class DesktopPluginAssetLoader : IPluginAssetLoader
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly PluginState _pluginState;
+    private readonly PluginState? _pluginState;
     private readonly ILogger<DesktopPluginAssetLoader> _logger;
     private readonly ConcurrentDictionary<string, bool> _loadedAssets = new();
+    private readonly ConcurrentDictionary<string, LoadedPlugin> _loadedPlugins = new();
 
     public DesktopPluginAssetLoader(
         IJSRuntime jsRuntime, 
-        PluginState pluginState,
-        ILogger<DesktopPluginAssetLoader> logger)
+        ILogger<DesktopPluginAssetLoader> logger,
+        PluginState? pluginState = null)
     {
         _jsRuntime = jsRuntime;
         _pluginState = pluginState;
@@ -36,7 +37,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             return;
 
         // For external URLs, use standard link tag
-        if (IsExternalUrl(href))
+        if (PluginUrls.IsExternalUrl(href))
         {
             await LoadStylesheetViaLinkAsync(href, integrity, crossOrigin);
             return;
@@ -61,7 +62,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             return;
 
         // For external URLs, use standard script tag
-        if (IsExternalUrl(src))
+        if (PluginUrls.IsExternalUrl(src))
         {
             await LoadScriptViaSrcAsync(src, integrity, crossOrigin);
             return;
@@ -82,13 +83,29 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
     /// <inheritdoc />
     public async Task LoadPluginAssetsAsync(PluginInfo pluginInfo)
     {
+        var pluginId = pluginInfo.Manifest.Id;
+        if (_loadedPlugins.TryGetValue(pluginId, out var previous)
+            && !(previous.Instance.TryGetTarget(out var target) && ReferenceEquals(target, pluginInfo)))
+        {
+            foreach (var path in previous.StylesheetPaths)
+                await UnloadStylesheetAsync(path);
+            foreach (var path in previous.AssetPaths)
+                _loadedAssets.TryRemove(path, out _);
+        }
+
+        var assets = pluginInfo.Manifest.Assets;
+        _loadedPlugins[pluginId] = new LoadedPlugin(
+            new WeakReference<PluginInfo>(pluginInfo),
+            assets.Where(a => a.Type == PluginAssetType.Css).Select(a => a.Path).ToArray(),
+            assets.Select(a => a.Path).ToArray());
+
         foreach (var asset in pluginInfo.Manifest.Assets)
         {
             // Every plugin component loads its plugin's assets on first render, so most calls find them loaded.
             if (_loadedAssets.ContainsKey(asset.Path))
                 continue;
 
-            var resolvedPath = ResolveAssetToFilePath(pluginInfo, asset.Path);
+            var resolvedPath = PluginAssetPathResolver.Resolve(pluginInfo, asset.Path, _logger);
             
             _logger.LogDebug("Loading plugin asset: {OriginalPath} -> {ResolvedPath}", 
                 asset.Path, resolvedPath ?? "not found");
@@ -101,7 +118,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                         var content = await File.ReadAllTextAsync(resolvedPath);
                         await InjectInlineStyleAsync(asset.Path, content);
                     }
-                    else if (IsExternalUrl(asset.Path))
+                    else if (PluginUrls.IsExternalUrl(asset.Path))
                     {
                         await LoadStylesheetViaLinkAsync(asset.Path, asset.Integrity, asset.CrossOrigin);
                     }
@@ -117,7 +134,7 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
                         var content = await File.ReadAllTextAsync(resolvedPath);
                         await InjectInlineScriptAsync(asset.Path, content);
                     }
-                    else if (IsExternalUrl(asset.Path))
+                    else if (PluginUrls.IsExternalUrl(asset.Path))
                     {
                         await LoadScriptViaSrcAsync(asset.Path, asset.Integrity, asset.CrossOrigin);
                     }
@@ -324,68 +341,12 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
             _loadedAssets[src] = true;
     }
 
-    private string? ResolveAssetToFilePath(PluginInfo pluginInfo, string assetPath)
-    {
-        // External URLs can't be resolved to files
-        if (IsExternalUrl(assetPath))
-            return null;
-
-        var pluginDir = Path.GetDirectoryName(pluginInfo.SourcePath);
-        if (pluginDir == null) return null;
-
-        // Case 1: _content/{PackageName}/path - this is how RCL assets are referenced
-        if (assetPath.StartsWith("/_content/") || assetPath.StartsWith("_content/"))
-        {
-            var contentPath = assetPath.TrimStart('/');
-            
-            // Try: {pluginDir}/wwwroot/_content/{PackageName}/{path}
-            var wwwrootContentPath = Path.Combine(pluginDir, "wwwroot", contentPath);
-            if (File.Exists(wwwrootContentPath))
-                return wwwrootContentPath;
-            
-            // Try: {pluginDir}/_content/{PackageName}/{path}
-            var directContentPath = Path.Combine(pluginDir, contentPath);
-            if (File.Exists(directContentPath))
-                return directContentPath;
-            
-            // Parse the path to get package name and relative path
-            var parts = contentPath.Split('/', 3);
-            if (parts.Length >= 3)
-            {
-                var relativePath = parts[2];
-                
-                // Try: {pluginDir}/wwwroot/{relativePath}
-                var wwwrootOnly = Path.Combine(pluginDir, "wwwroot", relativePath);
-                if (File.Exists(wwwrootOnly))
-                    return wwwrootOnly;
-                
-                // Try: {pluginDir}/{relativePath}
-                var directPath = Path.Combine(pluginDir, relativePath);
-                if (File.Exists(directPath))
-                    return directPath;
-            }
-        }
-        
-        // Case 2: Relative path - look in plugin's wwwroot
-        var wwwrootPath = Path.Combine(pluginDir, "wwwroot", assetPath);
-        if (File.Exists(wwwrootPath))
-            return wwwrootPath;
-        
-        // Case 3: Try direct path from plugin directory
-        var directFromPlugin = Path.Combine(pluginDir, assetPath);
-        if (File.Exists(directFromPlugin))
-            return directFromPlugin;
-
-        _logger.LogWarning("Asset not found: {AssetPath} (plugin dir: {PluginDir})", assetPath, pluginDir);
-        return null;
-    }
-
     private async Task<string?> TryReadAssetContentAsync(string path)
     {
         // Try to find which plugin this asset belongs to
-        foreach (var plugin in _pluginState.Plugins)
+        foreach (var plugin in _pluginState?.Plugins ?? [])
         {
-            var resolved = ResolveAssetToFilePath(plugin, path);
+            var resolved = PluginAssetPathResolver.Resolve(plugin, path, _logger);
             if (resolved != null && File.Exists(resolved))
             {
                 return await File.ReadAllTextAsync(resolved);
@@ -394,8 +355,8 @@ public class DesktopPluginAssetLoader : IPluginAssetLoader
         return null;
     }
 
-    private static bool IsExternalUrl(string path) =>
-        path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("//");
+    // Weak so a reloaded plugin's assembly isn't kept reachable by the loader.
+    private sealed record LoadedPlugin(WeakReference<PluginInfo> Instance, string[] StylesheetPaths, string[] AssetPaths);
 
     private static string GetAssetId(string path) =>
         "plugin-asset-" + path.GetHashCode().ToString("x");

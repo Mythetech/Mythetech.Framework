@@ -43,8 +43,9 @@ public interface IPluginManifest
     string? ProjectUrl => null;
     
     /// <summary>
-    /// Optional minimum framework version required
+    /// Ignored; the host reads the Mythetech.Framework version the plugin references
     /// </summary>
+    [Obsolete("Ignored. The host reads the Mythetech.Framework version the plugin references.")]
     Version? MinimumFrameworkVersion => null;
     
     /// <summary>
@@ -67,5 +68,9 @@ public interface IPluginManifest
     /// If true, this plugin is a preview and only shown when the user opts in.
     /// </summary>
     bool IsPreview => false;
-}
 
+    /// <summary>
+    /// If true, this plugin is deprecated and is no longer offered in the registry list.
+    /// </summary>
+    bool IsDeprecated => false;
+}

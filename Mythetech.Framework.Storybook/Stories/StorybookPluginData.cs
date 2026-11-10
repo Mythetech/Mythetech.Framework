@@ -75,7 +75,6 @@ public static class StorybookPluginData
         public required string Description { get; init; }
         public string? Icon => MythetechFrameworkIcons.Extension;
         public string? ProjectUrl => "https://github.com/mythetech/Mythetech.Framework";
-        public Version? MinimumFrameworkVersion => new Version(10, 0, 0);
         public PluginAsset[] Assets => [];
     }
 }

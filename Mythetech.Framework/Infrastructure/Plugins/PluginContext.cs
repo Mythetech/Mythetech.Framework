@@ -15,11 +15,6 @@ public class PluginContext
     public required IMessageBus MessageBus { get; init; }
     
     /// <summary>
-    /// Service provider for resolving additional services
-    /// </summary>
-    public required IServiceProvider Services { get; init; }
-    
-    /// <summary>
     /// Shared state storage for plugins (in-memory, not persistent)
     /// </summary>
     public required PluginStateStore StateStore { get; init; }
@@ -44,6 +39,11 @@ public class PluginContext
     /// Asset loader for loading CSS/JS at runtime
     /// </summary>
     public IPluginAssetLoader? AssetLoader { get; init; }
+    
+    /// <summary>
+    /// Module loader for importing plugin JavaScript files as ES modules
+    /// </summary>
+    public IPluginModuleLoader? ModuleLoader { get; init; }
     
     /// <summary>
     /// Information about the current plugin (set per-component)

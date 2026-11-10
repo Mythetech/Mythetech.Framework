@@ -3,6 +3,8 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Mythetech.Framework.Infrastructure.MessageBus;
 using Mythetech.Framework.Infrastructure.Plugins.Events;
+using Mythetech.Framework.Infrastructure.Plugins.Installation;
+using Mythetech.Framework.Infrastructure.Plugins.Local;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -23,6 +25,7 @@ public class PluginState : IDisposable
     private ILogger<PluginState>? _logger;
     private PluginLoader? _pluginLoader;
     private PluginRegistryOptions? _options;
+    private ILocalPluginService? _localPluginService;
     private bool _disposed;
     private bool _pluginsActive = true;
     private bool _pluginsLoaded;
@@ -189,6 +192,77 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Registers a plugin whatever its version, replacing any registration with the same ID at its place in the list.
+    /// The replacement inherits the replaced plugin's enabled state.
+    /// </summary>
+    /// <returns>The replaced registration, or null when none existed</returns>
+    public async Task<PluginInfo?> ReplacePluginAsync(PluginInfo plugin)
+    {
+        ArgumentNullException.ThrowIfNull(plugin);
+
+        PluginInfo? existing;
+        lock (_pluginsLock)
+        {
+            existing = GetPluginUnsafe(plugin.Manifest.Id);
+            if (existing is not null)
+            {
+                plugin.IsEnabled = existing.IsEnabled;
+                _plugins[_plugins.IndexOf(existing)] = plugin;
+            }
+            else
+            {
+                _plugins.Add(plugin);
+            }
+
+            RefreshPluginSnapshot();
+        }
+
+        NotifyStateChanged();
+        await PublishPluginLoadedAsync(plugin);
+        return existing;
+    }
+
+    /// <summary>
+    /// Removes a plugin's registration only. Persistent storage, files and the persisted enabled state are untouched.
+    /// </summary>
+    /// <returns>The removed registration, or null when none existed</returns>
+    public Task<PluginInfo?> UnregisterPluginAsync(string pluginId)
+    {
+        PluginInfo? existing;
+        lock (_pluginsLock)
+        {
+            existing = GetPluginUnsafe(pluginId);
+            if (existing is not null)
+            {
+                _plugins.Remove(existing);
+                RefreshPluginSnapshot();
+            }
+        }
+
+        if (existing is not null)
+            NotifyStateChanged();
+
+        return Task.FromResult(existing);
+    }
+
+    /// <summary>
+    /// Finds the registered plugin that declares the given menu or context panel component type.
+    /// </summary>
+    public PluginInfo? GetPluginForComponent(Type componentType)
+    {
+        ArgumentNullException.ThrowIfNull(componentType);
+
+        return _pluginSnapshot.FirstOrDefault(p =>
+            p.MenuComponents.Contains(componentType) || p.ContextPanelComponents.Contains(componentType));
+    }
+
+    /// <summary>
+    /// The plugin directory in use: the one plugins were loaded from, or the default for this app.
+    /// </summary>
+    public string ResolvePluginDirectory()
+        => PluginDirectory ?? Path.GetFullPath(GetDefaultPluginDirectory());
+
+    /// <summary>
     /// Enable a plugin by its ID.
     /// </summary>
     /// <returns>True if the plugin was enabled, false if cancelled or not found</returns>
@@ -327,7 +401,9 @@ public class PluginState : IDisposable
 
     /// <summary>
     /// Remove a plugin by its ID.
-    /// Cleans up persistent storage data, unloads the assembly, and deletes plugin files from disk.
+    /// Cleans up persistent storage data, unloads the assembly, and marks the plugin's folder under the plugins
+    /// directory for deletion at the next startup. A local plugin is instead handed to
+    /// <see cref="ILocalPluginService.RemoveAsync"/>, which stops tracking it and keeps its stored data.
     /// </summary>
     /// <returns>True if the plugin was removed, false if not found</returns>
     public async Task<bool> RemovePluginAsync(string pluginId)
@@ -337,6 +413,11 @@ public class PluginState : IDisposable
         {
             plugin = GetPluginUnsafe(pluginId);
             if (plugin is null) return false;
+        }
+
+        if (plugin.IsLocal && _localPluginService is not null)
+        {
+            return await _localPluginService.RemoveAsync(pluginId);
         }
 
         if (plugin.IsEnabled)
@@ -378,45 +459,33 @@ public class PluginState : IDisposable
             }
         }
 
-        DeletePluginFiles(plugin);
+        MarkPluginFolderForRemoval(plugin);
         NotifyStateChanged();
 
         return true;
     }
 
-    private void DeletePluginFiles(PluginInfo plugin)
+    // A loaded DLL can't be deleted on Windows, so the folder is deleted at the next startup instead.
+    private void MarkPluginFolderForRemoval(PluginInfo plugin)
     {
         if (string.IsNullOrEmpty(plugin.SourcePath))
             return;
 
         try
         {
-            var pluginDir = Path.GetDirectoryName(plugin.SourcePath);
+            var pluginDir = Path.GetDirectoryName(Path.GetFullPath(plugin.SourcePath));
             if (string.IsNullOrEmpty(pluginDir))
                 return;
 
-            var pluginsRoot = PluginDirectory;
-            if (string.IsNullOrEmpty(pluginsRoot))
+            if (!PluginInstallLayout.IsInside(pluginDir, ResolvePluginDirectory()))
                 return;
 
-            var normalizedPluginDir = Path.GetFullPath(pluginDir);
-            var normalizedRoot = Path.GetFullPath(pluginsRoot);
-
-            if (string.Equals(normalizedPluginDir, normalizedRoot, StringComparison.OrdinalIgnoreCase))
-                return;
-
-            if (!normalizedPluginDir.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                return;
-
-            if (Directory.Exists(normalizedPluginDir))
-            {
-                Directory.Delete(normalizedPluginDir, recursive: true);
-                _logger?.LogDebug("Deleted plugin directory {PluginDir}", normalizedPluginDir);
-            }
+            PluginInstallLayout.MarkForRemoval(pluginDir);
+            _logger?.LogDebug("Marked plugin directory {PluginDir} for removal at the next startup", pluginDir);
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "Failed to delete plugin files for {PluginId}", plugin.Manifest.Id);
+            _logger?.LogWarning(ex, "Failed to mark the folder of plugin {PluginId} for removal", plugin.Manifest.Id);
         }
     }
 
@@ -492,6 +561,15 @@ public class PluginState : IDisposable
     }
 
     /// <summary>
+    /// Sets the service that loads local plugins once installed plugins are registered.
+    /// </summary>
+    /// <param name="service">The local plugin service to use.</param>
+    public void SetLocalPluginService(ILocalPluginService? service)
+    {
+        _localPluginService = service;
+    }
+
+    /// <summary>
     /// Loads persisted plugin states from the state provider.
     /// Should be called after plugins are loaded.
     /// </summary>
@@ -560,7 +638,13 @@ public class PluginState : IDisposable
             await RegisterOrUpgradePluginAsync(plugin);
         }
 
+        // Set before local plugins load, so turning them on meanwhile still loads them.
         PluginsLoaded = true;
+
+        if (_localPluginService is not null)
+        {
+            await _localPluginService.LoadSavedAsync();
+        }
 
         if (_messageBus != null)
         {
@@ -606,7 +690,21 @@ public class PluginState : IDisposable
     /// </summary>
     public void NotifyStateChanged()
     {
-        StateChanged?.Invoke(this, EventArgs.Empty);
+        if (StateChanged is not { } handlers)
+            return;
+
+        // Local plugin reloads raise this off the UI thread, so one handler that renders directly must not stop the rest.
+        foreach (var handler in handlers.GetInvocationList().Cast<EventHandler>())
+        {
+            try
+            {
+                handler(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "A PluginState.StateChanged handler threw");
+            }
+        }
     }
 
     private async Task PublishPluginLoadedAsync(PluginInfo plugin)

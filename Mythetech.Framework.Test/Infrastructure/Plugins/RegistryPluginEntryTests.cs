@@ -240,4 +240,14 @@ public class RegistryPluginEntryTests
     }
 
     #endregion
+
+    [Fact(DisplayName = "IsDeprecated is read from the registry JSON")]
+    public void Deserialize_IsDeprecated_ReadsFlag()
+    {
+        var entry = System.Text.Json.JsonSerializer.Deserialize<RegistryPluginEntry>(
+            """{"id":"a","name":"A","version":"1.0.0","uri":"u","isDeprecated":true}""");
+
+        entry.ShouldNotBeNull();
+        entry.IsDeprecated.ShouldBeTrue();
+    }
 }
