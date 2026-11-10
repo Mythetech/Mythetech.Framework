@@ -76,6 +76,10 @@
 - `MtKeyBindingRecorder` refuses Shift with any key but a function key, as it already refused a key with no modifier. A shortcut such as Shift+A or Shift+ArrowDown blocks that key's normal action across the app, so it would stop a capital being typed or a selection being extended. The recorder's message now reads "Add Ctrl or Alt to use this key"
 - Framework.WebAssembly's `AddWebAssemblySettingsStorage` and `AddPluginStateProvider`, and the `AddLocalStorageSettingsStorage` and `AddLocalStoragePluginStateProvider` methods they call, register their services as singletons. The Framework resolves both from the root provider, which scope validation rejects for a scoped service, so in Development every settings change failed to publish
 
+### Notes
+
+- `Mythetech.Framework`, `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` move to `0.23.0`. `Mythetech.Framework.AI.Generator` stays at `0.22.0`
+
 ## [0.22.2] - 2026-11-03
 
 ### Changed
