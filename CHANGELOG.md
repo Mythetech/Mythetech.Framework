@@ -41,6 +41,7 @@
 - `IPluginManifest.MinimumFrameworkVersion` is obsolete. Nothing ever checked it; see `PluginInfo.FrameworkVersion`
 - `PluginState.RemovePluginAsync` marks the plugin's folder for removal instead of deleting files its loaded assembly still uses. The folder is deleted at the next startup, and the plugin's stored data is still deleted straight away
 - The plugin dialogs no longer show exception text. A registry that won't load shows `Couldn't load the plugin registry. Check your connection and try again.`, and installs show the installer's messages
+- `PluginState.StateChanged` is raised off the UI thread when a local plugin reloads, so a handler that renders must call `InvokeAsync(StateHasChanged)`. A handler that throws is logged and no longer stops the other handlers or the change that raised the event
 
 ### Fixed
 

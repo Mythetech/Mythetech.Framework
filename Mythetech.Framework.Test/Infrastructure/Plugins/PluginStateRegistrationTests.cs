@@ -121,6 +121,24 @@ public class PluginStateRegistrationTests
         _state.GetPluginForComponent(typeof(PanelType)).ShouldBeNull();
     }
 
+    [Fact(DisplayName = "A StateChanged handler that throws doesn't stop the replace, later handlers or PluginLoaded")]
+    public async Task ReplacePluginAsync_HandlerThrows_CompletesAndNotifiesOthers()
+    {
+        var bus = Substitute.For<IMessageBus>();
+        _state.SetMessageBus(bus);
+        var replacement = CreatePlugin("p", new Version(2, 0, 0));
+        await _state.RegisterPluginAsync(CreatePlugin("p", new Version(1, 0, 0)));
+        var laterHandlerCalls = 0;
+        _state.StateChanged += (_, _) => throw new InvalidOperationException("handler off the UI thread");
+        _state.StateChanged += (_, _) => laterHandlerCalls++;
+
+        await Should.NotThrowAsync(() => _state.ReplacePluginAsync(replacement));
+
+        _state.GetPlugin("p").ShouldBeSameAs(replacement);
+        laterHandlerCalls.ShouldBe(1);
+        await bus.Received().PublishAsync(Arg.Is<PluginLoaded>(m => m.Plugin == replacement));
+    }
+
     private static PluginInfo CreatePlugin(string id, Version version, IReadOnlyList<Type>? menus = null, IReadOnlyList<Type>? panels = null)
     {
         var manifest = Substitute.For<IPluginManifest>();

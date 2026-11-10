@@ -690,7 +690,21 @@ public class PluginState : IDisposable
     /// </summary>
     public void NotifyStateChanged()
     {
-        StateChanged?.Invoke(this, EventArgs.Empty);
+        if (StateChanged is not { } handlers)
+            return;
+
+        // Local plugin reloads raise this off the UI thread, so one handler that renders directly must not stop the rest.
+        foreach (var handler in handlers.GetInvocationList().Cast<EventHandler>())
+        {
+            try
+            {
+                handler(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "A PluginState.StateChanged handler threw");
+            }
+        }
     }
 
     private async Task PublishPluginLoadedAsync(PluginInfo plugin)
