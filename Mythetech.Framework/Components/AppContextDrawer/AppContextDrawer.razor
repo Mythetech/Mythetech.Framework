@@ -78,7 +78,7 @@
                                            OnClick="ClosePanel" />
                         </MudTooltip>
                     </MudStack>
-                    @_activeItem.PanelContent
+                    @RenderActivePanelContent(_activeItem)
                 }
                 else if (EmptyContent != null)
                 {
@@ -364,6 +364,14 @@
             // JS interop may fail during prerendering
         }
     }
+
+    private static RenderFragment RenderActivePanelContent(ContextPanelItem item) => builder =>
+    {
+        builder.OpenComponent<ActivePanelContent>(0);
+        builder.SetKey(item.Id);
+        builder.AddComponentParameter(1, nameof(ActivePanelContent.ChildContent), item.PanelContent);
+        builder.CloseComponent();
+    };
 
     /// <summary>
     /// Finds the panel that has this id now. The id an item registered with is no guide: a loop

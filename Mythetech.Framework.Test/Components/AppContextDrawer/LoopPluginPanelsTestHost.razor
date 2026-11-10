@@ -1,0 +1,41 @@
+@using Mythetech.Framework.Components.AppContextDrawer
+@using Mythetech.Framework.Infrastructure.Plugins
+@using Mythetech.Framework.Infrastructure.Plugins.Components
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+@inject PluginState Plugins
+
+@* An app that renders its plugins' panels itself, from a loop, with an unkeyed guard in each *@
+<MudPopoverProvider />
+<button id="toggle-bad" @onclick="ToggleBadAsync">toggle</button>
+<AppContextDrawer @bind-IsOpen="IsOpen" @bind-ActivePanelId="ActivePanelId"
+                  ShowPluginPanels="false" EnableResizer="false">
+    <PanelNavContent>
+        @foreach (var plugin in Plugins.EnabledPlugins)
+        {
+            @foreach (var component in plugin.ContextPanelComponentsMetadata)
+            {
+                <ContextPanelItem @key="component.ComponentType" Id="@($"plugin-{component.ComponentType.FullName}")"
+                                  Title="@component.Title" Icon="@component.Icon">
+                    <PanelContent>
+                        <PluginGuard Metadata="component" PluginInfo="plugin">
+                            <DynamicComponent Type="component.ComponentType" />
+                        </PluginGuard>
+                    </PanelContent>
+                </ContextPanelItem>
+            }
+        }
+    </PanelNavContent>
+</AppContextDrawer>
+
+@code {
+    public bool IsOpen { get; private set; }
+
+    public string? ActivePanelId { get; private set; }
+
+    private async Task ToggleBadAsync()
+    {
+        await Plugins.DisablePluginAsync("bad");
+        await Plugins.EnablePluginAsync("bad");
+    }
+}

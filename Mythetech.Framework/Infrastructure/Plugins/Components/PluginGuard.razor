@@ -6,7 +6,7 @@
 @inject PluginState PluginState
 @implements IDisposable
 
-<ErrorBoundary @ref="_errorBoundary">
+<ErrorBoundary @key="_boundaryGeneration" @ref="_errorBoundary">
     <ChildContent>
         @if (IsPluginDeleted)
         {
@@ -89,6 +89,7 @@
 
 @code {
     private ErrorBoundary? _errorBoundary;
+    private int _boundaryGeneration;
     
     /// <summary>
     /// The plugin information for the plugin being guarded
@@ -149,9 +150,10 @@
         StateHasChanged();
     }
 
+    // A new boundary instead of Recover, since the click also re-renders this guard in the same batch.
     private void RetryRendering()
     {
-        _errorBoundary?.Recover();
+        _boundaryGeneration++;
     }
 
     public void Dispose()

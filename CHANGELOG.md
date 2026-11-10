@@ -45,6 +45,8 @@
 ### Fixed
 
 - Plugin panels in `AppContextDrawer` render inside `PluginGuard`, so a panel that throws shows `Plugin Error` and the drawer's other panels keep rendering. `PluginGuard` also shows its error view on the first render that fails, which before needed another render of the host
+- `AppContextDrawer` gives each panel its own components. Panels an app builds in a loop, such as Siren's plugin panels, shared one set, so a panel opened after a failed one showed the failed panel's error, and any state in a panel's components carried over to the next
+- `PluginGuard`'s **Reload** shows the error again when the panel still throws. It left the panel blank
 - A plugin menu item whose `OnClick` throws no longer escapes `PluginMenuHost` or `PluginMenuItemsRenderer`. They call `PluginMenuItemInvoker`
 - `AddMessageBus` no longer registers the plugin framework's consumers. In an app that never called `AddPluginFramework`, it registered `PluginSettingsConsumer`, so building the service provider with `ValidateOnBuild` failed for want of `PluginState`
 
