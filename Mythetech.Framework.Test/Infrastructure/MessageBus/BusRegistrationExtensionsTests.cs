@@ -121,6 +121,18 @@ namespace Mythetech.Framework.Test.Infrastructure.MessageBus
             serviceProvider.GetService<PluginSettingsConsumer>().ShouldBeNull();
         }
 
+        [Fact(DisplayName = "RegisterConsumers registers a consumer from another assembly whose namespace contains Infrastructure.Plugins")]
+        public void RegisterConsumers_OtherAssemblyPluginsNamespace_RegistersConsumer()
+        {
+            var services = new ServiceCollection();
+            var consumerType = typeof(Mythetech.Framework.Test.Infrastructure.Plugins.TestConsumer);
+
+            services.RegisterConsumers(consumerType.Assembly);
+
+            consumerType.Namespace.ShouldNotBeNull().ShouldContain(".Infrastructure.Plugins");
+            services.ShouldContain(descriptor => descriptor.ServiceType == consumerType);
+        }
+
         [Fact(DisplayName = "AddPluginFramework registers PluginSettingsConsumer")]
         public void AddPluginFramework_ResolvesPluginSettingsConsumer()
         {

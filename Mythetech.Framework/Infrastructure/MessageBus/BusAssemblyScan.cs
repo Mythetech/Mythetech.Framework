@@ -41,8 +41,9 @@ internal static class BusAssemblyScan
     private static bool IsFeatureFlagHandler(Type type)
         => type.Namespace?.Contains(".FeatureFlags") == true;
 
+    // Only the Framework's own plugin handlers, which the plugin framework registers itself.
     private static bool IsPluginHandler(Type type)
-        => type.Namespace?.Contains(".Infrastructure.Plugins") == true;
+        => type.Assembly == typeof(BusAssemblyScan).Assembly && type.Namespace?.Contains(".Infrastructure.Plugins") == true;
 
     internal sealed record Result(ConsumerRegistration[] Consumers, QueryHandlerRegistration[] QueryHandlers);
 
