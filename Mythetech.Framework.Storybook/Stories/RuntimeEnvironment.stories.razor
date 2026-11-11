@@ -1,6 +1,7 @@
 @using Mythetech.Framework.Infrastructure.Environment
 @using Mythetech.Framework.Infrastructure.Platform
 @using Microsoft.JSInterop
+@using Mythetech.Framework.Infrastructure.Guards
 @attribute [Stories("Infrastructure/RuntimeEnvironment")]
 
 <Stories TComponent="IRuntimeEnvironment">
@@ -117,7 +118,7 @@
     {
         if (firstRender)
         {
-            _userAgent = await JSRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
+            _userAgent = await JSRuntime.InvokeSafeAsync<string>("eval", "navigator.userAgent");
             StateHasChanged();
         }
     }

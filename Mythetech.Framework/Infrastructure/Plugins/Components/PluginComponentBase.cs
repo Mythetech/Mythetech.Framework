@@ -93,6 +93,7 @@ public abstract class PluginComponentBase : ComponentBase, IDisposable
     /// <param name="modulePath">Path relative to the plugin's wwwroot, or <c>_content/{Package}/...</c></param>
     /// <returns>The module reference. The caller owns it and must dispose it.</returns>
     /// <exception cref="InvalidOperationException">The host has no module loader, or this plugin isn't registered.</exception>
+    /// <exception cref="JSDisconnectedException">The JavaScript runtime is gone, so there is no module to return.</exception>
     protected async Task<IJSObjectReference> ImportModuleAsync(string modulePath)
     {
         if (Context.ModuleLoader == null)

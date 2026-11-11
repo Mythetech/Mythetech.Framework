@@ -41,6 +41,16 @@ public class ActivatePanelTests : BunitContext
         cut.Markup.ShouldContain("body of b");
     }
 
+    [Fact(DisplayName = "An ActivatePanel message opens the named panel in a drawer the app doesn't bind")]
+    public async Task ActivatePanel_UnboundDrawer_OpensNamedPanel()
+    {
+        var cut = Render<UnboundPanelsTestHost>();
+
+        await ActivateAsync(cut, "b");
+
+        cut.Markup.ShouldContain("body of b");
+    }
+
     [Fact(DisplayName = "An ActivatePanel message consumed off the renderer's dispatcher opens the panel")]
     public async Task ActivatePanel_ConsumedOffDispatcher_OpensNamedPanel()
     {

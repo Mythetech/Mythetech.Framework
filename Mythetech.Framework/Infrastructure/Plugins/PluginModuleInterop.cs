@@ -30,7 +30,10 @@ public sealed class PluginModuleInterop : IAsyncDisposable
     public async Task<IJSObjectReference> ImportFromSourceAsync(string code)
     {
         var module = await GetModuleAsync();
+        // Returning a module or throwing is the contract, so a disconnection reaches the caller.
+#pragma warning disable BL0016
         return await module.InvokeAsync<IJSObjectReference>(ImportFromSourceFunction, code);
+#pragma warning restore BL0016
     }
 
     // Concurrent first calls share one import, and a failed import is cleared so the next call tries again.
@@ -39,7 +42,9 @@ public sealed class PluginModuleInterop : IAsyncDisposable
         Task<IJSObjectReference> moduleTask;
         lock (_moduleLock)
         {
+#pragma warning disable BL0016 // Awaited in the try below, which clears a failed import, disconnection included.
             moduleTask = _moduleTask ??= _jsRuntime.InvokeAsync<IJSObjectReference>(ImportIdentifier, ModulePath).AsTask();
+#pragma warning restore BL0016
         }
 
         try

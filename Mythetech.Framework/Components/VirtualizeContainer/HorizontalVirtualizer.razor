@@ -1,5 +1,6 @@
 @namespace Mythetech.Framework.Components.VirtualizeContainer
 @using Microsoft.JSInterop
+@using Mythetech.Framework.Infrastructure.Guards
 @using MudBlazor.Interop
 @using MudBlazor.Services
 @typeparam TItem
@@ -102,14 +103,16 @@
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", JsModulePath);
+            _jsModule = await JS.InvokeSafeAsync<IJSObjectReference>("import", JsModulePath);
+            if (_jsModule is null)
+                return;
 
             _resizeObserver = ResizeObserverFactory.Create();
             _resizeObserver.OnResized += OnResized;
             var rect = await _resizeObserver.Observe(_containerRef);
             _containerWidth = rect?.Width ?? 0;
 
-            _scrollSubscriptionId = await _jsModule.InvokeAsync<int>(
+            _scrollSubscriptionId = await _jsModule.InvokeSafeAsync<int>(
                 "subscribeToScroll", _containerRef, _dotNetRef, true);
 
             UpdateVisibleRange();

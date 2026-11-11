@@ -170,7 +170,6 @@
                 {
                     _selectedIndex = (_selectedIndex + 1) % _results.Count;
                     UpdateInputAttributes();
-                    StateHasChanged();
                     await ScrollToSelectedAsync();
                 }
                 break;
@@ -179,7 +178,6 @@
                 {
                     _selectedIndex = (_selectedIndex - 1 + _results.Count) % _results.Count;
                     UpdateInputAttributes();
-                    StateHasChanged();
                     await ScrollToSelectedAsync();
                 }
                 break;
@@ -188,7 +186,6 @@
                 {
                     _selectedIndex = 0;
                     UpdateInputAttributes();
-                    StateHasChanged();
                     await ScrollToSelectedAsync();
                 }
                 break;
@@ -197,7 +194,6 @@
                 {
                     _selectedIndex = _results.Count - 1;
                     UpdateInputAttributes();
-                    StateHasChanged();
                     await ScrollToSelectedAsync();
                 }
                 break;

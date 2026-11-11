@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.JSInterop;
+using Mythetech.Framework.Infrastructure.Guards;
 
 namespace Mythetech.Framework.Infrastructure.Plugins;
 
@@ -46,8 +47,12 @@ public class JsPluginAssetLoader : IPluginAssetLoader
             })();
             """;
 
-        await _jsRuntime.InvokeVoidAsync("eval", js);
-        _loadedAssets[href] = true;
+        var result = await _jsRuntime.TryInvokeVoidAsync("eval", js);
+        if (result.Exception is not null)
+            throw result.Exception;
+
+        if (result.Success)
+            _loadedAssets[href] = true;
     }
 
     /// <inheritdoc />
@@ -78,8 +83,12 @@ public class JsPluginAssetLoader : IPluginAssetLoader
             });
             """;
 
-        await _jsRuntime.InvokeVoidAsync("eval", js);
-        _loadedAssets[src] = true;
+        var result = await _jsRuntime.TryInvokeVoidAsync("eval", js);
+        if (result.Exception is not null)
+            throw result.Exception;
+
+        if (result.Success)
+            _loadedAssets[src] = true;
     }
 
     /// <inheritdoc />
@@ -121,7 +130,7 @@ public class JsPluginAssetLoader : IPluginAssetLoader
             })();
             """;
 
-        await _jsRuntime.InvokeVoidAsync("eval", js);
+        await _jsRuntime.InvokeVoidSafeAsync("eval", js);
         _loadedAssets.TryRemove(href, out _);
     }
 
