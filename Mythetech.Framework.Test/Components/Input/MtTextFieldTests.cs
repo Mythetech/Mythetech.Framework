@@ -27,6 +27,25 @@ public class MtTextFieldTests : BunitContext
         cut.Find("input").GetAttribute("value").ShouldBe("ab");
     }
 
+    [Theory(DisplayName = "Typing sends no text back to the browser, so a render that lags behind the keys never takes them out")]
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task Typing_SendsNoTextBackToTheBrowser(int lines)
+    {
+        using var renderer = new BatchRecorder();
+        var componentId = await renderer.RenderAsync(new MtTextField<string>(), new Dictionary<string, object?>
+        {
+            [nameof(MtTextField<string>.Value)] = "a",
+            [nameof(MtTextField<string>.ValueChanged)] = EventCallback.Factory.Create<string>(this, _ => { }),
+            [nameof(MtTextField<string>.Lines)] = lines,
+        });
+
+        await renderer.DispatchAsync(componentId, "oninput", "ab");
+        await renderer.DispatchAsync(componentId, "oninput", "abc");
+
+        renderer.SentValues.ShouldBeEmpty();
+    }
+
     [Fact(DisplayName = "A new Value from the parent replaces the text")]
     public async Task ParentRender_WithNewValue_ReplacesText()
     {

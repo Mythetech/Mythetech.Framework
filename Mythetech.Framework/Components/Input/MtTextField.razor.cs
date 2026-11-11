@@ -146,9 +146,10 @@ public partial class MtTextField<T>
         }
     }
 
-    private async Task OnInputAsync(ChangeEventArgs e)
+    // Bound with @bind, so Blazor takes the text from the browser and a render behind the typing writes none back.
+    private async Task SetTextAsync(string? text)
     {
-        _text = e.Value?.ToString() ?? "";
+        _text = text ?? "";
         if (Immediate)
         {
             await UpdateValueAsync();

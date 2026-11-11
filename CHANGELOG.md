@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- `MtTextField` keeps every key typed into it on Blazor Server. It wrote its text back to the browser after each keystroke, and on Blazor Server that write can arrive after the next key, which it then took out, as when typing quickly into a search field. The field binds its text with `@bind`, so Blazor takes the text from the browser and sends none back
+
 ## [0.23.1] - 2026-11-10
 
 ### Fixed
