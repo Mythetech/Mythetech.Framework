@@ -1,10 +1,9 @@
 @using MudBlazor
-@using Mythetech.Framework.Infrastructure.Mcp
+@using Mythetech.Framework.Infrastructure.Guards
 @using Mythetech.Framework.Infrastructure.Mcp.Components
 @using Mythetech.Framework.Infrastructure.Secrets
 @using Mythetech.Framework.Components.Secrets
 @inject SecretManagerState SecretManagerState
-@inject McpServerState McpState
 @inject IDialogService DialogService
 @implements IDisposable
 
@@ -17,9 +16,12 @@
         Secret Manager
     </MudMenuItem>
 
-    <MudDivider />
+    @* The MCP server needs a stdio or HTTP listener, which a browser can't host. *@
+    <DesktopOnly>
+        <MudDivider />
 
-    <McpMenuItems />
+        <McpMenuItems />
+    </DesktopOnly>
 </MudMenu>
 
 @code {
