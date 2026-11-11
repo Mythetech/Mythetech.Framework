@@ -13,9 +13,11 @@ jobs:
       with:
         fetch-depth: 0
 
+    # The .NET 10 SDK brings the runtime the net10.0 tests run on; global.json picks the SDK that builds.
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
       with:
+        dotnet-version: 10.0.x
         global-json-file: global.json
 
     - name: Add GitHub Packages source
@@ -45,6 +47,20 @@ jobs:
           - os: macos-latest
             platform: macos
             app: samples/SampleHost.Desktop/bin/Release/net11.0/SampleHost.Desktop
+          # The same app on the oldest supported framework. These are extra entries, so the names of
+          # the checks above stay as they are.
+          - os: windows-latest
+            platform: windows-net10
+            app: samples/SampleHost.Desktop/bin/Release/net10.0/SampleHost.Desktop.exe
+            framework: net10.0
+          - os: ubuntu-latest
+            platform: linux-net10
+            app: samples/SampleHost.Desktop/bin/Release/net10.0/SampleHost.Desktop
+            framework: net10.0
+          - os: macos-latest
+            platform: macos-net10
+            app: samples/SampleHost.Desktop/bin/Release/net10.0/SampleHost.Desktop
+            framework: net10.0
 
     runs-on: ${{ matrix.os }}
 
@@ -52,9 +68,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    # The .NET 10 SDK brings the runtime the net10.0 app runs on; global.json picks the SDK that builds.
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
       with:
+        dotnet-version: 10.0.x
         global-json-file: global.json
 
     - name: Install Linux Dependencies
@@ -70,7 +88,7 @@ jobs:
         sleep 2
 
     - name: Build SampleHost.Desktop
-      run: dotnet build samples/SampleHost.Desktop -c Release
+      run: dotnet build samples/SampleHost.Desktop -c Release ${{ matrix.framework && format('-p:SmokeTargetFramework={0}', matrix.framework) || '' }}
 
     - name: Checkout shared smoke verdict
       uses: actions/checkout@v4

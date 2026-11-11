@@ -3,6 +3,7 @@
 @using Mythetech.Framework.Enums
 @using Mythetech.Framework.Components.Buttons
 @using Microsoft.JSInterop
+@using Mythetech.Framework.Infrastructure.Guards
 @inherits MudComponentBase
 @implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
@@ -114,7 +115,7 @@
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", JsModulePath);
+            _jsModule = await JSRuntime.InvokeSafeAsync<IJSObjectReference>("import", JsModulePath);
             await RegisterTextAsync();
         }
     }
@@ -131,7 +132,7 @@
     {
         if (_jsModule is null) return;
         _registeredText = Text;
-        await _jsModule.InvokeVoidAsync("registerClipboard", _elementId, Text ?? string.Empty, _dotNetRef);
+        await _jsModule.InvokeVoidSafeAsync("registerClipboard", _elementId, Text ?? string.Empty, _dotNetRef);
     }
 
     [JSInvokable]

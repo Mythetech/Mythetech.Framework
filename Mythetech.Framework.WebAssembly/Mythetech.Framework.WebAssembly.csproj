@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Mythetech.Framework.WebAssembly</PackageId>
@@ -16,6 +16,8 @@
         <PackageProjectUrl>https://github.com/mythetech/Mythetech.Framework</PackageProjectUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
+        <!-- BL0016 guards against a torn-down WebView or circuit; WebAssembly interop is in-process and cannot disconnect. -->
+        <NoWarn>$(NoWarn);BL0016</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -39,7 +41,15 @@
 
     <ItemGroup>
       <PackageReference Include="KristofferStrube.Blazor.FileSystemAccess" Version="3.3.0" />
+    </ItemGroup>
+
+    <!-- Each target framework takes its Microsoft packages from its own .NET major. -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
       <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.13" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0" />
     </ItemGroup>
 
 </Project>

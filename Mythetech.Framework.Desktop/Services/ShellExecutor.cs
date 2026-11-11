@@ -19,6 +19,9 @@ public partial class ShellExecutor : IShellExecutor
     private static readonly TimeSpan GroupStopGrace = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan OutputDrainTimeout = TimeSpan.FromSeconds(1);
 
+    internal const string ProcessGroupsNeedNet11 =
+        "ShellCommand.OwnProcessGroup needs .NET 11 or later, which can start a process suspended or in a new session.";
+
     private readonly ILogger<ShellExecutor>? _logger;
     private readonly LoginEnvironment _loginEnvironment;
 
@@ -251,6 +254,9 @@ public partial class ShellExecutor : IShellExecutor
     /// The variables the login profile sets, from <see cref="LoginEnvironment"/>; null makes the shell source the
     /// profile itself.
     /// </param>
+    /// <exception cref="PlatformNotSupportedException">
+    /// <paramref name="command"/> asks for its own process group, and the app runs on .NET 10.
+    /// </exception>
     internal ProcessStartInfo CreateProcessStartInfo(
         ShellCommand command,
         bool redirectInput = false,
@@ -270,21 +276,9 @@ public partial class ShellExecutor : IShellExecutor
             startInfo.WorkingDirectory = command.WorkingDirectory;
         }
 
-        if (command.OwnProcessGroup && OperatingSystem.IsWindows())
+        if (command.OwnProcessGroup)
         {
-            // Held until it is in its job, so nothing it starts escapes. StartDetached here would mean DETACHED_PROCESS.
-            startInfo.StartSuspended = true;
-        }
-        else if (command.OwnProcessGroup)
-        {
-            // The child calls setsid() before exec and keeps its redirected stdio.
-            startInfo.StartDetached = true;
-
-            // .NET forks these children from one long-lived thread, so PR_SET_PDEATHSIG fires only when the app exits.
-            if (OperatingSystem.IsLinux())
-            {
-                startInfo.KillOnParentExit = true;
-            }
+            ConfigureOwnProcessGroup(startInfo);
         }
 
         if (command.UseShell)
@@ -298,6 +292,30 @@ public partial class ShellExecutor : IShellExecutor
 
         return startInfo;
     }
+
+#if NET11_0_OR_GREATER
+    private static void ConfigureOwnProcessGroup(ProcessStartInfo startInfo)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // Held until it is in its job, so nothing it starts escapes. StartDetached here would mean DETACHED_PROCESS.
+            startInfo.StartSuspended = true;
+            return;
+        }
+
+        // The child calls setsid() before exec and keeps its redirected stdio.
+        startInfo.StartDetached = true;
+
+        // .NET forks these children from one long-lived thread, so PR_SET_PDEATHSIG fires only when the app exits.
+        if (OperatingSystem.IsLinux())
+        {
+            startInfo.KillOnParentExit = true;
+        }
+    }
+#else
+    private static void ConfigureOwnProcessGroup(ProcessStartInfo startInfo) =>
+        throw new PlatformNotSupportedException(ProcessGroupsNeedNet11);
+#endif
 
     private void ConfigureWithShell(
         ProcessStartInfo startInfo,

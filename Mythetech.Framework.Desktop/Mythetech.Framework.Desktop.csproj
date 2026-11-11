@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <!-- Prevent static asset conflicts with consuming app -->
@@ -22,12 +22,21 @@
 
     <ItemGroup>
       <PackageReference Include="LiteDB" Version="5.0.21" />
-      <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
-      <PackageReference Include="Mythetech.Hermes" Version="1.4.5" />
-      <PackageReference Include="Mythetech.Hermes.Blazor" Version="1.4.5" />
+      <PackageReference Include="Mythetech.Hermes" Version="1.4.6" />
+      <PackageReference Include="Mythetech.Hermes.Blazor" Version="1.4.6" />
       <PackageReference Include="TextCopy" Version="6.2.1" />
       <PackageReference Include="Velopack" Version="1.2.161" />
+    </ItemGroup>
+
+    <!-- Each target framework takes its Microsoft packages from its own .NET major. -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+      <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+      <PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
     </ItemGroup>
 
     <ItemGroup>

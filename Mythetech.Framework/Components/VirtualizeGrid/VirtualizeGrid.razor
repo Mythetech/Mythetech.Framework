@@ -1,5 +1,6 @@
 @namespace Mythetech.Framework.Components.VirtualizeGrid
 @using Microsoft.JSInterop
+@using Mythetech.Framework.Infrastructure.Guards
 @using MudBlazor.Interop
 @using MudBlazor.Services
 @typeparam TItem
@@ -139,7 +140,9 @@
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", JsModulePath);
+            _jsModule = await JS.InvokeSafeAsync<IJSObjectReference>("import", JsModulePath);
+            if (_jsModule is null)
+                return;
 
             // Set up resize observer
             _resizeObserver = ResizeObserverFactory.Create();
@@ -149,7 +152,7 @@
             _containerHeight = rect?.Height ?? 0;
 
             // Subscribe to 2D scroll events
-            _scrollSubscriptionId = await _jsModule.InvokeAsync<int>(
+            _scrollSubscriptionId = await _jsModule.InvokeSafeAsync<int>(
                 "subscribeToScroll2D", _containerRef, _dotNetRef);
 
             // Calculate initial visible range

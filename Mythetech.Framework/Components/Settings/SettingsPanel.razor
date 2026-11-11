@@ -6,6 +6,7 @@
 @using Mythetech.Framework.Components.FeatureFlags
 @using System.Reflection
 @using Microsoft.JSInterop
+@using Mythetech.Framework.Infrastructure.Guards
 @inject ISettingsProvider SettingsProvider
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -280,7 +281,7 @@
 
         if (_jsModule != null)
         {
-            await _jsModule.InvokeVoidAsync("scrollToSection", sectionId);
+            await _jsModule.InvokeVoidSafeAsync("scrollToSection", sectionId);
         }
 
         // Reset scrolling flag after animation
@@ -399,7 +400,6 @@
         _matchingSettingsIds.Clear();
         _sectionMatchCounts.Clear();
         _matchingPropertiesBySectionId.Clear();
-        StateHasChanged();
     }
 
     private IEnumerable<SettingsBase> GetFilteredSettings()

@@ -174,20 +174,17 @@
     {
         await PluginState.EnablePluginAsync(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
         _currentPluginInfo = PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id)!;
-        StateHasChanged();
     }
 
     private async Task DisablePlugin()
     {
         await PluginState.DisablePluginAsync(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
         _currentPluginInfo = PluginState.GetPlugin(StorybookPluginData.EnabledPluginInfo.Manifest.Id)!;
-        StateHasChanged();
     }
 
     private async Task DeletePlugin()
     {
         await PluginState.RemovePluginAsync(StorybookPluginData.EnabledPluginInfo.Manifest.Id);
-        StateHasChanged();
     }
 
     private async Task RestorePlugin()
@@ -197,7 +194,6 @@
             await PluginState.RegisterPluginAsync(StorybookPluginData.EnabledPluginInfo);
         }
         _currentPluginInfo = StorybookPluginData.EnabledPluginInfo;
-        StateHasChanged();
     }
 }
 

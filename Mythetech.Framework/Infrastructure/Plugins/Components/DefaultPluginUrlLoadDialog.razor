@@ -82,7 +82,6 @@
         _isLoading = true;
         _errorMessage = null;
         _statusMessage = "Installing...";
-        StateHasChanged();
 
         try
         {
@@ -101,7 +100,6 @@
         {
             _isLoading = false;
             _statusMessage = string.Empty;
-            StateHasChanged();
         }
     }
 }

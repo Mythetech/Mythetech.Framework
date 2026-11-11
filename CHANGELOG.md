@@ -52,6 +52,7 @@
 - `IPluginManifest.IsDeprecated` and `RegistryPluginEntry.IsDeprecated` (`isDeprecated` in the registry JSON). A deprecated plugin is no longer listed in the Available tab, and an installed plugin shows a **Deprecated** badge when its manifest or its registry entry is deprecated. `RegistryPluginFilter.ShouldList` holds the rules for which registry entries are listed
 - `PluginInfo.FrameworkVersion` is the `Mythetech.Framework` version a plugin was built against, read from its references. The plugin list shows it in a tooltip on the version, and `AboutPluginDialog` shows it in place of the minimum Framework version. A plugin built against a newer Framework than the app's still loads, with a warning in the log
 - `PluginMenuItemInvoker` runs a plugin menu item's `OnClick` and contains a failure: it logs the exception, shows `{Name} couldn't complete that action.`, and returns `false`. `AddPluginFramework` registers it, and a host that renders plugin menu items itself, such as in a native menu, can call it
+- `IJSObjectReference` overloads of `InvokeVoidSafeAsync`, `InvokeSafeAsync<T>`, `TryInvokeVoidAsync` and `TryInvokeAsync<T>` in `Infrastructure.Guards`, so calls into a JS module get the same guard as `IJSRuntime` calls
 
 ### Changed
 
@@ -67,6 +68,14 @@
 - `PluginState.RemovePluginAsync` marks the plugin's folder for removal instead of deleting files its loaded assembly still uses. The folder is deleted at the next startup, and the plugin's stored data is still deleted straight away
 - The plugin dialogs no longer show exception text. A registry that won't load shows `Couldn't load the plugin registry. Check your connection and try again.`, and installs show the installer's messages
 - `PluginState.StateChanged` is raised off the UI thread when a local plugin reloads, so a handler that renders must call `InvokeAsync(StateHasChanged)`. A handler that throws is logged and no longer stops the other handlers or the change that raised the event
+- `Mythetech.Framework` and `Mythetech.Framework.WebAssembly` target `net10.0` and `net11.0`. Each target framework takes its Microsoft packages from its own .NET major: `10.0.13` for `net10.0` and `11.0.0` for `net11.0`
+  - `Mythetech.Framework.Desktop` targets both too, on Hermes 1.4.6, the first to ship `net10.0`
+  - On .NET 10, `ShellCommand.OwnProcessGroup` throws `PlatformNotSupportedException`, since starting a process suspended or in a new session needs .NET 11's process APIs
+  - On .NET 10, Hermes holds up `DisposeAsync()` for up to `HostOptions.ShutdownTimeout` when a component calls JavaScript while its page disposes after the window has closed. See the Hermes 1.4.6 changelog
+  - `global.json` pins the .NET 11 GA SDK, `11.0.100`, in place of RC1, and the Storybook and WebAssembly sample take the `11.0.0` packages
+- Building the core package against .NET 11's Components turns on the `BL0012` and `BL0016` analyzers for it. The `StateHasChanged` calls `BL0012` flagged are removed, and JS interop calls go through the guarded methods
+  - `Mythetech.Framework.WebAssembly` suppresses `BL0016`: WebAssembly interop is in-process and cannot disconnect
+- `IPluginModuleLoader.ImportAsync` and `PluginComponentBase.ImportModuleAsync` document the `JSDisconnectedException` they throw when the runtime is gone, since there is no module to return
 
 ### Fixed
 
@@ -80,6 +89,8 @@
 - A plugin menu item whose `OnClick` throws no longer escapes `PluginMenuHost` or `PluginMenuItemsRenderer`. They call `PluginMenuItemInvoker`
 - `UsePluginFramework` gives `PluginState` the app's logger. Nothing set one, so `PluginState`'s own warnings, such as a failed delete of a removed plugin's data, were dropped
 - `AddMessageBus` no longer registers the plugin framework's consumers. In an app that never called `AddPluginFramework`, it registered `PluginSettingsConsumer`, so building the service provider with `ValidateOnBuild` failed for want of `PluginState`
+- `JsPluginAssetLoader` marked plugin assets as loaded even when the injecting JS call never reached the browser, so an asset lost to a teardown race was never retried. The bookkeeping is now conditional on the call succeeding, as in `DesktopPluginAssetLoader`
+- `MtCopyButton`, `HorizontalVirtualizer`, `VirtualizeGrid` and `SettingsPanel` no longer throw when a JS call races a torn-down WebView or a dropped circuit
 
 ### Notes
 

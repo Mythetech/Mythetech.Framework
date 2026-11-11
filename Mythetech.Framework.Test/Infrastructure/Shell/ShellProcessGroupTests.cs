@@ -63,6 +63,7 @@ public class ShellProcessGroupTests
     public async Task StartProcess_OwnProcessGroup_LeadsItsGroup()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(
             BackgroundChildCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
@@ -104,6 +105,7 @@ public class ShellProcessGroupTests
     public async Task StartProcess_OwnProcessGroup_ReportsTheCommandNotTheShell()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(
             SleepCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
@@ -176,6 +178,7 @@ public class ShellProcessGroupTests
     public async Task IsEmpty_GroupWithAMember_FalseUntilTheGroupExits()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(
             BackgroundChildCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
@@ -198,6 +201,7 @@ public class ShellProcessGroupTests
     public async Task StopAsync_EndsAChildThatIgnoresSigint_AfterTheLeaderExited()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", "trap '' INT; (trap '' INT; sleep 60) & echo $!; exit 0")
@@ -224,6 +228,7 @@ public class ShellProcessGroupTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
         Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(
             SleepThatEndsOnSigintCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
@@ -247,6 +252,7 @@ public class ShellProcessGroupTests
     public async Task StopAsync_ChildThatTrapsSigterm_GetsSigtermThenSigkill()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", "(trap 'echo got TERM' TERM; while :; do sleep 0.1; done) & echo $!; wait")
@@ -275,6 +281,7 @@ public class ShellProcessGroupTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
         Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", $"trap '' INT TERM; {PerlPath} -e 'use POSIX; setsid(); sleep 60' & echo $!; wait")
@@ -303,6 +310,7 @@ public class ShellProcessGroupTests
     public async Task StopAsync_EmptyGroup_ReturnsAtOnce()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/usr/bin/true" }.WithOwnProcessGroup();
         await using var process = await _executor.StartProcessAsync(command, TestContext.Current.CancellationToken);
@@ -325,6 +333,7 @@ public class ShellProcessGroupTests
     public async Task StopAsync_Twice_SecondReturnsAtOnce()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(
             BackgroundChildCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
@@ -354,6 +363,7 @@ public class ShellProcessGroupTests
     public async Task StopAsync_ConcurrentlyOnALiveGroup_BothReturnAndTheGroupEnds()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(
             BackgroundChildCommand.WithOwnProcessGroup(), TestContext.Current.CancellationToken);
@@ -379,6 +389,7 @@ public class ShellProcessGroupTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
         Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", $"{PerlPath} -e 'use POSIX; setsid(); sleep 60' & echo $!; wait")
@@ -408,6 +419,7 @@ public class ShellProcessGroupTests
     public async Task Kill_GroupLeader_KillsTheGroup()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(OrphanedChildCommand, TestContext.Current.CancellationToken);
         var backgroundPid = FirstPidPrinted(process);
@@ -429,6 +441,7 @@ public class ShellProcessGroupTests
     public async Task StopAsyncAndKill_LeaderPidHeldByAnotherStartTime_LeaveTheGroupAlone()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, _ => AnotherStartTime);
         var printed = new PrintedPids();
@@ -457,6 +470,7 @@ public class ShellProcessGroupTests
     public async Task StopAsync_LeaderPidHeldBySameStartTime_StopsTheGroup()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, leader => leader.StartedAt);
         var printed = new PrintedPids();
@@ -483,6 +497,7 @@ public class ShellProcessGroupTests
     public async Task Kill_LeaderPidHeldBySameStartTime_KillsTheGroup()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = CreateGroupLeader(LeaderExitsLeavingAChildCommand, leader => leader.StartedAt);
         var printed = new PrintedPids();
@@ -509,6 +524,7 @@ public class ShellProcessGroupTests
     public async Task DisposeAsync_GroupLeader_StopsTheGroup()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(OrphanedChildCommand, TestContext.Current.CancellationToken);
         var backgroundPid = FirstPidPrinted(process);
@@ -541,6 +557,7 @@ public class ShellProcessGroupTests
     public async Task StartProcess_OwnProcessGroup_ExitedFiresWhileAChildHoldsStdout()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", "sleep 60 & echo $!; exit 3")
@@ -567,6 +584,7 @@ public class ShellProcessGroupTests
     public async Task ExecuteStreaming_OwnProcessGroup_BackgroundChildHoldingStdout_ReturnsWhenTheLeaderExits()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", "sleep 60 & echo $!; echo started")
@@ -602,6 +620,7 @@ public class ShellProcessGroupTests
     public async Task ExecuteStreaming_OwnProcessGroup_SlowReader_GetsEveryLine()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/usr/bin/seq" }
             .WithArgumentList("1", "100")
@@ -627,6 +646,7 @@ public class ShellProcessGroupTests
     public async Task ExecuteStreaming_OwnProcessGroup_Timeout_EndsTheGroup()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", "sleep 60 & echo $$; echo $!; sleep 60")
@@ -655,6 +675,7 @@ public class ShellProcessGroupTests
     public async Task ExecuteStreaming_OwnProcessGroup_Timeout_StopsTheGroupGracefully()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sh" }
             .WithArgumentList("-c", "(trap 'echo got TERM; exit 0' TERM; while :; do sleep 0.1; done) & echo $!; wait")
@@ -689,6 +710,7 @@ public class ShellProcessGroupTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
         Assert.SkipUnless(File.Exists(PerlPath), $"{PerlPath} is missing");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = PerlPath }
             .WithArgumentList("-e", EscapedTickerScript)

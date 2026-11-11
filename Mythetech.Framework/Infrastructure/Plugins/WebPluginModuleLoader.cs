@@ -31,6 +31,9 @@ public class WebPluginModuleLoader : IPluginModuleLoader
             ? $"./{trimmed}"
             : $"./{ContentPrefix}{plugin.Assembly.GetName().Name}/{trimmed}";
 
+        // Returning a module or throwing is the contract, so a disconnection reaches the caller.
+#pragma warning disable BL0016
         return await _jsRuntime.InvokeAsync<IJSObjectReference>(ImportIdentifier, url);
+#pragma warning restore BL0016
     }
 }

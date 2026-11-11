@@ -444,8 +444,6 @@
             _activeItem = item;
             await SetActivePanelId(item.Id);
         }
-
-        StateHasChanged();
     }
 
     /// <summary>
@@ -464,7 +462,6 @@
         _activeItem = null;
         await SetIsOpen(false);
         await SetActivePanelId(null);
-        StateHasChanged();
 
         Nav.NavigateTo($"/{item.RoutePrefix.TrimStart('/')}");
     }
@@ -474,7 +471,6 @@
         _activeItem = null;
         await SetIsOpen(false);
         await SetActivePanelId(null);
-        StateHasChanged();
     }
 
     private async Task SetIsOpen(bool value)
@@ -506,6 +502,7 @@
         if (FindPanel(message.PanelId) is { } panel && !IsOnScreen(panel))
         {
             await HandlePanelItemClicked(panel);
+            StateHasChanged();
         }
     });
 

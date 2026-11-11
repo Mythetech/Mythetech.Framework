@@ -2,6 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>net11.0</TargetFramework>
+        <!-- Follows SampleHost.Desktop when CI builds it for another framework. -->
+        <TargetFramework Condition="'$(SmokeTargetFramework)' != ''">$(SmokeTargetFramework)</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>

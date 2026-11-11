@@ -103,6 +103,5 @@ else if (_timedOut)
         await GuardService.ResetAsync(JS, Name);
         var ready = await GuardService.WaitForReadyAsync(JS, Name, Timeout);
         _timedOut = !ready;
-        StateHasChanged();
     }
 }

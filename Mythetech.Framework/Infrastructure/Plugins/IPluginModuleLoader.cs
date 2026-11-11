@@ -17,5 +17,6 @@ public interface IPluginModuleLoader
     /// </param>
     /// <returns>The module reference. The caller owns it and must dispose it.</returns>
     /// <exception cref="ArgumentException">The path is an external URL.</exception>
+    /// <exception cref="JSDisconnectedException">The JavaScript runtime is gone, so there is no module to return.</exception>
     Task<IJSObjectReference> ImportAsync(PluginInfo plugin, string modulePath);
 }

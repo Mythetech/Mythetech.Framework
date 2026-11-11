@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 namespace Mythetech.Framework.Infrastructure.Guards;
 
 /// <summary>
-/// Guarded wrappers around <see cref="IJSRuntime"/> interop calls.
+/// Guarded wrappers around <see cref="IJSRuntime"/> and <see cref="IJSObjectReference"/> interop calls.
 /// </summary>
 /// <remarks>
 /// A JavaScript call racing a torn-down WebView or a dropped circuit throws even though
@@ -74,6 +74,74 @@ public static class JsRuntimeExtensions
         try
         {
             var value = await js.InvokeAsync<T>(identifier, args);
+            return new JsInvokeResult<T>(JsInvokeStatus.Success, value, null);
+        }
+        catch (Exception ex) when (IsDisconnection(ex))
+        {
+            return new JsInvokeResult<T>(JsInvokeStatus.Disconnected, default, null);
+        }
+        catch (JSException ex)
+        {
+            return new JsInvokeResult<T>(JsInvokeStatus.Failed, default, ex);
+        }
+    }
+
+    /// <summary>
+    /// Invokes a module function that returns no value, ignoring disconnection and
+    /// rethrowing genuine JavaScript errors.
+    /// </summary>
+    public static async Task InvokeVoidSafeAsync(this IJSObjectReference module, string identifier, params object?[]? args)
+    {
+        var result = await module.TryInvokeVoidAsync(identifier, args);
+
+        if (result.Exception is not null)
+            throw result.Exception;
+    }
+
+    /// <summary>
+    /// Invokes a module function and returns its value, yielding the default for
+    /// <typeparamref name="T"/> on disconnection and rethrowing genuine JavaScript errors.
+    /// </summary>
+    public static async Task<T?> InvokeSafeAsync<T>(this IJSObjectReference module, string identifier, params object?[]? args)
+    {
+        var result = await module.TryInvokeAsync<T>(identifier, args);
+
+        if (result.Exception is not null)
+            throw result.Exception;
+
+        return result.Value;
+    }
+
+    /// <summary>
+    /// Invokes a module function that returns no value, reporting the outcome rather
+    /// than throwing. Exceptions unrelated to JavaScript interop still propagate.
+    /// </summary>
+    public static async Task<JsInvokeResult> TryInvokeVoidAsync(this IJSObjectReference module, string identifier, params object?[]? args)
+    {
+        try
+        {
+            await module.InvokeVoidAsync(identifier, args);
+            return new JsInvokeResult(JsInvokeStatus.Success, null);
+        }
+        catch (Exception ex) when (IsDisconnection(ex))
+        {
+            return new JsInvokeResult(JsInvokeStatus.Disconnected, null);
+        }
+        catch (JSException ex)
+        {
+            return new JsInvokeResult(JsInvokeStatus.Failed, ex);
+        }
+    }
+
+    /// <summary>
+    /// Invokes a module function and reports its outcome rather than throwing.
+    /// Exceptions unrelated to JavaScript interop still propagate.
+    /// </summary>
+    public static async Task<JsInvokeResult<T>> TryInvokeAsync<T>(this IJSObjectReference module, string identifier, params object?[]? args)
+    {
+        try
+        {
+            var value = await module.InvokeAsync<T>(identifier, args);
             return new JsInvokeResult<T>(JsInvokeStatus.Success, value, null);
         }
         catch (Exception ex) when (IsDisconnection(ex))

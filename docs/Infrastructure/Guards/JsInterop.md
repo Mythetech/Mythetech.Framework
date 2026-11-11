@@ -27,6 +27,18 @@ await JS.InvokeVoidSafeAsync("myApp.highlight", elementId);
 var width = await JS.InvokeSafeAsync<int>("myApp.measure", elementId);
 ```
 
+Each method also extends `IJSObjectReference`, for calls into a JS module. Importing the
+module with `InvokeSafeAsync<IJSObjectReference>("import", path)` yields `null` on
+disconnection, so check it before using the module:
+
+```csharp
+_module = await JS.InvokeSafeAsync<IJSObjectReference>("import", ModulePath);
+if (_module is null)
+    return;
+
+await _module.InvokeVoidSafeAsync("observe", _element);
+```
+
 **Reach for the `Try` methods only when the call site acts on the difference**, typically to
 skip bookkeeping when a call did not land:
 
