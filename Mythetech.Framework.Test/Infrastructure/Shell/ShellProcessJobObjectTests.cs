@@ -30,6 +30,7 @@ public class ShellProcessJobObjectTests
     public async Task StopAsync_GroupLeader_EndsAGrandchildAfterTheLeaderExited()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(OrphanedPingCommand, TestContext.Current.CancellationToken);
         using var ping = await ChildNamedAsync(process.ProcessId, "PING.EXE");
@@ -56,6 +57,7 @@ public class ShellProcessJobObjectTests
     public async Task Kill_GroupLeader_TerminatesTheJob()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         await using var process = await _executor.StartProcessAsync(OrphanedPingCommand, TestContext.Current.CancellationToken);
         using var ping = await ChildNamedAsync(process.ProcessId, "PING.EXE");
@@ -78,6 +80,7 @@ public class ShellProcessJobObjectTests
     public async Task DisposeAsync_GroupLeader_EndsAGrandchild()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         var process = await _executor.StartProcessAsync(OrphanedPingCommand, TestContext.Current.CancellationToken);
         using var ping = await ChildNamedAsync(process.ProcessId, "PING.EXE");
@@ -99,6 +102,7 @@ public class ShellProcessJobObjectTests
     public async Task StartProcess_OwnProcessGroupOnWindows_RunsAndStreamsOutput()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c ping -n 2 127.0.0.1 > nul & echo started" }
             .WithOwnProcessGroup();
@@ -119,6 +123,7 @@ public class ShellProcessJobObjectTests
     public async Task ExecuteAsync_OwnProcessGroupOnWindows_ResumesTheCommand()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c echo started" }
             .WithOwnProcessGroup()
@@ -136,6 +141,7 @@ public class ShellProcessJobObjectTests
     public async Task StopAsync_GroupCommandWithoutAJob_KillsTheTreeAfterTheGrace()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c ping -n 60 127.0.0.1 > nul" };
         await using var process = CreateGroupCommandWhoseJobFails(command, new Win32Exception(5));
@@ -161,6 +167,7 @@ public class ShellProcessJobObjectTests
     public async Task StartProcess_JobCannotBeMadeForAnyReason_ResumesTheCommandWithoutOne()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c echo started" };
         await using var process = CreateGroupCommandWhoseJobFails(command, new InvalidOperationException("No job"));
@@ -182,6 +189,7 @@ public class ShellProcessJobObjectTests
     public async Task StartProcess_JobFailsAndTheLoggerThrows_ResumesTheCommand()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Job objects");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "cmd.exe", Arguments = "/c echo started" };
         await using var process = CreateGroupCommandWhoseJobFails(

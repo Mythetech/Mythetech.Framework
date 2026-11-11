@@ -14,6 +14,7 @@ public class ShellExecutorStartInfoTests
 
     private readonly ShellExecutor _executor = new();
 
+#if NET11_0_OR_GREATER
     [Fact(DisplayName = "CreateProcessStartInfo_OwnProcessGroupOnUnix_StartsDetached")]
     [UnsupportedOSPlatform("windows")]
     public void CreateProcessStartInfo_OwnProcessGroupOnUnix_StartsDetached()
@@ -53,4 +54,26 @@ public class ShellExecutorStartInfoTests
         plain.StartSuspended.ShouldBeFalse();
         plain.StartDetached.ShouldBeFalse();
     }
+#else
+    [Fact(DisplayName = "CreateProcessStartInfo_OwnProcessGroupOnNet10_Throws")]
+    public void CreateProcessStartInfo_OwnProcessGroupOnNet10_Throws()
+    {
+        Should.Throw<PlatformNotSupportedException>(() => _executor.CreateProcessStartInfo(Command.WithOwnProcessGroup()));
+        _executor.CreateProcessStartInfo(Command).ShouldNotBeNull();
+    }
+
+    [Fact(DisplayName = "ExecuteAsync_OwnProcessGroupOnNet10_ThrowsBeforeStarting")]
+    public async Task ExecuteAsync_OwnProcessGroupOnNet10_ThrowsBeforeStarting()
+    {
+        await Should.ThrowAsync<PlatformNotSupportedException>(
+            () => _executor.ExecuteAsync(Command.WithOwnProcessGroup().WithoutShell(), cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact(DisplayName = "StartProcessAsync_OwnProcessGroupOnNet10_ThrowsBeforeStarting")]
+    public async Task StartProcessAsync_OwnProcessGroupOnNet10_ThrowsBeforeStarting()
+    {
+        await Should.ThrowAsync<PlatformNotSupportedException>(
+            () => _executor.StartProcessAsync(Command.WithOwnProcessGroup().WithoutShell(), TestContext.Current.CancellationToken));
+    }
+#endif
 }

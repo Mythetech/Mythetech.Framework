@@ -81,6 +81,7 @@ public class ProcessGroupsTests
     public async Task Signal_FailsForAnotherReasonThanNoSuchGroup_LogsTheErrno()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sleep" }.WithArgumentList("30").WithOwnProcessGroup().WithoutShell();
         await using var process = await new ShellExecutor().StartProcessAsync(command, TestContext.Current.CancellationToken);
@@ -103,6 +104,7 @@ public class ProcessGroupsTests
     public async Task Signal_FailsWithAFailureLevel_LogsAtThatLevel()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "POSIX process groups");
+        ProcessGroupSupport.SkipOnNet10();
 
         var command = new ShellCommand { Command = "/bin/sleep" }.WithArgumentList("30").WithOwnProcessGroup().WithoutShell();
         await using var process = await new ShellExecutor().StartProcessAsync(command, TestContext.Current.CancellationToken);
