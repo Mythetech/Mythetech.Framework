@@ -21,9 +21,10 @@
 
 ## Target Frameworks
 
-- `Mythetech.Framework` and `Mythetech.Framework.WebAssembly` target `net10.0;net11.0`. `net10.0` is the floor: don't use an API that only exists in a newer .NET without a per-framework fallback.
+- `Mythetech.Framework`, `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` target `net10.0;net11.0`. `net10.0` is the floor: don't use an API that only exists in a newer .NET without a per-framework fallback.
 - Microsoft package references are conditioned per target framework, and each must come from that framework's .NET major (`10.0.x` for `net10.0`, `11.0.x` for `net11.0`). Never share one version across target frameworks.
-- `Mythetech.Framework.Desktop` targets only the frameworks its Hermes version ships. Samples, the Storybook, benchmarks and tests stay on `net11.0`.
+- Desktop's process groups (`ShellCommand.OwnProcessGroup`) use .NET 11 process APIs, so on `net10.0` they throw `PlatformNotSupportedException`. Keep that code behind `#if NET11_0_OR_GREATER`.
+- Desktop can only target the frameworks its Hermes version ships. Samples, the Storybook, benchmarks and tests stay on `net11.0`.
 - The `net11.0` build compiles against .NET 11's Components, which ship the `BL0012` and `BL0016` analyzers. Fix their findings with `Infrastructure.Guards` (see `docs/Infrastructure/Guards/JsInterop.md`) rather than suppressing them.
 
 ## Build Commands

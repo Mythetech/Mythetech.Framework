@@ -84,6 +84,8 @@ public record ShellCommand
     /// <remarks>
     /// The login shell wrapper <c>exec</c>s the command, so <see cref="Command"/> must be an executable,
     /// not a shell builtin or a compound line.
+    /// Needs .NET 11 or later: on .NET 10 the desktop executor throws <see cref="PlatformNotSupportedException"/>
+    /// before it starts the command.
     /// </remarks>
     public bool OwnProcessGroup { get; init; }
 

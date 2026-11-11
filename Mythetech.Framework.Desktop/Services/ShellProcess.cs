@@ -221,11 +221,16 @@ public class ShellProcess : IShellProcess
     /// Waits for the process itself to exit and returns its exit code. Unlike <see cref="WaitForExitAsync"/>, it does
     /// not wait for a descendant that still holds its stdout or stderr, and output may still be arriving.
     /// </summary>
+#if NET11_0_OR_GREATER
     internal async Task<int> WaitForLeaderExitAsync(CancellationToken cancellationToken)
     {
         var status = await _process.SafeHandle.WaitForExitAsync(cancellationToken);
         return status.ExitCode;
     }
+#else
+    internal Task<int> WaitForLeaderExitAsync(CancellationToken cancellationToken) =>
+        throw new PlatformNotSupportedException(ShellExecutor.ProcessGroupsNeedNet11);
+#endif
 
     /// <inheritdoc />
     public void Interrupt()

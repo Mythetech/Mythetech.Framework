@@ -41,7 +41,7 @@ The WebAssembly story book is hosted on github pages here: https://mythetech.git
 - Extensible plugin system with storage and state management
 - AI generator integration for LLM-powered features
 - Desktop support via [Hermes](https://github.com/Mythetech/Hermes)
-- .NET 10 and .NET 11 support (`Mythetech.Framework.Desktop` targets .NET 11)
+- .NET 10 and .NET 11 support
 - Comprehensive test coverage
 
 ## Project Structure

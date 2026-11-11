@@ -78,6 +78,7 @@ internal sealed class WindowsJobObject : IDisposable
                 ex, "Could not put process {ProcessId} in a job object, so it runs without one", process.Id));
         }
 
+#if NET11_0_OR_GREATER
         if (!process.StartInfo.StartSuspended)
             return job;
 
@@ -107,6 +108,9 @@ internal sealed class WindowsJobObject : IDisposable
             }
             throw;
         }
+#else
+        return job;
+#endif
     }
 
     // A logger that throws must not keep a suspended process from being resumed or killed.

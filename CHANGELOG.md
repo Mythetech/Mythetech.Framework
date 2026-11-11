@@ -44,7 +44,9 @@
 - The plugin dialogs no longer show exception text. A registry that won't load shows `Couldn't load the plugin registry. Check your connection and try again.`, and installs show the installer's messages
 - `PluginState.StateChanged` is raised off the UI thread when a local plugin reloads, so a handler that renders must call `InvokeAsync(StateHasChanged)`. A handler that throws is logged and no longer stops the other handlers or the change that raised the event
 - `Mythetech.Framework` and `Mythetech.Framework.WebAssembly` target `net10.0` and `net11.0`. Each target framework takes its Microsoft packages from its own .NET major: `10.0.13` for `net10.0` and `11.0.0` for `net11.0`
-  - `Mythetech.Framework.Desktop` still targets `net11.0` only, as Hermes 1.4.5 ships no `net10.0` build. Its Microsoft packages move to `11.0.0`
+  - `Mythetech.Framework.Desktop` targets both too, on Hermes 1.4.6, the first to ship `net10.0`
+  - On .NET 10, `ShellCommand.OwnProcessGroup` throws `PlatformNotSupportedException`, since starting a process suspended or in a new session needs .NET 11's process APIs
+  - On .NET 10, Hermes holds up `DisposeAsync()` for up to `HostOptions.ShutdownTimeout` when a component calls JavaScript while its page disposes after the window has closed. See the Hermes 1.4.6 changelog
   - `global.json` pins the .NET 11 GA SDK, `11.0.100`, in place of RC1, and the Storybook and WebAssembly sample take the `11.0.0` packages
 - Building the core package against .NET 11's Components turns on the `BL0012` and `BL0016` analyzers for it. The `StateHasChanged` calls `BL0012` flagged are removed, and JS interop calls go through the guarded methods
   - `Mythetech.Framework.WebAssembly` suppresses `BL0016`: WebAssembly interop is in-process and cannot disconnect
