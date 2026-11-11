@@ -26,7 +26,7 @@
     display: flex;
     align-items: center;
     padding: 0.5rem 0.75rem;
-    border-radius: 6px;
+    border-radius: calc(var(--mud-default-borderradius) * 0.75);
     cursor: pointer;
     transition: background-color 80ms ease-out;
     outline: none;

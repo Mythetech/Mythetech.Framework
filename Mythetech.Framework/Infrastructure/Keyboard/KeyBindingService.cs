@@ -62,6 +62,11 @@ public sealed class KeyBindingService : IKeyBindingService
             return;
         }
 
+        if (RefuseIfReserved(definition, binding))
+        {
+            return;
+        }
+
         ApplyBinding(definition, binding);
         await PersistAsync();
     }
@@ -101,6 +106,22 @@ public sealed class KeyBindingService : IKeyBindingService
         _settings.Overrides.Clear();
         await PersistAsync();
     }
+
+    private bool RefuseIfReserved(KeyBindingDefinition definition, KeyBinding binding)
+    {
+        if (!IsReserved(definition, binding))
+        {
+            return false;
+        }
+
+        _logger.LogWarning(
+            "Shortcut {Binding} is reserved in the {Scope} scope; ignoring its assignment to {Id}",
+            binding, definition.Scope, definition.Id);
+        return true;
+    }
+
+    private bool IsReserved(KeyBindingDefinition definition, KeyBinding? binding)
+        => binding is not null && _registry.GetReserved(definition.Scope).Contains(binding);
 
     private void ApplyBinding(KeyBindingDefinition definition, KeyBinding binding)
     {
@@ -162,6 +183,11 @@ public sealed class KeyBindingService : IKeyBindingService
             return;
         }
 
+        if (RefuseIfReserved(definition, binding))
+        {
+            return;
+        }
+
         if (TryFindConflict(id, binding, out var conflictingId)
             && conflictingId is not null
             && _registry.Get(conflictingId) is { } previous)
@@ -192,8 +218,17 @@ public sealed class KeyBindingService : IKeyBindingService
         }
     }
 
+    // An override saved before its shortcut was reserved gives way to the default.
     private ResolvedKeyBinding Resolve(KeyBindingDefinition definition)
-        => _settings.Overrides.TryGetValue(definition.Id, out var serialized)
-            ? new ResolvedKeyBinding(definition, serialized?.ToBinding(), IsCustomized: true)
-            : new ResolvedKeyBinding(definition, definition.DefaultBinding, IsCustomized: false);
+    {
+        if (!_settings.Overrides.TryGetValue(definition.Id, out var serialized))
+        {
+            return new ResolvedKeyBinding(definition, definition.DefaultBinding, IsCustomized: false);
+        }
+
+        var binding = serialized?.ToBinding();
+        return IsReserved(definition, binding)
+            ? new ResolvedKeyBinding(definition, definition.DefaultBinding, IsCustomized: false)
+            : new ResolvedKeyBinding(definition, binding, IsCustomized: true);
+    }
 }

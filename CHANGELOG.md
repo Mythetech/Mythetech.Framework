@@ -1,9 +1,34 @@
 # Changelog
 
-## [Unreleased]
+## [0.23.1] - 2026-11-10
+
+### Fixed
+
+- `IKeyBindingService.SetBindingAsync` and `ReassignAsync` refuse a shortcut reserved in the action's scope. They assigned it, so only the shortcuts editor kept reserved shortcuts off an action. A refused assignment changes nothing and logs a warning, as an unknown action ID already did
+- A saved shortcut that is reserved in its action's scope no longer applies, such as one saved before it was reserved or edited into the settings by hand. The action takes its default and isn't shown as customized, and the saved value stays until the action is assigned or reset
+- `MtTextField`, `MtNumericField` and `MtSelect` take their corner radius from the theme's `DefaultBorderRadius`, as MudBlazor's outlined inputs do, instead of a fixed 8px. With a radius of `0.5em` they look about the same as before; with `0.25em` or MudBlazor's default of 4px, their corners are smaller. `MtSelect`'s list items take half the theme's radius instead of a fixed 4px
+- `MtNavLink`, `MtKbd`, the command palette's rows, and the settings dialog's navigation items, controls, search matches and scrollbar also take their corner radius from the theme, instead of fixed values from 3px to 8px. In a theme with a radius of `0.5em` they look about the same as before
+
+### Notes
+
+- Only `Mythetech.Framework` moves to `0.23.1`. `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` stay at `0.23.0`, and `Mythetech.Framework.AI.Generator` stays at `0.22.0`
+
+## [0.23.0] - 2026-11-09
 
 ### Added
 
+- Key bindings have a scope. `KeyBindingScope.Global` is the default and behaves as before. `KeyBindingScope.Editor` lists an action and lets the user rebind it, but `MtKeyBindings` never registers a hotkey for it, so an editor can handle its own shortcuts (find next, go to line)
+  - `KeyBindingBuilder.Add` takes an optional `scope`, `KeyBindingDefinition` an optional trailing `Scope`, and `ResolvedKeyBinding` exposes `Scope`
+  - This is binary-breaking even though the new parameters are optional: code built against 0.22.x, including plugins, must be recompiled. The `KeyBindingDefinition` constructor and `Deconstruct`, and `KeyBindingBuilder.Add`, changed signature, and anything that implements `IKeyBindingService` must add the new `GetAll(KeyBindingScope)` member
+  - `IKeyBindingService.GetAll(KeyBindingScope)` returns the actions in one scope
+  - `TryFindConflict` and `ReassignAsync` only consider actions in the same scope, so an editor action can share a key with a global one
+- Reserved shortcuts. `KeyBindingBuilder.Reserve(scope, bindings)` declares shortcuts the user can't assign to any action in that scope, such as the keys an editor handles itself. The shortcuts editor refuses a reserved shortcut and says it is reserved
+  - `IKeyBindingRegistry.GetReserved(KeyBindingScope)` and `IKeyBindingService.GetReserved(KeyBindingScope)` return them, `KeyBindingRegistrationOptions.Reserved` holds them, and `MtKeyBindingRecorder.Reserved` takes the list a recorder refuses
+  - Anything that implements `IKeyBindingRegistry` or `IKeyBindingService` must add `GetReserved`
+- `UserAgentPlatformDetector`, registered with `AddUserAgentPlatformDetector()`, is a platform detector for Blazor Server, so shortcut labels show Cmd on a Mac. Server hosts had none, so the labels always showed Ctrl
+  - It is scoped, so each circuit reports its own browser's platform
+  - A circuit can't read its HTTP request, so the host reads the `User-Agent` header in `App.razor` from the cascading `HttpContext`, passes it to its interactive root component as a parameter, and the root calls `SetUserAgent` in `OnInitialized`
+  - Desktop and WebAssembly hosts keep their own detectors and don't call it
 - `IPluginInstaller`, which `AddPluginFramework` registers as scoped, installs and upgrades plugins. `InstallFromUrlAsync` downloads a package, `InstallFromStreamAsync` installs a zip or a bare DLL, and `ImportFromFileAsync` loads a DLL in place for the current session. Each returns a `PluginInstallResult` with `Succeeded`, the loaded `Plugins`, and a `Message` written for the user, such as `Updated {Name} to {Version}.`, `Couldn't update {Name}. Version {Version} is still installed.` when nothing in an upgrade loads, or `Couldn't load a plugin from that package.`, never exception text
   - `PluginManagementDialog`, `DefaultPluginUrlLoadDialog` and the import item in `StandardPluginMenu` install through it
 - Upgrading a plugin no longer needs a restart. Each install goes into a new `install-{timestamp}` folder under the plugin's folder, the new version replaces the loaded one in the running app, and the previous folder gets a `.removed` marker. At startup, marked folders and all but the newest `install-*` folder are deleted, and only the newest loads. `PluginInstallLayout` and `PluginPackageExtractor` hold the folder layout and the zip extraction, with its zip-slip guard
@@ -45,36 +70,16 @@
 
 ### Fixed
 
+- `MtTextField` no longer overwrites what the user is typing. It replaced its text with `Value` on every parameter set, so a parent render that hadn't caught up with the typing, which is common on Blazor Server, dropped keystrokes. It now takes `Value` only when the parent changes it, and not when the parent echoes the value the field just sent, so typing `1.` into a numeric field keeps the dot
+- `MtTextField.SelectAsync` selects the field's text. It only focused the field before
+- `MtKeyBindingRecorder` refuses Shift with any key but a function key, as it already refused a key with no modifier. A shortcut such as Shift+A or Shift+ArrowDown blocks that key's normal action across the app, so it would stop a capital being typed or a selection being extended. The recorder's message now reads "Add Ctrl or Alt to use this key"
+- Framework.WebAssembly's `AddWebAssemblySettingsStorage` and `AddPluginStateProvider`, and the `AddLocalStorageSettingsStorage` and `AddLocalStoragePluginStateProvider` methods they call, register their services as singletons. The Framework resolves both from the root provider, which scope validation rejects for a scoped service, so in Development every settings change failed to publish
 - Plugin panels in `AppContextDrawer` render inside `PluginGuard`, so a panel that throws shows `Plugin Error` and the drawer's other panels keep rendering. `PluginGuard` also shows its error view on the first render that fails, which before needed another render of the host
 - `AppContextDrawer` gives each panel its own components. Panels an app builds in a loop, such as Siren's plugin panels, shared one set, so a panel opened after a failed one showed the failed panel's error, and any state in a panel's components carried over to the next
 - `PluginGuard`'s **Reload** shows the error again when the panel still throws. It left the panel blank
 - A plugin menu item whose `OnClick` throws no longer escapes `PluginMenuHost` or `PluginMenuItemsRenderer`. They call `PluginMenuItemInvoker`
 - `UsePluginFramework` gives `PluginState` the app's logger. Nothing set one, so `PluginState`'s own warnings, such as a failed delete of a removed plugin's data, were dropped
 - `AddMessageBus` no longer registers the plugin framework's consumers. In an app that never called `AddPluginFramework`, it registered `PluginSettingsConsumer`, so building the service provider with `ValidateOnBuild` failed for want of `PluginState`
-
-## [0.23.0] - 2026-11-09
-
-### Added
-
-- Key bindings have a scope. `KeyBindingScope.Global` is the default and behaves as before. `KeyBindingScope.Editor` lists an action and lets the user rebind it, but `MtKeyBindings` never registers a hotkey for it, so an editor can handle its own shortcuts (find next, go to line)
-  - `KeyBindingBuilder.Add` takes an optional `scope`, `KeyBindingDefinition` an optional trailing `Scope`, and `ResolvedKeyBinding` exposes `Scope`
-  - This is binary-breaking even though the new parameters are optional: code built against 0.22.x, including plugins, must be recompiled. The `KeyBindingDefinition` constructor and `Deconstruct`, and `KeyBindingBuilder.Add`, changed signature, and anything that implements `IKeyBindingService` must add the new `GetAll(KeyBindingScope)` member
-  - `IKeyBindingService.GetAll(KeyBindingScope)` returns the actions in one scope
-  - `TryFindConflict` and `ReassignAsync` only consider actions in the same scope, so an editor action can share a key with a global one
-- Reserved shortcuts. `KeyBindingBuilder.Reserve(scope, bindings)` declares shortcuts the user can't assign to any action in that scope, such as the keys an editor handles itself. The shortcuts editor refuses a reserved shortcut and says it is reserved
-  - `IKeyBindingRegistry.GetReserved(KeyBindingScope)` and `IKeyBindingService.GetReserved(KeyBindingScope)` return them, `KeyBindingRegistrationOptions.Reserved` holds them, and `MtKeyBindingRecorder.Reserved` takes the list a recorder refuses
-  - Anything that implements `IKeyBindingRegistry` or `IKeyBindingService` must add `GetReserved`
-- `UserAgentPlatformDetector`, registered with `AddUserAgentPlatformDetector()`, is a platform detector for Blazor Server, so shortcut labels show Cmd on a Mac. Server hosts had none, so the labels always showed Ctrl
-  - It is scoped, so each circuit reports its own browser's platform
-  - A circuit can't read its HTTP request, so the host reads the `User-Agent` header in `App.razor` from the cascading `HttpContext`, passes it to its interactive root component as a parameter, and the root calls `SetUserAgent` in `OnInitialized`
-  - Desktop and WebAssembly hosts keep their own detectors and don't call it
-
-### Fixed
-
-- `MtTextField` no longer overwrites what the user is typing. It replaced its text with `Value` on every parameter set, so a parent render that hadn't caught up with the typing, which is common on Blazor Server, dropped keystrokes. It now takes `Value` only when the parent changes it, and not when the parent echoes the value the field just sent, so typing `1.` into a numeric field keeps the dot
-- `MtTextField.SelectAsync` selects the field's text. It only focused the field before
-- `MtKeyBindingRecorder` refuses Shift with any key but a function key, as it already refused a key with no modifier. A shortcut such as Shift+A or Shift+ArrowDown blocks that key's normal action across the app, so it would stop a capital being typed or a selection being extended. The recorder's message now reads "Add Ctrl or Alt to use this key"
-- Framework.WebAssembly's `AddWebAssemblySettingsStorage` and `AddPluginStateProvider`, and the `AddLocalStorageSettingsStorage` and `AddLocalStoragePluginStateProvider` methods they call, register their services as singletons. The Framework resolves both from the root provider, which scope validation rejects for a scoped service, so in Development every settings change failed to publish
 
 ### Notes
 
