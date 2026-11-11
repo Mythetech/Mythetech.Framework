@@ -43,6 +43,11 @@
 - `PluginState.RemovePluginAsync` marks the plugin's folder for removal instead of deleting files its loaded assembly still uses. The folder is deleted at the next startup, and the plugin's stored data is still deleted straight away
 - The plugin dialogs no longer show exception text. A registry that won't load shows `Couldn't load the plugin registry. Check your connection and try again.`, and installs show the installer's messages
 - `PluginState.StateChanged` is raised off the UI thread when a local plugin reloads, so a handler that renders must call `InvokeAsync(StateHasChanged)`. A handler that throws is logged and no longer stops the other handlers or the change that raised the event
+- `Mythetech.Framework` and `Mythetech.Framework.WebAssembly` target `net10.0` and `net11.0`. Each target framework takes its Microsoft packages from its own .NET major: `10.0.13` for `net10.0` and `11.0.0` for `net11.0`
+  - `Mythetech.Framework.Desktop` still targets `net11.0` only, as Hermes 1.4.5 ships no `net10.0` build. Its Microsoft packages move to `11.0.0`
+  - `global.json` pins the .NET 11 GA SDK, `11.0.100`, in place of RC1, and the Storybook and WebAssembly sample take the `11.0.0` packages
+- Building the core package against .NET 11's Components turns on the `BL0012` and `BL0016` analyzers for it. The `StateHasChanged` calls `BL0012` flagged are removed, and JS interop calls go through the guarded methods
+  - `Mythetech.Framework.WebAssembly` suppresses `BL0016`: WebAssembly interop is in-process and cannot disconnect
 - `IPluginModuleLoader.ImportAsync` and `PluginComponentBase.ImportModuleAsync` document the `JSDisconnectedException` they throw when the runtime is gone, since there is no module to return
 
 ### Fixed
