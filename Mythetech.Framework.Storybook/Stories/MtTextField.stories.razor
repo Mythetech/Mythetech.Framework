@@ -43,6 +43,25 @@
         </Template>
     </ProductStory>
 
+    <ProductStory Name="Find Field" TComponent="MtTextField<string>">
+        <Arguments>
+            <Arg For="_ => _.Placeholder" Value="@("Find")" />
+        </Arguments>
+
+        <Template>
+            <MtTextField T="string" @attributes="context.Args">
+                <StartContent>
+                    <MudIcon Icon="@MythetechFrameworkIcons.Search" Size="Size.Small" />
+                </StartContent>
+                <EndContent>
+                    <MudToggleIconButton Icon="@MythetechFrameworkIcons.Round("match_case")" Size="Size.Small" Title="Match case" />
+                    <MudToggleIconButton Icon="@MythetechFrameworkIcons.Round("match_word")" Size="Size.Small" Title="Whole word" />
+                    <MudToggleIconButton Icon="@MythetechFrameworkIcons.Round("regular_expression")" Size="Size.Small" Title="Regular expression" />
+                </EndContent>
+            </MtTextField>
+        </Template>
+    </ProductStory>
+
     <ProductStory Name="Clearable" TComponent="MtTextField<string>">
         <Arguments>
             <Arg For="_ => _.Label" Value="@("Filter")" />

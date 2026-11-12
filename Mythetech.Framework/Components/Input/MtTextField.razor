@@ -11,6 +11,11 @@
         </button>
     }
 
+    @if (StartContent is not null)
+    {
+        <span class="mt-tf-start-content">@StartContent</span>
+    }
+
     @if (Lines > 1)
     {
         <textarea @ref="_elementRef"
@@ -52,6 +57,11 @@
         <button class="mt-tf-adornment mt-tf-clear" tabindex="-1" @onclick="HandleClearAsync" type="button">
             <MudIcon Icon="@MythetechFrameworkIcons.Close" Size="Size.Small" />
         </button>
+    }
+
+    @if (EndContent is not null)
+    {
+        <span class="mt-tf-end-content">@EndContent</span>
     }
 
     @if (Adornment == MudBlazor.Adornment.End && !string.IsNullOrEmpty(AdornmentIcon))

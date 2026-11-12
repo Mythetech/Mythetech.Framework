@@ -68,6 +68,22 @@
     cursor: pointer;
 }
 
+.mt-tf-start-content,
+.mt-tf-end-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.mt-text-field.mt-tf-has-start-content .mt-tf-input {
+    padding-inline-start: 4px;
+}
+
+.mt-text-field.mt-tf-has-end-content .mt-tf-input {
+    padding-inline-end: 4px;
+}
+
 .mt-tf-clear {
     cursor: pointer;
     opacity: 0.6;
