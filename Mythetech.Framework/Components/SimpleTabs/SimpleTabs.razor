@@ -34,6 +34,7 @@
             <MudMenu Icon="@MythetechFrameworkIcons.MoreVert"
                      Size="Size.Small"
                      Dense="true"
+                     ListClass="@ListClass"
                      AnchorOrigin="Origin.BottomRight"
                      TransformOrigin="Origin.TopRight">
                 @foreach (var tab in _tabs)
@@ -114,6 +115,11 @@
     /// CSS class applied to the tab content container div
     /// </summary>
     [Parameter] public string ContentClass { get; set; } = "";
+
+    /// <summary>
+    /// CSS class applied to the list of the overflow menu shown in compact mode
+    /// </summary>
+    [Parameter] public string ListClass { get; set; } = "pa-1";
 
     /// <summary>
     /// Keeps every tab's content rendered, hiding the inactive ones, so a tab keeps its component state when another is selected.
