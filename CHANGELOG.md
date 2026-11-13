@@ -1,10 +1,18 @@
 # Changelog
 
-## [Unreleased]
+## [0.23.2] - 2026-11-12
+
+### Added
+
+- `SimpleTabs.ListClass` sets the CSS class of the list in the overflow menu that `SimpleTabs` shows in compact mode. It defaults to `pa-1`
 
 ### Fixed
 
 - `MtTextField` keeps every key typed into it on Blazor Server. It wrote its text back to the browser after each keystroke, and on Blazor Server that write can arrive after the next key, which it then took out, as when typing quickly into a search field. The field binds its text with `@bind`, so Blazor takes the text from the browser and sends none back
+
+### Notes
+
+- Only `Mythetech.Framework` moves to `0.23.2`. `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` stay at `0.23.0`, and `Mythetech.Framework.AI.Generator` stays at `0.22.0`
 
 ## [0.23.1] - 2026-11-10
 
