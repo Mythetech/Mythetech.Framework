@@ -1,10 +1,19 @@
 # Changelog
 
-## [0.23.2] - 2026-11-12
+## [0.23.2] - 2026-11-22
 
 ### Added
 
 - `SimpleTabs.ListClass` sets the CSS class of the list in the overflow menu that `SimpleTabs` shows in compact mode. It defaults to `pa-1`
+- `MtTextField.StartContent` and `EndContent` render content inside the field's frame: `StartContent` after the start adornment and before the input, and `EndContent` after the clear button and before the end adornment, as the Storybook's find field does with its match count and options
+
+### Changed
+
+- `Mythetech.Framework.Desktop` moves to `Mythetech.Hermes` and `Mythetech.Hermes.Blazor` 1.4.8, from 1.4.5. See the Hermes changelog for the full list
+  - Only the top frame of a window can reach the host, on every platform. A cross-origin iframe can no longer post messages into Blazor, start a window drag or report a drop; Hermes's `SECURITY.md` describes what each platform guarantees
+  - On Windows, a handler registered for `http` or `https` sees only requests for `localhost` on the default port, so a cross-origin iframe, such as one on a loopback server, loads from its own server instead of getting a 404. Responses the app serves allow only the app's own origin instead of `*`
+  - On Linux and Windows, a second instance on 1.4.8 cannot forward its arguments to a running first instance built on an earlier version, because the pipe names differ
+- `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` 0.23.1 are the first of those packages on NuGet to target `net10.0` as well as `net11.0`. Their 0.23.0 packages were built before the change the 0.23.0 notes describe, and target `net11.0` only
 
 ### Fixed
 
@@ -13,7 +22,8 @@
 
 ### Notes
 
-- Only `Mythetech.Framework` moves to `0.23.2`. `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` stay at `0.23.0`, and `Mythetech.Framework.AI.Generator` stays at `0.22.0`
+- Apps that reference `Mythetech.Hermes` or `Mythetech.Hermes.Blazor` directly must remove those references, or move them to at least 1.4.8. A lower direct version than the one `Mythetech.Framework.Desktop` depends on fails restore with NU1605 (package downgrade)
+- `Mythetech.Framework` moves to `0.23.2`, and `Mythetech.Framework.Desktop` and `Mythetech.Framework.WebAssembly` to `0.23.1`. `Mythetech.Framework.AI.Generator` is unchanged and stays at `0.22.0`
 
 ## [0.23.1] - 2026-11-10
 
