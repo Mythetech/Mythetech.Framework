@@ -41,6 +41,12 @@ public partial class MtTextField<T>
     /// <summary>Callback fired when the adornment icon is clicked.</summary>
     [Parameter] public EventCallback<MouseEventArgs> OnAdornmentClick { get; set; }
 
+    /// <summary>Content rendered inside the field's frame, after the start adornment and before the input.</summary>
+    [Parameter] public RenderFragment? StartContent { get; set; }
+
+    /// <summary>Content rendered inside the field's frame, after the clear button and before the end adornment.</summary>
+    [Parameter] public RenderFragment? EndContent { get; set; }
+
     /// <summary>When true, value updates fire on every keystroke. When false, updates fire on blur/change.</summary>
     [Parameter] public bool Immediate { get; set; } = true;
 
@@ -117,6 +123,8 @@ public partial class MtTextField<T>
             if (!string.IsNullOrEmpty(Label)) classes.Add("mt-tf-has-label");
             if (Adornment == Adornment.Start) classes.Add("mt-tf-adorned-start");
             if (Adornment == Adornment.End || Clearable) classes.Add("mt-tf-adorned-end");
+            if (StartContent is not null) classes.Add("mt-tf-has-start-content");
+            if (EndContent is not null) classes.Add("mt-tf-has-end-content");
             return string.Join(" ", classes);
         }
     }
