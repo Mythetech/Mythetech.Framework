@@ -10,20 +10,27 @@ namespace Mythetech.Framework.Infrastructure.Mcp.Transport;
 internal static class McpHttpToken
 {
     private const UnixFileMode OwnerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-    private const int Attempts = 50;
+    private const int Attempts = 10;
 
     public static string LoadOrCreate(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         for (var attempt = 0; attempt < Attempts; attempt++)
         {
-            if (TryRead(path) is { } existing)
+            if (TryRead(path, out var existing))
             {
-                RestrictToOwner(path);
-                return existing;
+                if (existing.Length > 0)
+                {
+                    RestrictToOwner(path);
+                    return existing;
+                }
+
+                // Files are only ever moved into place complete, so an empty one is left over from a crash.
+                TryDelete(path);
             }
 
             var token = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+            var temporary = $"{path}.{Guid.NewGuid():N}.tmp";
             try
             {
                 var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
@@ -31,33 +38,46 @@ internal static class McpHttpToken
                 {
                     options.UnixCreateMode = OwnerOnly;
                 }
-                using (var stream = new FileStream(path, options))
+                using (var stream = new FileStream(temporary, options))
                 using (var writer = new StreamWriter(stream))
                 {
                     writer.Write(token);
                 }
+                File.Move(temporary, path, overwrite: false);
                 return token;
             }
             catch (IOException)
             {
-                // Another instance created the file first; read its token once it has been written.
-                Thread.Sleep(10);
+                // Another instance moved its token into place first; the next pass reads it.
+                TryDelete(temporary);
             }
         }
 
-        throw new IOException("The MCP token file exists but stayed empty.");
+        throw new IOException("The MCP token file could not be created or read.");
     }
 
-    private static string? TryRead(string path)
+    private static bool TryRead(string path, out string token)
     {
         try
         {
-            var text = File.ReadAllText(path).Trim();
-            return text.Length > 0 ? text : null;
+            token = File.ReadAllText(path).Trim();
+            return true;
         }
-        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or IOException)
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            return null;
+            token = string.Empty;
+            return false;
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (IOException)
+        {
         }
     }
 

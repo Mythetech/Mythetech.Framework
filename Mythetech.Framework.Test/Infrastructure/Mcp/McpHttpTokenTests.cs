@@ -40,6 +40,18 @@ public sealed class McpHttpTokenTests : IDisposable
         tokens[0].ShouldNotBeNullOrWhiteSpace();
     }
 
+    [Fact(DisplayName = "An_empty_token_file_left_by_a_crash_is_replaced")]
+    public void An_empty_token_file_left_by_a_crash_is_replaced()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(TokenPath)!);
+        File.WriteAllText(TokenPath, "");
+
+        var token = McpHttpToken.LoadOrCreate(TokenPath);
+
+        System.Buffers.Text.Base64Url.DecodeFromChars(token).Length.ShouldBe(32);
+        File.ReadAllText(TokenPath).ShouldBe(token);
+    }
+
     [Fact(DisplayName = "Token_file_is_owner_only")]
     public void Token_file_is_owner_only()
     {
