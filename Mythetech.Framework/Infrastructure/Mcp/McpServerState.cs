@@ -81,6 +81,13 @@ public class McpServerState : IDisposable
     /// </summary>
     public string? HttpEndpoint => GetHttpEndpoint();
 
+    /// <summary>
+    /// The bearer token HTTP clients must send, or null when the HTTP transport accepts requests without one.
+    /// </summary>
+    #pragma warning disable CA1416
+    public string? HttpBearerToken => (_transport as HttpMcpTransport)?.BearerToken;
+    #pragma warning restore CA1416
+
     private string? GetHttpEndpoint()
     {
         // HttpMcpTransport is not supported on browser platform, but this

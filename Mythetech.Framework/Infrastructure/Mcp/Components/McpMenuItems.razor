@@ -83,12 +83,20 @@
             var startInfo = new ProcessStartInfo
             {
                 FileName = "claude",
-                Arguments = $"mcp add --transport http {serverName} {endpoint}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+            foreach (var argument in new[] { "mcp", "add", "--transport", "http", serverName, endpoint })
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+            if (McpState.HttpBearerToken is { } token)
+            {
+                startInfo.ArgumentList.Add("--header");
+                startInfo.ArgumentList.Add($"Authorization: Bearer {token}");
+            }
 
             using var process = Process.Start(startInfo);
             if (process is null)

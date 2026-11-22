@@ -49,6 +49,12 @@ public class HttpMcpTransport : IMcpTransport
     public int? ActualPort { get; private set; }
 
     /// <summary>
+    /// The token every request must present as <c>Authorization: Bearer</c>, or null when
+    /// <see cref="McpServerOptions.HttpTokenFilePath"/> is not set.
+    /// </summary>
+    public string? BearerToken { get; private set; }
+
+    /// <summary>
     /// Creates a new HTTP MCP transport instance.
     /// </summary>
     /// <param name="options">MCP server configuration options</param>
@@ -73,6 +79,11 @@ public class HttpMcpTransport : IMcpTransport
         var port = _options.HttpPort;
         var host = _options.HttpHost;
         var path = _options.HttpPath.TrimStart('/');
+
+        if (_options.HttpTokenFilePath is { Length: > 0 } tokenPath)
+        {
+            BearerToken = McpHttpToken.LoadOrCreate(tokenPath);
+        }
 
         // Try configured port first, then fall back to alternatives
         var portsToTry = new[] { port, port + 1, port + 2, port + 10, 0 };
@@ -165,6 +176,17 @@ public class HttpMcpTransport : IMcpTransport
                 }
             }
 
+            // Any local process can reach the port, so a configured token is required on everything but a preflight.
+            if (BearerToken is not null && request.HttpMethod != "OPTIONS"
+                && !McpHttpToken.Matches(BearerToken, request.Headers["Authorization"]))
+            {
+                _logger?.LogWarning("Rejected MCP request without a valid bearer token");
+                response.StatusCode = 401;
+                response.Headers["WWW-Authenticate"] = "Bearer";
+                response.Close();
+                return;
+            }
+
             if (request.HttpMethod == "POST")
             {
                 await HandlePostAsync(context, cancellationToken);
@@ -185,7 +207,7 @@ public class HttpMcpTransport : IMcpTransport
                 // CORS preflight
                 response.Headers["Access-Control-Allow-Origin"] = "http://localhost";
                 response.Headers["Access-Control-Allow-Methods"] = "POST, GET, DELETE, OPTIONS";
-                response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Accept, Mcp-Session-Id";
+                response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Accept, Mcp-Session-Id, Authorization";
                 response.StatusCode = 204;
                 response.Close();
             }

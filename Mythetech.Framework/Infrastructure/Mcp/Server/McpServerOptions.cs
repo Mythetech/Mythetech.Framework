@@ -53,4 +53,10 @@ public class McpServerOptions
     /// For security, this should always be localhost to prevent DNS rebinding attacks.
     /// </summary>
     public string HttpHost { get; set; } = "localhost";
+
+    /// <summary>
+    /// File holding the bearer token the HTTP transport requires, created owner-only on first start.
+    /// When null (the default), the HTTP transport accepts requests without a token.
+    /// </summary>
+    public string? HttpTokenFilePath { get; set; }
 }
