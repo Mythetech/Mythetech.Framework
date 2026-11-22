@@ -22,6 +22,10 @@ public partial class ShellExecutor : IShellExecutor
     internal const string ProcessGroupsNeedNet11 =
         "ShellCommand.OwnProcessGroup needs .NET 11 or later, which can start a process suspended or in a new session.";
 
+    // The dotnet CLI sets these in an app it starts (dotnet run, dotnet test); inherited, they make every dotnet a
+    // command runs load that SDK's targets, which fails for a repository pinned to another SDK.
+    private static readonly string[] InheritedSdkVariables = ["MSBuildExtensionsPath", "MSBuildSDKsPath", "MSBUILD_EXE_PATH"];
+
     private readonly ILogger<ShellExecutor>? _logger;
     private readonly LoginEnvironment _loginEnvironment;
 
@@ -271,6 +275,8 @@ public partial class ShellExecutor : IShellExecutor
             CreateNoWindow = true
         };
 
+        RemoveInheritedSdkVariables(startInfo);
+
         if (!string.IsNullOrEmpty(command.WorkingDirectory))
         {
             startInfo.WorkingDirectory = command.WorkingDirectory;
@@ -291,6 +297,18 @@ public partial class ShellExecutor : IShellExecutor
         }
 
         return startInfo;
+    }
+
+    // Touches Environment only when a variable is inherited, so an app nothing set them in starts commands as before.
+    private static void RemoveInheritedSdkVariables(ProcessStartInfo startInfo)
+    {
+        foreach (var name in InheritedSdkVariables)
+        {
+            if (System.Environment.GetEnvironmentVariable(name) is not null)
+            {
+                startInfo.Environment.Remove(name);
+            }
+        }
     }
 
 #if NET11_0_OR_GREATER

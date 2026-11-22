@@ -9,6 +9,7 @@
 ### Fixed
 
 - `MtTextField` keeps every key typed into it on Blazor Server. It wrote its text back to the browser after each keystroke, and on Blazor Server that write can arrive after the next key, which it then took out, as when typing quickly into a search field. The field binds its text with `@bind`, so Blazor takes the text from the browser and sends none back
+- A command `ShellExecutor` starts no longer inherits `MSBuildExtensionsPath`, `MSBuildSDKsPath` or `MSBUILD_EXE_PATH`, which the dotnet CLI sets in an app it starts with `dotnet run` or `dotnet test`. Inherited, they made every `dotnet` the command ran load that SDK's targets, so building, running or testing a repository pinned to another SDK failed with `MSB4062`. An app launched any other way never has them, and a command that sets one in its own `EnvironmentVariables` keeps its value
 
 ### Notes
 
