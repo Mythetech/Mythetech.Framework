@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
-
 using Mythetech.Framework.Infrastructure.FeatureFlags;
 
 namespace Mythetech.Framework.Infrastructure.Settings;
