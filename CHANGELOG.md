@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- A class of `[FeatureFlag]` properties with no `[Setting]` now shows in the settings panel, is saved, loaded and committed with Done, and is reverted by Cancel. Before, none of that happened, so its flags couldn't be turned on
+
 ## [0.23.2] - 2026-11-22
 
 ### Added

@@ -72,7 +72,7 @@ public abstract class SettingsBase
     {
         var snapshot = new Dictionary<string, object?>();
 
-        var properties = SettingsPropertyCache.GetSettingProperties(GetType());
+        var properties = SettingsPropertyCache.GetPersistedProperties(GetType());
 
         foreach (var propInfo in properties)
         {
@@ -90,7 +90,7 @@ public abstract class SettingsBase
     /// </summary>
     public void RestoreFromSnapshot(Dictionary<string, object?> snapshot)
     {
-        var properties = SettingsPropertyCache.GetSettingProperties(GetType());
+        var properties = SettingsPropertyCache.GetPersistedProperties(GetType());
 
         foreach (var propInfo in properties)
         {

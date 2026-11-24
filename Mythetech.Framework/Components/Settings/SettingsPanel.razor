@@ -417,6 +417,9 @@
         if (settings.BeginningContent != null || settings.EndingContent != null)
             return true;
 
+        if (settings is FeatureFlagsSettingsBase flags && flags.GetFeatureFlags().Any())
+            return true;
+
         return SettingsPropertyCache.GetSettingProperties(settings.GetType()).Any(p => !p.Attribute!.Hide);
     }
 
