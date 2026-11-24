@@ -58,7 +58,7 @@ public class SettingsPersister : IConsumer<SettingsModelChanged>
 
     private static string SerializeSettings(SettingsBase settings)
     {
-        // Only serialize properties with [Setting] attribute
+        // Serialize [Setting] properties and feature flags
         var dict = new Dictionary<string, object?>();
         foreach (var setting in SettingsPropertyCache.GetPersistedProperties(settings.GetType()))
         {

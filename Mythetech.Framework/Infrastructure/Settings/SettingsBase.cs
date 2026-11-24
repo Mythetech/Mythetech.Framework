@@ -66,7 +66,7 @@ public abstract class SettingsBase
 
     /// <summary>
     /// Creates a snapshot of current property values for revert capability.
-    /// Only captures properties with [Setting] attribute.
+    /// Captures [Setting] properties and feature flags.
     /// </summary>
     public Dictionary<string, object?> CreateSnapshot()
     {
