@@ -177,6 +177,12 @@ public class ShellProcess : IShellProcess
             }
         }
         StartedAt = ReadStartTime();
+#if NET11_0_OR_GREATER
+        if (SignalsItsGroup)
+        {
+            ProcessGroupLifeline.Shared.Adopt(_processId, StartedAt, _logger);
+        }
+#endif
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
     }
@@ -345,6 +351,12 @@ public class ShellProcess : IShellProcess
         }
         finally
         {
+#if NET11_0_OR_GREATER
+            if (SignalsItsGroup)
+            {
+                ProcessGroupLifeline.Shared.Release(_processId);
+            }
+#endif
             if (InJob)
             {
                 _job.Dispose();

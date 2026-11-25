@@ -82,6 +82,8 @@ public record ShellCommand
     /// so everything it starts can be signalled and stopped as one. Default: false.
     /// </summary>
     /// <remarks>
+    /// The group ends with the app's process, a crash included: on Windows its job closes with the app's last handle to it,
+    /// and on macOS and Linux a watchdog outside the app's process tree kills it.
     /// The login shell wrapper <c>exec</c>s the command, so <see cref="Command"/> must be an executable,
     /// not a shell builtin or a compound line.
     /// Needs .NET 11 or later: on .NET 10 the desktop executor throws <see cref="PlatformNotSupportedException"/>
