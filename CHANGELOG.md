@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- On macOS and Linux, a process group a `ShellCommand.OwnProcessGroup` command leads now ends when the app's process does, a crash or a SIGKILL included, as it already did on Windows through its job object. It used to keep running: on macOS the whole group, and on Linux everything in it but the leader. A watchdog shell outside the app's process tree, started with the first group command, kills every group still running once the app's end of a pipe it reads closes. Disposing an `IShellProcess` strikes its group off the watchdog's list, and groups that have emptied are struck off every 10 seconds, so a reused group id is never signalled
+
 ## [0.23.2] - 2026-11-22
 
 ### Added
