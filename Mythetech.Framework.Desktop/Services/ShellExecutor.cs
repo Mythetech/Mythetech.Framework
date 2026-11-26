@@ -361,7 +361,7 @@ public partial class ShellExecutor : IShellExecutor
         startInfo.FileName = shell;
         startInfo.ArgumentList.Add("-c");
         startInfo.ArgumentList.Add(
-            $"{setupScript}{BuildEnvironmentExports(command.EnvironmentVariables)}{BuildPosixCommandLine(command)}");
+            $"{setupScript}{BuildEnvironmentExports(command.EnvironmentVariables, startInfo)}{BuildPosixCommandLine(command)}");
     }
 
     /// <summary>
@@ -465,7 +465,10 @@ public partial class ShellExecutor : IShellExecutor
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]
     private static partial Regex ValidEnvKeyRegex();
 
-    private string BuildEnvironmentExports(IReadOnlyDictionary<string, string>? environmentVariables)
+    internal const string EnvironmentValuePrefix = "MYTHETECH_SHELL_ENV_";
+
+    // Values travel in the environment, not the -c string, which any process can read; the export runs after the login profile so it still wins.
+    private string BuildEnvironmentExports(IReadOnlyDictionary<string, string>? environmentVariables, ProcessStartInfo startInfo)
     {
         if (environmentVariables == null || environmentVariables.Count == 0)
         {
@@ -485,9 +488,9 @@ public partial class ShellExecutor : IShellExecutor
                 continue;
             }
 
-            // Escape single quotes in values for shell safety
-            var escapedValue = value.Replace("'", "'\\''");
-            exports.Append($"export {key}='{escapedValue}'; ");
+            var carrier = EnvironmentValuePrefix + key;
+            startInfo.Environment[carrier] = value;
+            exports.Append($"export {key}=\"${{{carrier}}}\"; unset {carrier}; ");
         }
 
         return exports.ToString();

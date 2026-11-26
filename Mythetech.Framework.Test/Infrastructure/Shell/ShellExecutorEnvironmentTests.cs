@@ -92,6 +92,42 @@ public sealed class ShellExecutorEnvironmentTests : IDisposable
             .WithArgumentList("build")
             .WithEnvironment(new Dictionary<string, string> { ["MSBuildSDKsPath"] = "/chosen/Sdks" });
 
-        _executor.CreateProcessStartInfo(command).ArgumentList[^1].ShouldContain("export MSBuildSDKsPath='/chosen/Sdks';");
+        var startInfo = _executor.CreateProcessStartInfo(command);
+
+        startInfo.ArgumentList[^1].ShouldContain("export MSBuildSDKsPath=\"${MYTHETECH_SHELL_ENV_MSBuildSDKsPath}\"; unset MYTHETECH_SHELL_ENV_MSBuildSDKsPath;");
+        startInfo.Environment["MYTHETECH_SHELL_ENV_MSBuildSDKsPath"].ShouldBe("/chosen/Sdks");
+    }
+
+    [Fact(DisplayName = "CreateProcessStartInfo_ShellCommandWithEnvironment_KeepsTheValueOutOfTheCommandLine")]
+    public void CreateProcessStartInfo_ShellCommandWithEnvironment_KeepsTheValueOutOfTheCommandLine()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows runs shell commands directly");
+
+        var command = new ShellCommand { Command = "git" }.WithArgumentList("status")
+            .WithEnvironment(new Dictionary<string, string> { ["HORIZON_EDITOR_TOKEN"] = "s3cret-value" });
+
+        var startInfo = _executor.CreateProcessStartInfo(command);
+
+        startInfo.ArgumentList[^1].ShouldNotContain("s3cret-value");
+        startInfo.ArgumentList[^1].ShouldContain("export HORIZON_EDITOR_TOKEN=\"${MYTHETECH_SHELL_ENV_HORIZON_EDITOR_TOKEN}\"; unset MYTHETECH_SHELL_ENV_HORIZON_EDITOR_TOKEN;");
+        startInfo.Environment["MYTHETECH_SHELL_ENV_HORIZON_EDITOR_TOKEN"].ShouldBe("s3cret-value");
+    }
+
+    [Theory(DisplayName = "ExecuteAsync_ShellCommandWithEnvironment_DeliversTheValueByteForByte")]
+    [InlineData("it's")]
+    [InlineData("line one\nline two")]
+    [InlineData("$(touch /tmp/mythetech-env-test) `id` $HOME")]
+    public async Task ExecuteAsync_ShellCommandWithEnvironment_DeliversTheValueByteForByte(string value)
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows runs shell commands directly");
+        File.Delete("/tmp/mythetech-env-test");
+
+        var command = new ShellCommand { Command = "printenv" }.WithArgumentList("PROBE")
+            .WithEnvironment(new Dictionary<string, string> { ["PROBE"] = value });
+
+        var result = await _executor.ExecuteAsync(command, TestContext.Current.CancellationToken);
+
+        result.StandardOutput.TrimEnd('\n').ShouldBe(value);
+        File.Exists("/tmp/mythetech-env-test").ShouldBeFalse();
     }
 }

@@ -80,26 +80,30 @@
 
         try
         {
-            var startInfo = new ProcessStartInfo
+            Process? process = null;
+            foreach (var arguments in ClaudeCodeMcpCommands.Add(serverName, endpoint, McpState.HttpBearerToken))
             {
-                FileName = "claude",
-                Arguments = $"mcp add --transport http {serverName} {endpoint}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                process?.Dispose();
+                var startInfo = new ProcessStartInfo("claude", arguments)
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                process = Process.Start(startInfo);
+                if (process is null)
+                {
+                    Snackbar.Add("Failed to start claude CLI", Severity.Error);
+                    return;
+                }
 
-            using var process = Process.Start(startInfo);
-            if (process is null)
-            {
-                Snackbar.Add("Failed to start claude CLI", Severity.Error);
-                return;
+                // A remove of an entry that does not exist fails; only the add's result matters.
+                await process.WaitForExitAsync();
             }
 
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode == 0)
+            using var _ = process;
+            if (process!.ExitCode == 0)
             {
                 Snackbar.Add($"Added '{serverName}' to Claude Code at {endpoint}", Severity.Success);
             }

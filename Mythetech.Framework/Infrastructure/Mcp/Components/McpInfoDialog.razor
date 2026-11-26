@@ -37,6 +37,13 @@
                     <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Endpoint:</MudText>
                     <MudText Typo="Typo.body2"><code>@(McpState.HttpEndpoint ?? "Not started")</code></MudText>
                 </MudStack>
+                @if (!string.IsNullOrEmpty(Options.Value.HttpTokenFilePath))
+                {
+                    <MudStack Row="true" Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Style="min-width: 80px;">Access:</MudText>
+                        <MudText Typo="Typo.body2">Requires a token, stored in <code>@Options.Value.HttpTokenFilePath</code></MudText>
+                    </MudStack>
+                }
             }
             else
             {
