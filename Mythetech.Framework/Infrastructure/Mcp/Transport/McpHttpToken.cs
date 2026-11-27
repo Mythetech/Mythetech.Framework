@@ -33,6 +33,9 @@ internal static class McpHttpToken
             using (var writer = new StreamWriter(stream))
             {
                 writer.Write(token);
+                writer.Flush();
+                // Renamed before it reaches the disk, a power loss can leave the file empty and the token lost.
+                stream.Flush(flushToDisk: true);
             }
             File.Move(temporary, path, overwrite: true);
             return token;
@@ -43,7 +46,7 @@ internal static class McpHttpToken
         }
     }
 
-    // Move without overwrite checks then renames on Unix, so instances starting together hold a side file in turn instead.
+    // File.Move without overwrite is an existence check then a rename on Unix, so creation takes turns on a side lock file.
     private static FileStream TakeTurn(string path)
     {
         for (var attempt = 1; ; attempt++)
@@ -52,7 +55,8 @@ internal static class McpHttpToken
             {
                 return new FileStream($"{path}.lock", OwnerOnlyOptions(FileMode.OpenOrCreate, FileAccess.ReadWrite));
             }
-            catch (IOException) when (attempt < LockAttempts)
+            // A held lock throws a plain IOException; a missing folder or a bad path throws a subclass and fails at once.
+            catch (IOException ex) when (ex.GetType() == typeof(IOException) && attempt < LockAttempts)
             {
                 Thread.Sleep(LockRetryDelay);
             }
