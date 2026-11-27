@@ -66,13 +66,13 @@ public abstract class SettingsBase
 
     /// <summary>
     /// Creates a snapshot of current property values for revert capability.
-    /// Only captures properties with [Setting] attribute.
+    /// Captures [Setting] properties and feature flags.
     /// </summary>
     public Dictionary<string, object?> CreateSnapshot()
     {
         var snapshot = new Dictionary<string, object?>();
 
-        var properties = SettingsPropertyCache.GetSettingProperties(GetType());
+        var properties = SettingsPropertyCache.GetPersistedProperties(GetType());
 
         foreach (var propInfo in properties)
         {
@@ -90,7 +90,7 @@ public abstract class SettingsBase
     /// </summary>
     public void RestoreFromSnapshot(Dictionary<string, object?> snapshot)
     {
-        var properties = SettingsPropertyCache.GetSettingProperties(GetType());
+        var properties = SettingsPropertyCache.GetPersistedProperties(GetType());
 
         foreach (var propInfo in properties)
         {

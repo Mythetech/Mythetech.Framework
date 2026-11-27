@@ -10,50 +10,67 @@ namespace Mythetech.Framework.Infrastructure.Mcp.Transport;
 internal static class McpHttpToken
 {
     private const UnixFileMode OwnerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-    private const int Attempts = 10;
+    private const int LockAttempts = 100;
+    private static readonly TimeSpan LockRetryDelay = TimeSpan.FromMilliseconds(20);
 
     public static string LoadOrCreate(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        for (var attempt = 0; attempt < Attempts; attempt++)
+        using var turn = TakeTurn(path);
+
+        // Files are only ever moved into place complete, so an empty one is left over from a crash.
+        if (TryRead(path, out var existing) && existing.Length > 0)
         {
-            if (TryRead(path, out var existing))
-            {
-                if (existing.Length > 0)
-                {
-                    RestrictToOwner(path);
-                    return existing;
-                }
-
-                // Files are only ever moved into place complete, so an empty one is left over from a crash.
-                TryDelete(path);
-            }
-
-            var token = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
-            var temporary = $"{path}.{Guid.NewGuid():N}.tmp";
-            try
-            {
-                var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
-                if (!OperatingSystem.IsWindows())
-                {
-                    options.UnixCreateMode = OwnerOnly;
-                }
-                using (var stream = new FileStream(temporary, options))
-                using (var writer = new StreamWriter(stream))
-                {
-                    writer.Write(token);
-                }
-                File.Move(temporary, path, overwrite: false);
-                return token;
-            }
-            catch (IOException)
-            {
-                // Another instance moved its token into place first; the next pass reads it.
-                TryDelete(temporary);
-            }
+            RestrictToOwner(path);
+            return existing;
         }
 
-        throw new IOException("The MCP token file could not be created or read.");
+        var token = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+        var temporary = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            using (var stream = new FileStream(temporary, OwnerOnlyOptions(FileMode.CreateNew, FileAccess.Write)))
+            using (var writer = new StreamWriter(stream))
+            {
+                writer.Write(token);
+                writer.Flush();
+                // Renamed before it reaches the disk, a power loss can leave the file empty and the token lost.
+                stream.Flush(flushToDisk: true);
+            }
+            File.Move(temporary, path, overwrite: true);
+            return token;
+        }
+        finally
+        {
+            TryDelete(temporary);
+        }
+    }
+
+    // File.Move without overwrite is an existence check then a rename on Unix, so creation takes turns on a side lock file.
+    private static FileStream TakeTurn(string path)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return new FileStream($"{path}.lock", OwnerOnlyOptions(FileMode.OpenOrCreate, FileAccess.ReadWrite));
+            }
+            // A held lock throws a plain IOException; a missing folder or a bad path throws a subclass and fails at once.
+            catch (IOException ex) when (ex.GetType() == typeof(IOException) && attempt < LockAttempts)
+            {
+                Thread.Sleep(LockRetryDelay);
+            }
+        }
+    }
+
+    private static FileStreamOptions OwnerOnlyOptions(FileMode mode, FileAccess access)
+    {
+        var options = new FileStreamOptions { Mode = mode, Access = access, Share = FileShare.None };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = OwnerOnly;
+        }
+        return options;
     }
 
     private static bool TryRead(string path, out string token)

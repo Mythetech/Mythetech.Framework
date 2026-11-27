@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Mythetech.Framework.Infrastructure.FeatureFlags;
 
 namespace Mythetech.Framework.Infrastructure.Settings;
 
@@ -10,6 +11,7 @@ namespace Mythetech.Framework.Infrastructure.Settings;
 internal static class SettingsPropertyCache
 {
     private static readonly ConditionalWeakTable<Type, SettingPropertyInfo[]> _cache = new();
+    private static readonly ConditionalWeakTable<Type, SettingPropertyInfo[]> _persistedCache = new();
 
     /// <summary>
     /// Gets cached property information for all properties with [Setting] attribute on the given type.
@@ -25,6 +27,25 @@ internal static class SettingsPropertyCache
                     GetBackingFieldName(p.Name),
                     type.GetField(GetBackingFieldName(p.Name), BindingFlags.NonPublic | BindingFlags.Instance)))
                 .Where(x => x.Attribute != null)
+                .ToArray();
+        });
+    }
+
+    /// <summary>
+    /// Gets the properties that are saved, loaded and reverted: those with [Setting] plus public bool properties with [FeatureFlag].
+    /// </summary>
+    public static SettingPropertyInfo[] GetPersistedProperties(Type settingsType)
+    {
+        return _persistedCache.GetValue(settingsType, type =>
+        {
+            return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.GetCustomAttribute<SettingAttribute>() != null
+                            || (p.PropertyType == typeof(bool) && p.GetCustomAttribute<FeatureFlagAttribute>() != null))
+                .Select(p => new SettingPropertyInfo(
+                    p,
+                    p.GetCustomAttribute<SettingAttribute>(),
+                    GetBackingFieldName(p.Name),
+                    type.GetField(GetBackingFieldName(p.Name), BindingFlags.NonPublic | BindingFlags.Instance)))
                 .ToArray();
         });
     }

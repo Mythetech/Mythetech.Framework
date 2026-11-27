@@ -136,9 +136,11 @@ public class MessageBusFanOutTests
     public async Task PublishAsync_WithListener_RecordsNestedActivities()
     {
         var stopped = new ConcurrentQueue<Activity>();
+        // Read before the listener exists: the source's constructor calls ShouldListenTo while its field is still null.
+        var sourceName = FrameworkTelemetry.MessageBusSource.Name;
         using var listener = new ActivityListener
         {
-            ShouldListenTo = source => source.Name == FrameworkTelemetry.MessageBusSource.Name,
+            ShouldListenTo = source => source.Name == sourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = stopped.Enqueue,
         };

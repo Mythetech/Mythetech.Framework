@@ -175,7 +175,7 @@ public class SettingsProvider : ISettingsProvider
         var root = document.RootElement;
 
         // Use cached property info for better performance
-        var properties = SettingsPropertyCache.GetSettingProperties(settings.GetType());
+        var properties = SettingsPropertyCache.GetPersistedProperties(settings.GetType());
 
         foreach (var propInfo in properties)
         {
