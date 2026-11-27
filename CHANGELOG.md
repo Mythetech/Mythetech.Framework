@@ -1,11 +1,20 @@
 # Changelog
 
-## [Unreleased]
+## [0.23.3] - 2026-11-26
+
+### Added
+
+- `McpServerOptions.HttpTokenFilePath` makes the HTTP MCP transport require a bearer token. The token is generated on first start and kept in that file, readable and writable by its owner only on macOS and Linux. Every request but a CORS preflight must send it as `Authorization: Bearer`, and one that doesn't gets a 401. `McpServerState.HttpBearerToken` returns it, the MCP info dialog says where it is stored, and adding the server to Claude Code from the MCP menu passes it as a header, removing an existing entry of the same name first. With the option unset, the default, the transport accepts requests without a token as before
 
 ### Fixed
 
+- On macOS and Linux, a shell command's environment variables reach it through the process environment instead of being written into the shell's `-c` command line, where any process could read them
 - On macOS and Linux, a process group a `ShellCommand.OwnProcessGroup` command leads now ends when the app's process does, a crash or a SIGKILL included, as it already did on Windows through its job object. It used to keep running: on macOS the whole group, and on Linux everything in it but the leader. A watchdog shell outside the app's process tree, started with the first group command, kills every group still running once the app's end of a pipe it reads closes. Disposing an `IShellProcess` strikes its group off the watchdog's list, and groups that have emptied are struck off every 10 seconds, so a reused group id is never signalled
 - A class of `[FeatureFlag]` properties with no `[Setting]` now shows in the settings panel, is saved, loaded and committed with Done, and is reverted by Cancel. Before, none of that happened, so its flags couldn't be turned on
+
+### Notes
+
+- `Mythetech.Framework` moves to `0.23.3` and `Mythetech.Framework.Desktop` to `0.23.2`. `Mythetech.Framework.WebAssembly` stays at `0.23.1` and `Mythetech.Framework.AI.Generator` at `0.22.0`
 
 ## [0.23.2] - 2026-11-22
 
